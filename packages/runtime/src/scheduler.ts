@@ -45,8 +45,16 @@ export class Scheduler {
     this.wake?.abort();
   }
 
-  /** Fire everything due right now (also used directly by tests/sims). */
-  async tick(): Promise<number> {
+  private tickLock: Promise<unknown> = Promise.resolve();
+
+  /** Fire everything due right now (also used directly by tests/sims). Ticks never overlap. */
+  tick(): Promise<number> {
+    const run = this.tickLock.then(() => this.tickUnlocked());
+    this.tickLock = run.catch(() => undefined);
+    return run;
+  }
+
+  private async tickUnlocked(): Promise<number> {
     const now = this.core.clock.now();
     const due = await this.core.store.dueSchedules(now.toISOString(), 100);
     for (const s of due) {
