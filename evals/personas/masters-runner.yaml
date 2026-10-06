@@ -1,0 +1,72 @@
+id: masters-runner
+description: 62-year-old masters runner. Consistent, cautious, slower recovery. Southern-hemisphere time zone.
+profile:
+  name: Margaret
+  age: 62
+  sex: female
+  tz: Australia/Sydney
+  locale: en-AU
+  units: metric
+  heightCm: 162
+  weightKg: 58
+  home: { lat: -33.8688, lon: 151.2093 }
+history:
+  yearsRunning: 14
+  weeklyKm: 32
+  runsPerWeek: 4
+  longestRunKm: 14
+  injuries:
+    - { location: left_hip, year: 2025, status: past, notes: "Hip bursitis, resolved with physio" }
+  recentRaces:
+    - { name: "Sydney Harbour 10K", distanceKm: 10, time: "56:30", date: "2026-08-23" }
+  notes: Takes an extra rest day after hard efforts.
+goals:
+  - { race: "City2Surf", distanceKm: 14, date: "2027-08-08", target: "under 1:35", priority: A }
+  - { race: "Bay Run 10K", distanceKm: 10, date: "2026-12-06", target: "sub 55:00", priority: B }
+availability:
+  days: [mon, wed, thu, sat, sun]
+  preferredTimes: { weekday: "06:00", weekend: "07:00" }
+  constraints:
+    - { kind: never_weekday, weekday: tue, reason: "volunteering" }
+    - { kind: never_weekday, weekday: fri, reason: "grandchildren" }
+devices:
+  hasHr: true
+  app: garmin
+  watch: Garmin Forerunner 55
+  hasCadence: true
+  screenshotTheme: light
+communication:
+  style: chatty
+  emoji: some
+  language: en
+  replyLatencyMin: { median: 35, p90: 200 }
+  activeHours: { start: "06:00", end: "21:30" }
+  quietHours: { start: "21:30", end: "06:30" }
+  proactivePerWeek: { min: 2, max: 7 }
+compliance: 0.92
+painHonesty: 0.7
+tonePreference: gentle
+hidden:
+  - id: bp_meds
+    category: health
+    statement: "I take blood pressure medication in the morning, my GP is fine with running."
+    answer: "Yes, I'm on blood pressure tablets; my doctor cleared running."
+    askedPatterns: ["medic", "health", "doctor", "blood pressure", "conditions?"]
+    value: "blood pressure"
+    accept: ["blood pressure", "bp\\b"]
+  - id: hip_side
+    category: injury
+    statement: "My left hip had bursitis last year. It still gets cranky on cold mornings."
+    answer: "Left hip, bursitis, last year."
+    askedPatterns: ["hip", "injur", "history", "left or right"]
+    value: left
+    accept: ["left"]
+timeline:
+  - { type: poor_sleep, startDay: 6, days: 3, hours: 5 }
+physiology:
+  thresholdPaceSecPerKm: 372
+  injuryProneness: 1.2
+  vulnerableRegion: left_hip
+  terrain: rolling
+quirks:
+  pushesHarder: 0.05

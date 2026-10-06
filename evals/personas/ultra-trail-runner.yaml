@@ -1,0 +1,69 @@
+id: ultra-trail-runner
+description: Ultra trail runner building toward a 120K. High volume, back-to-back long runs, mountain terrain, time-on-feet thinking.
+profile:
+  name: Jonas
+  age: 41
+  sex: male
+  tz: Europe/Zurich
+  locale: de-CH
+  units: metric
+  heightCm: 184
+  weightKg: 74
+  home: { lat: 46.9480, lon: 7.4474 }
+history:
+  yearsRunning: 9
+  weeklyKm: 85
+  runsPerWeek: 6
+  longestRunKm: 62
+  injuries:
+    - { location: right_knee, year: 2023, status: past, notes: "ITB/knee pain on long descents" }
+  recentRaces:
+    - { name: "Eiger Ultra Trail 51K", distanceKm: 51, time: "6:12:00", date: "2026-07-18" }
+  notes: Runs by time and vertical gain more than by pace.
+goals:
+  - { race: "Lavaredo Ultra Trail 120K", distanceKm: 120, date: "2027-06-25", target: "finish under 20 h", priority: A }
+availability:
+  days: [mon, tue, wed, thu, fri, sat, sun]
+  preferredTimes: { weekday: "06:00", weekend: "07:00" }
+  constraints:
+    - { kind: max_session_min, minutes: 480, reason: "long run day" }
+devices:
+  hasHr: true
+  app: garmin
+  watch: Garmin Fenix 7
+  hasCadence: true
+  screenshotTheme: dark
+communication:
+  style: chatty
+  emoji: some
+  language: en
+  replyLatencyMin: { median: 30, p90: 240 }
+  activeHours: { start: "06:00", end: "22:00" }
+  quietHours: { start: "22:00", end: "06:30" }
+  proactivePerWeek: { min: 3, max: 10 }
+compliance: 0.9
+painHonesty: 0.8
+tonePreference: neutral
+hidden:
+  - id: vert_ceiling
+    category: preference
+    statement: "I get bad knee pain on long steep descents, so keep vertical-loss sessions modest."
+    answer: "Long steep descents hurt my right knee."
+    askedPatterns: ["descent", "downhill", "knee", "injur"]
+    value: descent
+    accept: ["descent", "downhill"]
+  - id: ultra_pb
+    category: pb
+    statement: "My 50K trail PB is 5:48 from the Zürich Marathon Trail."
+    answer: "50K trail PB: 5:48."
+    askedPatterns: ["50\\s?k", "ultra.*(pb|pr|best)", "\\b(pb|pr)\\b", "personal (best|record)"]
+    value: "5:48"
+    accept: ["5[:.]48"]
+timeline: []
+physiology:
+  thresholdPaceSecPerKm: 305
+  injuryProneness: 1.1
+  vulnerableRegion: right_knee
+  terrain: mountain
+quirks:
+  pushesHarder: 0.2

@@ -1,0 +1,78 @@
+id: half-marathon-galaxy
+description: Self-coached amateur (the founder persona). Galaxy Watch + Samsung Health, 4-5 runs a week, targeting a half marathon.
+profile:
+  name: Sam
+  age: 38
+  sex: male
+  tz: Europe/Amsterdam
+  locale: en
+  units: metric
+  heightCm: 182
+  weightKg: 77
+  home: { lat: 52.3731, lon: 4.8922 }
+history:
+  yearsRunning: 4
+  weeklyKm: 38
+  runsPerWeek: 4
+  longestRunKm: 17
+  injuries:
+    - { location: right_itb, year: 2024, status: past, notes: "ITB flare after a marathon build" }
+  recentRaces:
+    - { name: "Zandvoort 10K", distanceKm: 10, time: "46:10", date: "2026-04-12" }
+  notes: Plateaued at 1:48 for the half; generic plans left him over-trained.
+goals:
+  - { race: "Rotterdam Half Marathon", distanceKm: 21.0975, date: "2026-12-13", target: "1:42", priority: A }
+availability:
+  days: [mon, tue, thu, sat, sun]
+  preferredTimes: { weekday: "06:45", weekend: "08:30" }
+  constraints:
+    - { kind: never_weekday, weekday: wed, reason: "evening class and early meetings" }
+    - { kind: never_weekday, weekday: fri, reason: "kids' day" }
+devices:
+  hasHr: true
+  app: samsung_health
+  watch: Galaxy Watch 6
+  hasCadence: true
+  screenshotTheme: light
+communication:
+  style: terse
+  emoji: some
+  language: en
+  replyLatencyMin: { median: 15, p90: 120 }
+  activeHours: { start: "06:30", end: "22:30" }
+  quietHours: { start: "22:00", end: "07:00" }
+  proactivePerWeek: { min: 3, max: 9 }
+compliance: 0.9
+painHonesty: 0.85
+tonePreference: neutral
+hidden:
+  - id: pb_10k
+    category: pb
+    statement: "FYI my 10k PB is 46:10, set at Zandvoort in April."
+    answer: "10k PB is 46:10 (Zandvoort, April)."
+    askedPatterns: ["10\\s?k.*(pb|pr|best|time)", "personal (best|record)", "\\b(pb|pr)\\b", "recent race", "race results?"]
+    value: "46:10"
+    accept: ["46[:.]10", "46 min(utes)?"]
+  - id: no_wednesdays
+    category: schedule
+    statement: "I can't run on Wednesdays or Fridays, evening class and school run."
+    answer: "Wednesdays and Fridays are out for me."
+    askedPatterns: ["which days", "days (are|do) you", "wednesday", "friday", "availab"]
+    value: wednesday
+    accept: ["wednesday", "wed\\b"]
+  - id: itb_history
+    category: injury
+    statement: "My right ITB gave me trouble in 2024 after the marathon block."
+    answer: "Right ITB, 2024, flared after a marathon build."
+    askedPatterns: ["injur", "itb", "knee", "history"]
+    value: "right"
+    accept: ["right"]
+timeline:
+  - { type: illness, startDay: 9, days: 4, symptoms: ["sore throat", "blocked nose", "tired"], fever: false }
+physiology:
+  thresholdPaceSecPerKm: 282
+  injuryProneness: 1.0
+  vulnerableRegion: right_itb
+  terrain: flat
+quirks:
+  pushesHarder: 0.15

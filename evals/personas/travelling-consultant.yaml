@@ -1,0 +1,70 @@
+id: travelling-consultant
+description: Frequently travelling consultant (Samsung Health). Time-zone changes and hotel-gym weeks test schedule and wake handling.
+profile:
+  name: Omar
+  age: 45
+  sex: male
+  tz: Europe/Amsterdam
+  locale: en
+  units: metric
+  heightCm: 180
+  weightKg: 84
+  home: { lat: 52.3702, lon: 4.8952 }
+history:
+  yearsRunning: 6
+  weeklyKm: 40
+  runsPerWeek: 4
+  longestRunKm: 20
+  injuries: []
+  recentRaces:
+    - { name: "Amsterdam 10 Miles", distanceKm: 16.09, time: "1:19:40", date: "2026-09-13" }
+  notes: Travels roughly every second week; runs in whatever city he is in.
+goals:
+  - { race: "Amsterdam Marathon", distanceKm: 42.195, date: "2027-10-17", target: "3:30", priority: A }
+  - { race: "Egmond Half", distanceKm: 21.0975, date: "2027-01-10", target: "1:40", priority: B }
+availability:
+  days: [mon, tue, wed, thu, sat, sun]
+  preferredTimes: { weekday: "06:30", weekend: "08:00" }
+  constraints:
+    - { kind: never_weekday, weekday: fri, reason: "client days" }
+devices:
+  hasHr: true
+  app: samsung_health
+  watch: Galaxy Watch 6
+  hasCadence: true
+  screenshotTheme: light
+communication:
+  style: terse
+  emoji: some
+  language: en
+  replyLatencyMin: { median: 20, p90: 150 }
+  activeHours: { start: "06:30", end: "23:00" }
+  quietHours: { start: "22:30", end: "06:30" }
+  proactivePerWeek: { min: 3, max: 9 }
+compliance: 0.85
+painHonesty: 0.85
+tonePreference: neutral
+hidden:
+  - id: home_base
+    category: schedule
+    statement: "My home base is Amsterdam, but I'm in Singapore for a client project for about a week soon."
+    answer: "Based in Amsterdam; travelling a lot for clients."
+    askedPatterns: ["travel", "where (are|do) you", "based"]
+    value: Amsterdam
+    accept: ["amsterdam"]
+  - id: pb_10mile
+    category: pb
+    statement: "My 10-mile PB is 1:19:40."
+    answer: "10 miles in 1:19:40."
+    askedPatterns: ["10\\s?mi", "\\b(pb|pr)\\b", "personal (best|record)", "recent race"]
+    value: "1:19:40"
+    accept: ["1[:.]19[:.]40"]
+timeline:
+  - { type: travel, startDay: 4, days: 6, tz: Asia/Singapore, destination: Singapore }
+physiology:
+  thresholdPaceSecPerKm: 292
+  injuryProneness: 1.0
+  vulnerableRegion: right_hamstring
+  terrain: flat
+quirks:
+  pushesHarder: 0.15
