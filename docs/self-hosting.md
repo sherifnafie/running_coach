@@ -26,9 +26,13 @@ OpenAI enables voice notes, speech synthesis and realtime/cascaded calls. Compat
 
 Copy `opencoach.config.opencode-go.example.yaml` to an absolute configuration path, set `OPENCOACH_CONFIG` to that path, set `OPENCOACH_DEMO=0`, and supply `OPENCODE_GO_API_KEY` through your shell or process manager. The CLI does not load `.env` files automatically. The key alone does not select OpenCode GO: both the compatible provider and its tier mappings must be configured explicitly. Default provider selection remains unchanged.
 
-The example uses the [official OpenCode GO endpoint and model IDs](https://opencode.ai/docs/go/): `https://opencode.ai/zen/go/v1`, `kimi-k2.6` for the coach/deep tiers, and `glm-5.3-flash` for the fast tier. Both models are documented for OpenAI-compatible chat completions. Requests include `User-Agent: OpenCoach/0.1.0` and a stable conversation identifier in `x-opencode-session`, using supplied epoch metadata or the athlete/cache key. Credentials stay in the trusted server. The example sets `vision: false`; image support has not been verified, so add a separately verified vision provider before relying on screenshot extraction.
+The example uses **DeepSeek V4.1 Flash** (`deepseek-v4.1-flash`) for coach, deep and fast tiers at the [official GO endpoint](https://opencode.ai/docs/go/): `https://opencode.ai/zen/go/v1`. It enables `replayReasoningContent: true` for thinking/tool continuations. Requests include `User-Agent: OpenCoach/0.1.0` and a stable conversation identifier in `x-opencode-session`, using supplied epoch metadata or the athlete/cache key. Credentials stay in the trusted server. The example sets `vision: false`; this is the text model, distinct from DeepSeek V4 Flash Vision Exp. Add a separately verified vision provider before relying on screenshot extraction.
 
-The adapter has fake-client contract tests. Live authentication, model availability and tool behavior remain unverified because this execution environment's network policy denies `opencode.ai`. This configuration example is not a model conformance result ([MOD-2], SPEC §5.7).
+The example's `models.pricing` uses GO's peak USD-per-million-token values, checked on 6 October 2026: input $0.30, output $1.20, cache reads $0.006. GO also documents off-peak rates. OpenCoach uses these fixed peak rates for a conservative token-equivalent budget estimate; it does not read subscription allowances or the provider's billing ledger. Unknown models otherwise report zero cost, so update pricing when changing models and check current official rates.
+
+Bounded live checks on 6 October 2026 passed authentication/model availability, streamed tools, reasoning replay, usage/cache reporting, and the real app's signup → delivered welcome/intake → saved run/plan → all four views. The requested 08:00 local check-in was persisted; future scheduled delivery was not exercised. See [the verification record](verification/opencode-go-smoke.md). This is smoke evidence, not the full [MOD-2] conformance suite or coaching-quality certification.
+
+The supplied Compose file does not automatically pass the GO key or mount its configuration. For GO in Compose, add an override that passes `OPENCODE_GO_API_KEY` and `OPENCOACH_CONFIG: /config/go.yaml`, and bind-mount your secret-free YAML read-only at `/config/go.yaml`. Keep the key in the server environment and retain the separate app/views origins. The recorded live GO run used the host server; Docker browser verification used the scripted demo.
 
 ## Views and mobile access
 
@@ -56,7 +60,7 @@ mkdir -p .data
 docker compose up --build
 ```
 
-The Compose file binds ports to loopback. It sets `seccomp=unconfined`, `apparmor=unconfined` and `systempaths=unconfined` for the trusted server so nested user/PID namespaces can mount private procfs. Each athlete namespace still drops capabilities, mounts its own procfs, masks sensitive paths and denies networking. Hosts that disallow user namespaces need their policy configured or the Docker sandbox provider selected. A managed build proxy can supply its CA with `docker build --secret id=proxy_ca,src="$CODEX_PROXY_CERT" -f docker/server.Dockerfile .`; TLS verification stays enabled and the CA is not stored in image layers.
+The Compose file binds ports to loopback. It sets `seccomp=unconfined`, `apparmor=unconfined` and `systempaths=unconfined` for the trusted server so nested user/PID namespaces can mount private procfs. Each athlete namespace still drops capabilities, mounts its own procfs, masks sensitive paths and denies networking. Hosts that disallow user namespaces need their policy configured or the Docker sandbox provider selected. The final server image built and passed non-root startup, browser demo, Python-library and sandbox virtual-time checks on 6 October 2026 (see the verification record). A managed build proxy can supply its CA with `docker build --secret id=proxy_ca,src="$CODEX_PROXY_CERT" -f docker/server.Dockerfile .`; TLS verification stays enabled and the CA is not stored in image layers.
 
 ## Export, import and maintenance
 
@@ -64,10 +68,10 @@ Settings offers export, view history/revert, calendar feed rotation and account 
 
 ```sh
 node apps/server/bin/opencoach.mjs setup-code
-node apps/server/bin/opencoach.mjs export <athlete-id>
-node apps/server/bin/opencoach.mjs import <bundle.tar.gz> [new-athlete-id]
+node apps/server/bin/opencoach.mjs export "athlete-id"
+node apps/server/bin/opencoach.mjs import "/absolute/path/bundle.tar.gz" "new-athlete-id"
 ```
 
-Use the same absolute data/config paths as the running server. Stop the server before imports. A setup code can only create the first administrator; later accounts use administrator-issued invites. SIGINT/SIGTERM closes listeners, voice calls, timers, sandboxes and SQLite connections.
+Replace the quoted example arguments with the real account ID or file path. Use the same absolute data/config paths as the running server. Stop the server before imports. A setup code can only create the first administrator; later accounts use administrator-issued invites. SIGINT/SIGTERM closes listeners, voice calls, timers, sandboxes and SQLite connections.
 
 Run `pnpm typecheck`, `pnpm test`, `pnpm build` and `pnpm eval:selftest` before an upgrade. `pnpm test:e2e` verifies the built PWA against a real demo server. Offline evaluation self-tests use seeded scripted coaches and make no model API calls. Real provider credentials and an explicit eval CLI choice are required for paid model runs.

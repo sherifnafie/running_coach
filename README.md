@@ -6,7 +6,7 @@ This repository contains a **working v0.1 web app and server**. You run the serv
 
 ## What the app looks like
 
-The app opens into chat. A navigation bar switches between chat and training screens; narrow screens put some items under **More**. Settings is always available.
+The app opens into chat. A navigation bar switches between chat and training screens. With the four bundled views, **Plan** and **Progress** are under **More**, including on desktop. Settings is always available.
 
 | Screen | What you can do |
 |---|---|
@@ -120,9 +120,9 @@ export OPENCODE_GO_API_KEY
 OPENCOACH_DEMO=0 pnpm start
 ```
 
-Both the configuration path and key are required. The example selects `kimi-k2.6` for coach/deep work and `glm-5.3-flash` for fast work at the [official GO endpoint](https://opencode.ai/docs/go/). No private key is included in the repository.
+Both the configuration path and key are required. The example selects **DeepSeek V4.1 Flash** (`deepseek-v4.1-flash`) for all three tiers at the [official GO endpoint](https://opencode.ai/docs/go/), enables reasoning replay for tool continuations, and supplies peak token prices for conservative local budget estimates. No private key is included in the repository.
 
-**Live OpenCode GO authentication and tool behavior have not been verified**: this build environment blocks outbound access to `opencode.ai`. The compatible adapter has synthetic contract tests. The example disables image input because this integration's vision support is unverified.
+**Live smoke testing passed on 6 October 2026:** streamed tool calls and continuation, account creation, delivered coach replies, saved intake, a recorded run, training plan, and data displayed in all four screens. The check-in was saved for the requested local time. These bounded tests use synthetic athlete data and do not certify coaching quality or full model conformance. The example keeps image input disabled; this text model is distinct from DeepSeek V4 Flash Vision Exp. See the [verification record](docs/verification/opencode-go-smoke.md) for observed behavior and limits.
 
 ## Docker and phone access
 
@@ -135,7 +135,7 @@ OPENCOACH_DEMO=1 docker compose up --build
 
 The server image runs as user/group **1000**; `.data` must be writable by that user. Compose stores data there and binds the app and view ports to loopback. The supplied deployment uses isolated local namespaces inside the server container. See [self-hosting](docs/self-hosting.md#sandboxes) for host policy, directory permissions, and the alternative Docker sandbox provider.
 
-The **final server image rebuild is pending** because registry proxy requests failed with HTTP 503 in the build environment. The shipping sandbox image and a non-root Node 22 server smoke test passed; those do not replace a successful build of the final server Dockerfile.
+The server Dockerfile built successfully on 6 October 2026. Its image started as user/group 1000 with isolated local sandboxes and passed browser signup, delivered demo replies, all four views, and reload. Python analysis libraries and virtual time also passed inside its athlete sandbox. The [verification record](docs/verification/opencode-go-smoke.md) separates these packaging checks from the host-based live model run.
 
 On your phone, `localhost` means the phone itself. To reach the server from another device, configure **two distinct browser-reachable origins**: `PUBLIC_URL` for the app and `VIEWS_URL` for its isolated training screens. Both need HTTPS for normal mobile passkeys, microphone, installation, and push use. Configure a reverse proxy or private tunnel, including WebSocket support. See [mobile access and hosting](docs/self-hosting.md#views-and-mobile-access) before changing the defaults.
 
@@ -146,11 +146,11 @@ On your phone, `localhost` means the phone itself. To reach the server from anot
 | Browser app + server | Implemented and tested together: account setup/consent, sessions/passkeys, chat streaming, uploads, quick replies, four training views, settings, export, and deletion. |
 | Persistent coach | Per-athlete SQLite data, files, immutable uploads, Git history, schedules, model tools, and isolated command execution are implemented. The coach decides the training content. |
 | Screen changes | Implemented publication checks, isolated view origin, scoped data bridge, and view history/revert. Chromium is required for publication. |
-| Real AI coaching | Provider adapters are implemented. Actual coaching quality, real-provider tool conformance, and human evaluation calibration remain unverified. Passing scripted evaluations does not establish those. |
+| Real AI coaching | DeepSeek V4.1 Flash through OpenCode GO passed bounded live adapter/app smoke tests. Full model conformance, coaching quality, and human evaluation calibration remain unverified. |
 | Voice, Web Push, Telegram, search/MCP | Optional services/adapters are implemented and need deployment credentials/configuration. Live external-service behavior has not been verified. |
 | Fitness data | Manual chat, screenshots, and file uploads are supported. Screenshot interpretation needs a verified vision-capable model. There is no automatic Samsung Health, Garmin, or Strava cloud sync. |
 | Native mobile | Android/Capacitor scaffold and a Health Connect bridge exist. Browser-side bridge tests use mocks; no native SDK/device build has been verified. iOS HealthKit, native FCM, and native share-sheet integration are unfinished. Use the web app first. |
-| Deployment | Host demo and isolated sandbox checks passed. The final server Docker image rebuild remains pending as described above. |
+| Deployment | Host demo, live-model app smoke, and final server Docker image build/start/browser checks passed with isolated sandboxes. |
 
 ## If something goes wrong
 

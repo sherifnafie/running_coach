@@ -1,7 +1,7 @@
 # HANDOVER: OpenCoach implementation status
 
-**Updated:** 2026-10-06 by the continuing Codex collective. The original handover brief is retained below; §1–§3 describe the current implementation.
-**Branch:** `ccr-a500ac00-ytsl89`. GitHub write access is restored. All eight continuation commits through `25799c1b4ee5fafbe4046f6de1791ffc5118eaa6` were pushed successfully, and the remote branch SHA was checked to match. Earlier Git HTTP 403/proxy 503 and connected-app write failures are historical. A new conversation can clone this branch directly; the supplied bundle is an optional backup. Live OpenCode GO testing and the final server-image rebuild remain outstanding.
+**Updated:** 2026-10-06 by the continuing Codex agent. The original handover brief is retained below; §1–§3 describe the current implementation.
+**Branch:** `ccr-a500ac00-ytsl89`. GitHub write access is restored. All eight continuation commits through `25799c1b4ee5fafbe4046f6de1791ffc5118eaa6` were pushed successfully, and the remote branch SHA was checked to match. Earlier Git HTTP 403/proxy 503 and connected-app write failures are historical. A new conversation can clone this branch directly; the supplied bundle is an optional backup. Live DeepSeek V4.1 Flash/OpenCode GO smoke testing and the final server Dockerfile build/start checks now pass; see [the verification record](docs/verification/opencode-go-smoke.md). Full provider conformance and coaching-quality validation remain incomplete.
 **Goal:** a full end-to-end implementation of `SPEC.md`: Phase 1 MVP plus the core of Phase 2 (calls, helpers, MCP, native shell). The user asked for a complete implementation.
 
 ## 0. Preamble: read this first
@@ -37,7 +37,7 @@ After that, complete the remaining Phase 1–2 items listed in §4.
 - **Work in small, verified steps.** After each step run `npx tsc -p tsconfig.json` and the relevant `npx vitest run <path>`, commit with the required footer (§2), and push to `ccr-a500ac00-ytsl89`. Pushing often means nothing is lost if *your* session also ends abruptly.
 - **Keep this file current.** When you finish a work package, update its row in §1 and tick it off in §3. If you run low on budget yourself, update this file *before* you stop, as the previous agent did.
 - **Follow the repo rules** in `AGENTS.md`: no coaching logic in harness code (the "deletion test"), guarantees enforced in code, all time through `Clock`, no secrets in the sandbox, provider features behind interfaces, requirement IDs (`[RT-3]` etc.) cited in commits and tests.
-- **Environment limits** (§2): there are no LLM API keys, so test with the scripted provider and demo coach and never call real APIs in tests. There is no Docker daemon and no Android SDK. Chromium for Playwright is at `/opt/pw-browsers`. If your environment differs (for example you do have Docker or keys), say so in this file and use it.
+- **Historical environment limits:** the original build had no model keys or Docker and used Chromium at `/opt/pw-browsers`. Current observed facts are in §2. The user has explicitly authorized bounded live GO tests; keep ordinary unit tests offline and never copy server credentials into athlete sandboxes.
 - **Don't open a pull request** unless the user asks for one.
 
 ### Where to look
@@ -60,7 +60,9 @@ The original WIP is now integrated into a runnable server and PWA. The gateway, 
 
 **Final verification:** frozen dependency installation, aggregate typecheck and production build pass. `pnpm test` passes **738 tests** (735 unit/integration plus three isolated Chromium renderer gates). Web unit tests pass **127/127**, and real-gateway Chromium acceptance passes **6/6**. Offline self-test passes ten reference cases and rejects six bad controls; the full offline gate catalog passes **120 scenarios / 173 assertions**, with zero failures or missing evidence.
 
-The shipping sandbox image built and passed real Docker isolation, Python-library and date/Node/Python virtual-time smoke checks. A non-root Node **22.23.3** container using that image and a read-only source mount passed setup → two delivered demo replies → four views/PWA/kit serving → deletion. Its local namespace commands also passed Python-library and virtual-time checks. Earlier server-image builds passed, but the final fresh server-image rebuild is **blocked by external npm/Docker registry proxy 503 errors**. Docker source permissions were corrected with `COPY --chown=node:node`; final Dockerfile startup should be rechecked once registry access recovers. A disk-full interruption was resolved by removing obsolete task-generated images/cache; the clean aggregate suite then passed.
+**Live continuation:** `deepseek-v4.1-flash` at `https://opencode.ai/zen/go/v1` passed two actual streamed adapter requests, including reasoning/tool-result replay and usage/cache reporting. Chromium signup → real delivered welcome → intake → manual 5 km recording and plan generation passed with isolated namespaces. The coach wrote one activity, one block and 24 workouts; Today/Calendar/Plan/Progress displayed that data after restart/readback with no browser errors or extra model turns. The requested 7 October 08:00 Amsterdam check-in is stored at 06:00 UTC; future delivery was not tested. Three coach turns ended `ok` (4/6/16 steps). A background UI helper was cancelled at bounded shutdown; no live view publication is claimed. The coach expanded a one-week request to eight weeks and added a weekly review, so scope/frequency calibration remains an evaluation gap. Configuration now selects this model for all three tiers, enables reasoning replay, disables vision, and supplies conservative peak pricing. No harness or seed changes were needed. See [the detailed evidence](docs/verification/opencode-go-smoke.md).
+
+The shipping sandbox image previously passed real Docker isolation and virtual-time checks. The final `docker/server.Dockerfile` now also builds successfully. Its image runs as uid/gid 1000 with `local-isolated`, `isolated: true`, and passed browser setup/consent → delivered demo replies/effort journaling → four views → reload. Python-library imports and injected virtual dates passed inside its athlete sandbox. Earlier registry 503 and disk-full failures are historical. This continuation used pinned Node 22.23.3/pnpm 10.28.0 for host checks, passed frozen installation/build/typecheck, and passed 34 focused configuration/compatible-provider/SDK tests. The earlier aggregate gates above were not repeated for documentation/configuration-only changes.
 
 | Package / area | Status |
 |---|---|
@@ -82,7 +84,7 @@ The shipping sandbox image built and passed real Docker isolation, Python-librar
 
 **Contract repairs:** `NewEvent.tombstoned` permits only the exact tombstone marker for safe import; `SandboxPort.exec.signal` propagates cancellation. `SandboxProvider.releaseAthlete` removes persisted athlete/helper containers before hard deletion; sandbox/disk failures preserve ownership for retry. Helpers stop before inspecting/merging files. Quiet hours apply to proactive messages; held releases recheck current policy. Helpers use separate worktrees, intersect every ancestor grant, and merge only validated regular files. Session-authenticated mutations require the public Origin and a session-bound `X-CSRF-Token`; bearer clients remain exempt. Tus uploads are additive at `/v1/uploads/resumable`. Compatible providers accept deployment headers and a stable conversation header; the OpenCode GO example uses an environment key without changing default provider selection.
 
-**Known validation limits:** no paid model, live voice, Telegram or Web Push network run was performed. Offline controls verify harness and grader behavior, not coaching quality. Human judge calibration and consented real-world extraction corpora remain Appendix E follow-up work. The native scaffold was not compiled.
+**Known validation limits:** paid GO smoke requests now pass, but full model conformance and coaching-quality evaluation remain incomplete. Live voice, Telegram and Web Push were not exercised. Offline controls verify harness and grader behavior, not coaching quality. Human judge calibration and consented real-world extraction corpora remain Appendix E follow-up work. The native scaffold was not compiled.
 
 The WIP commits are on this branch (look for commit subjects starting with "WIP:"); each lists what works and what's missing. The **stub signatures in each package's `src/index.ts` are the contracts**: keep them.
 
@@ -90,15 +92,15 @@ The WIP commits are on this branch (look for commit subjects starting with "WIP:
 
 ## 2. Continuation environment facts (verified)
 
-- Host Node 24.19, pnpm 11.19; project packageManager remains pnpm 10.28 and TypeScript **5.9 pinned on purpose**. The Docker image uses Node 22 and pnpm 10.28. Packages are consumed as TS source; only the web and browser kit need builds. Dependencies were resolved against the host's 24-hour minimum release age, and frozen installation passes.
+- Default host Node 24.19/pnpm 11.19; the continuation explicitly selected installed Node **22.23.3** and pinned pnpm **10.28.0**. TypeScript remains **5.9 pinned on purpose**. The Docker image uses Node 22/pnpm 10.28. Packages are consumed as TS source; only the web and browser kit need builds. Frozen installation passes.
 - `node:sqlite` (built-in) works with **FTS5 + JSON1**, SQLite 3.50; `require('node:sqlite').backup` exists. There is no `sqlite3` CLI; Python's `sqlite3` module works.
 - **Unprivileged namespaces work:** the local provider uses pivot_root, drops capabilities, protects Git metadata, mounts private procfs and denies networking. See ADR 0004. Docker nesting requires `systempaths=unconfined` as well as the documented seccomp/AppArmor settings on the trusted server; athlete isolation remains enabled.
 - A real Docker daemon is available at `/var/run/docker.sock`. Real provider smoke tests and shipping-image builds are possible here.
 - Chromium is at `/usr/bin/chromium`; the old `/opt/pw-browsers` path is absent. Automatic discovery and `OPENCOACH_CHROMIUM_PATH` are supported.
-- The user supplied an OpenCode GO key during continuation, but outbound policy denies `opencode.ai`; no live request was made and the key was never persisted or committed. Model tests use scripted providers. The server falls back to demo mode when no provider keys are configured.
+- Current attached environment reports connected/current observations and wildcard HTTP destinations, with policy state `unknown` and no managed secret bindings. Actual unauthenticated GO documentation access returned HTTP 200; authorized authenticated DeepSeek V4.1 Flash requests succeeded through the inherited proxy with CA trust/TLS intact. The user-supplied key was held in a private ignored `work/` file for trusted processes, then removed; it was never committed or mounted into athlete sandboxes. Ordinary unit tests remain offline. The server still falls back to demo with no keys/explicit tiers.
 - Commit message footer (required on every commit):
   ```
-  Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+  Co-Authored-By: Claude Opus 5.5 noreply@anthropic.com
   Claude-Session: https://claude.ai/code/session_01WPiRtEzzvXsDneMb9aHwvM
   ```
 - Push only to `ccr-a500ac00-ytsl89`. Don't open a PR unless asked.
@@ -118,7 +120,9 @@ Commands: `pnpm install` · `npx tsc -p tsconfig.json` (root typecheck; also `pn
 - [x] Reconcile CI scripts, README and significant spec/ADR decisions.
 - [x] Record final aggregate checks, offline gate catalog and non-root container startup.
 - [x] Commit final changes, preserve a Git bundle, and push all continuation work after GitHub access was restored; verify the remote branch SHA.
-- [ ] Recheck the final server-image build/startup when external registry access recovers.
+- [x] Recheck the final server-image build/startup after registry access recovery.
+- [x] Run bounded live DeepSeek V4.1 Flash/GO adapter and isolated real-app smoke tests; record evidence and limits.
+- [ ] Complete real model conformance, safety/quality evaluation and external/native service validation.
 
 Each item below is a condensed version of the brief the original agent wrote. The detailed behavior is also in the stub JSDoc and the SPEC.
 

@@ -20,9 +20,9 @@ describe('OpenCode GO compatible configuration [RT-7] [SEC-1]', () => {
     const syntheticKey = 'synthetic-test-credential-no-live-access';
     const loaded = loadConfigDetailed({ path, cwd: dir, env: { OPENCODE_GO_API_KEY: syntheticKey } });
     expect(loaded.config.demo).toBe(false);
-    expect(loaded.config.providers.compatible[0]).toMatchObject({ id: 'opencode-go', apiKeyEnv: 'OPENCODE_GO_API_KEY', apiKey: syntheticKey, baseUrl: 'https://opencode.ai/zen/go/v1', headers: { 'User-Agent': 'OpenCoach/0.1.0' }, sessionHeader: 'x-opencode-session' });
-    expect(loaded.config.models?.tiers.coach).toEqual({ provider: 'opencode-go', model: 'kimi-k2.6' });
-    expect(loaded.config.models?.tiers.fast?.model).toBe('glm-5.3-flash');
+    expect(loaded.config.providers.compatible[0]).toMatchObject({ id: 'opencode-go', apiKeyEnv: 'OPENCODE_GO_API_KEY', apiKey: syntheticKey, baseUrl: 'https://opencode.ai/zen/go/v1', headers: { 'User-Agent': 'OpenCoach/0.1.0' }, sessionHeader: 'x-opencode-session', replayReasoningContent: true, vision: false });
+    expect(loaded.config.models?.tiers.coach).toEqual({ provider: 'opencode-go', model: 'deepseek-v4.1-flash' });
+    expect(loaded.config.models?.tiers.fast?.model).toBe('deepseek-v4.1-flash');
     expect(await readFile(path, 'utf8')).not.toContain(syntheticKey);
     expect(JSON.stringify(loaded.warnings)).not.toContain(syntheticKey);
   });
