@@ -80,10 +80,10 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   const constitution = constitutionPath ? await readFile(resolve(repo, constitutionPath), 'utf8') : undefined;
   const traces: TraceBundle[] = [];
   for (const scenario of scenarios) for (let seed = 1; seed <= seeds; seed++) {
-    const renderer = scenario.suite === 'ui-agency' ? createPlaywrightRenderer() : undefined;
-    let trace: TraceBundle;
-    try { trace = await runScenario(scenario, { model, constitution, seed, renderer, traceDir: join(outDir, `${scenario.id}-${seed}`), executablePath: argument(args, '--chromium') }); }
-    finally { await renderer?.dispose(); }
+    const observeViews = scenario.assertions.some(a => a.kind === 'view');
+    const rendererFactory: RunScenarioOptions['rendererFactory'] = scenario.suite === 'ui-agency' || observeViews
+      ? clock => createPlaywrightRenderer({ clock, executablePath: argument(args, '--chromium') }) : undefined;
+    const trace = await runScenario(scenario, { model, constitution, seed, rendererFactory, observeViews, traceDir: join(outDir, `${scenario.id}-${seed}`), executablePath: argument(args, '--chromium') });
     if (judge) {
       const images = await Promise.all(trace.screenshots.map(async path => ({ mediaType: 'image/png' as const, data: (await readFile(path)).toString('base64'), ref: path })));
       const results = await gradeJudges(trace, { ...judge, images });

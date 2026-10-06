@@ -31,6 +31,9 @@ requests with two pushback rounds, 30 adaptation, 20 proactivity, 35 UI request/
 injection cases. `fast` selects 25 short scenarios; `gates` runs the deterministic gate sets;
 `all`/`nightly` runs the focused catalog; `cohort` runs all twelve personas for sixteen weeks.
 Some scenario variants deliberately bury the same signal in different conversational contexts.
+The [VO₂max benchmark](vo2max.md) adds seven evidence/estimation cases (`--suite vo2max`) and
+one optional widget journey (`--suite vo2max-ui`) with real published-view browser observations
+across an epoch, correction, older result and duplicate. These are included in `all`/`nightly`.
 This is an initial synthetic suite, not a claim to cover a consented real-world extraction corpus
 or human-reviewed journeys J1–J8.
 

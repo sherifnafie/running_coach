@@ -1,5 +1,6 @@
 import type { ModelRequest } from '@opencoach/protocol';
 import type { ScriptHandler, ScriptedStep } from '@opencoach/engine';
+import { createVo2maxControl } from './vo2max-controls';
 
 const send = (text: string): ScriptedStep => ({ toolCalls: [{ name: 'send_message', input: { text } }] });
 function trigger(req: ModelRequest): string {
@@ -20,7 +21,10 @@ function resultText(req: ModelRequest): string {
  */
 export function createReferenceCoach(): ScriptHandler {
   const stages = new Map<string, number>();
+  const vo2max = createVo2maxControl();
   return req => {
+    const control = vo2max(req);
+    if (control) return control;
     const user = trigger(req);
     const ctx = situation(req);
     const key = req.metadata?.turnId ?? ctx;

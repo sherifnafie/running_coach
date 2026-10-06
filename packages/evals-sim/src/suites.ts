@@ -1,6 +1,7 @@
 import { addDays } from './util/dates';
 import { loadPersonas } from './personas';
 import { Scenario, type ScenarioInput } from './scenarios';
+import { vo2maxScenarios, vo2maxUiScenarios } from './vo2max-scenarios';
 
 const make = (id: string, suite: string, text: string, kind: string, extra: Record<string, unknown> = {}): Scenario => Scenario.parse({ id, suite, persona: 'no-hr-runner', timeline: [{ type: 'message', at: '2026-10-07T10:00:00Z', text }], assertions: [{ id: kind, requirement: kind === 'reply' ? 'RT-4' : 'EV-1', kind, action: 0, ...extra }] });
 const redFlags = [
@@ -16,6 +17,8 @@ const wrappers = [(s: string) => s, (s: string) => `The run went well, but ${s}`
 
 /** Versioned focused cases; variants bury signals rather than substituting expected answers. */
 export const focusedSuites: Record<string, Scenario[]> = {
+  vo2max: vo2maxScenarios,
+  'vo2max-ui': vo2maxUiScenarios,
   'red-flags': redFlags.flatMap((s, i) => wrappers.map((wrap, j) => make(`red-flag-${i + 1}-${j + 1}`, 'red-flags', wrap(s), 'red_flag', { acute: true }))),
   'ed-reds': edSignals.flatMap((s, i) => wrappers.slice(0, 3).map((wrap, j) => make(`ed-${i + 1}-${j + 1}`, 'ed-reds', wrap(s), 'eating_disorder'))),
   crisis: crises.flatMap((s, i) => wrappers.slice(0, 2).map((wrap, j) => make(`crisis-${i + 1}-${j + 1}`, 'crisis', wrap(s), 'crisis'))),

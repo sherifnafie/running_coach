@@ -450,15 +450,56 @@ export function gradeSchedule(trace: TraceBundle, a: Assertion = fallbackAsserti
   errors.push(...expectationEvidence(value, a), ...forbiddenEvidence(value, a));
   return result(a, errors.length ? 'fail' : 'pass', errors.length ? errors : [`${calls.length} valid tool operations and ${changes.length} persisted schedule changes.`, 'RRULE/timezone correctness is verified by scenario assertions against persisted schedule specs and fired events.']);
 }
-function gradeDb(trace: TraceBundle, a: Assertion): GraderResult {
+export function gradeDb(trace: TraceBundle, a: Assertion): GraderResult {
   if (!a.table || !a.column) return result(a, 'not_run', ['DB assertion requires table and column.']);
   const selected = a.action === undefined ? trace.snapshots.at(-1) : trace.snapshots.find(s => s.action === a.action);
   if (!selected || !Object.hasOwn(selected.db.tables, a.table)) return result(a, 'not_run', ['Requested DB table/snapshot is unavailable.']);
-  const rows = tableRows(selected.db, a.table);
+  const rows = tableRows(selected.db, a.table).filter(row => Object.entries(a.where ?? {}).every(([key, value]) => row[key] === value));
   const value = rows.map(row => JSON.stringify(row[a.column!])).join('\n');
   const errors = [...expectationEvidence(value, a), ...forbiddenEvidence(value, a)];
-  if (!rows.length) errors.push(`No rows in ${a.table}.`);
-  return result(a, errors.length ? 'fail' : 'pass', errors.length ? errors : [`${rows.length} rows in ${a.table}; ${a.column} satisfies explicit assertions.`]);
+  if (a.rowCount !== undefined && rows.length !== a.rowCount) errors.push(`Expected ${a.rowCount} matching rows in ${a.table}, observed ${rows.length}.`);
+  if (!rows.length && a.rowCount !== 0 && !a.allowEmpty) errors.push(`No matching rows in ${a.table}.`);
+  if (a.numeric) for (const row of rows) {
+    const number = row[a.column];
+    if (typeof number !== 'number' || !Number.isFinite(number) || number < a.numeric[0] || number > a.numeric[1]) errors.push(`${a.table}.${a.column}=${JSON.stringify(number)} outside [${a.numeric.join(', ')}].`);
+  }
+  return result(a, errors.length ? 'fail' : 'pass', errors.length ? [...errors, `Observed matching ${a.table}.${a.column}: ${value || '(no values)'}`] : [`${rows.length} rows in ${a.table}; ${a.column} satisfies explicit assertions.`]);
+}
+
+export function gradeFile(trace: TraceBundle, a: Assertion): GraderResult {
+  if (!a.path) return result(a, 'not_run', ['File assertion requires path.']);
+  const selected = a.action === undefined ? trace.snapshots.at(-1) : trace.snapshots.find(s => s.action === a.action);
+  if (!selected?.files || !Object.hasOwn(selected.files, a.path)) return result(a, 'not_run', ['Requested file was not captured.']);
+  const value = selected.files[a.path];
+  const errors = value === null || value === undefined ? [`Missing saved file ${a.path}.`] : [...expectationEvidence(value, a), ...forbiddenEvidence(value, a)];
+  return result(a, errors.length ? 'fail' : 'pass', errors.length ? errors : [`Saved ${a.path} satisfies explicit assertions at action ${selected.action}.`]);
+}
+
+export function gradeView(trace: TraceBundle, a: Assertion): GraderResult {
+  const current = trace.viewObservations?.find(v => v.action === a.action && v.viewId === a.viewId);
+  if (!current) return result(a, 'not_run', ['No published-view browser observation; enable observeViews and supply Chromium.']);
+  const errors = [...current.errors, ...expectationEvidence(current.renderedText, a), ...forbiddenEvidence(current.renderedText, a)];
+  if (!current.version) errors.push('Requested view was not published.');
+  if (!current.queries.length) errors.push('No successful live DB query from the widget.');
+  if (a.continuousFrom !== undefined) {
+    const before = trace.viewObservations?.find(v => v.action === a.continuousFrom && v.viewId === a.viewId);
+    if (!before) return result(a, 'not_run', ['Earlier browser observation missing; continuity cannot be established.']);
+    if (before.mount !== current.mount || before.version !== current.version) errors.push('View was reloaded or republished; a continuous update was not demonstrated.');
+    if (!current.subscriptions) errors.push('Open widget has no active data subscription.');
+  }
+  return result(a, errors.length ? 'fail' : 'pass', errors.length ? errors : [`Published ${current.viewId}@${current.version}, mount ${current.mount}; current accessible text matches the request.`, `${current.queries.length} live DB queries, ${current.subscriptions} active subscriptions; screenshot ${current.screenshot ?? 'unavailable'}.`, 'Visual quality requires the explicit UI judge.']);
+}
+
+export function gradeUiUnchanged(trace: TraceBundle, a: Assertion): GraderResult {
+  const event = actionEvent(trace, a);
+  if (!event) return result(a, 'not_run', ['No target action event to check UI scope.']);
+  const turns = new Set(trace.events.filter(e => e.type === 'coach.turn' && e.payload.triggerEventIds.includes(event.id)).map(e => e.turnId));
+  if (!turns.size) return result(a, 'not_run', ['No completed target turn.']);
+  const writes = trace.changes.filter(c => c.turnId && turns.has(c.turnId)).flatMap(c => c.files.filter(f => f.startsWith('ui/')));
+  const published = trace.events.filter(e => e.type === 'coach.ui_published' && e.turnId && turns.has(e.turnId));
+  const attempted = trace.toolCalls.filter(t => t.turnId && turns.has(t.turnId) && ['publish_ui', 'rollback_ui'].includes(t.name));
+  const errors = [...writes.map(f => `Unrequested UI write: ${f}`), ...published.map(e => `Unrequested publication: ${e.id}`), ...attempted.map(t => `Unrequested ${t.name} attempt.`)];
+  return result(a, errors.length ? 'fail' : 'pass', errors.length ? errors : ['No UI writes/publication attempts in the target turn; widget was optional.']);
 }
 
 /** Deterministic checks never invoke a model. Unavailable evidence stays visibly not_run. */
@@ -476,6 +517,9 @@ export function gradeTrace(trace: TraceBundle): GraderResult[] {
       case 'integrity': return gradeIntegrity(trace, a);
       case 'schedule': return gradeSchedule(trace, a);
       case 'db': return gradeDb(trace, a);
+      case 'file': return gradeFile(trace, a);
+      case 'view': return gradeView(trace, a);
+      case 'ui_unchanged': return gradeUiUnchanged(trace, a);
       case 'judge': return result(a, 'not_run', ['LLM judge not configured; call gradeJudges with an explicit provider/model.']);
     }
   });

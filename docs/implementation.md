@@ -57,6 +57,15 @@ The runtime loads the constitution and running addenda, a skill index (not all s
 
 ## Views at runtime
 
+The eval-only published-view observer reuses the PWA's `BridgeHost` and stream-change predicate
+directly from their source modules. It serves immutable published bundles in an opaque-origin
+Chromium iframe and calls the runtime's manifest-scoped read API. It records accessible text,
+queries, subscriptions, publication reports, mount/version and screenshots across actions.
+The CLI uses a runner-owned renderer factory so previews share the advancing runtime Clock.
+This component client is separate from full gateway/PWA authentication and offline acceptance.
+The VO₂max fixtures use general saved-data/file/UI-scope assertions; their arithmetic controls
+are confined to `packages/evals-sim`, not the production coach policy.
+
 - Views origin (separate port/host, [SEC-3]) serves:
   - `/kit/1/kit.js`, `/kit/1/kit.css` (+ assets): the built UI kit
   - `/v/<viewToken>/<viewId>@<version>/<path>`: immutable published view files

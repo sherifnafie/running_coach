@@ -194,6 +194,12 @@ pnpm test:e2e
 pnpm eval:selftest
 ```
 
+The [VO₂max benchmark](evals/vo2max.md) tests supplied-data estimates and an optional widget that
+updates when later data is saved. Run `pnpm eval --suite vo2max --model reference` for offline
+controls, or `--suite vo2max-ui` for the Chromium widget journey. The bounded live DeepSeek check
+calculated the estimate correctly but failed a new check for an invented activity RPE; see
+[the observed results](docs/verification/vo2max-eval.md). Offline passes do not certify coaching quality.
+
 The implementation handover records 738 core/renderer tests, 127 web unit tests, six real-gateway browser tests, and 120 offline scenarios with 173 passing assertions. Browser checks require Chromium; scripted checks make no paid model calls. See [HANDOVER.md](HANDOVER.md) for evidence and outstanding work.
 
 | Document | Read it for |

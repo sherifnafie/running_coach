@@ -92,6 +92,17 @@ After the audit's final research-skill clarifications, focused seed/context chec
 
 The WIP commits are on this branch (look for commit subjects starting with "WIP:"); each lists what works and what's missing. The **stub signatures in each package's `src/index.ts` are the contracts**: keep them.
 
+**VO₂max eval continuation:** added seven supplied-data estimation cases and one seven-action
+optional widget journey to the focused/all/nightly catalog. Generic graders now check filtered
+numeric DB rows, optional absent fields, saved notes, UI scope and real published-view continuity.
+The browser observer reuses the production bridge and runtime query service and retains the same
+phone iframe across data changes. Thirteen new controls pass, including rejection of frozen and
+unsubscribed widgets. A bounded real DeepSeek V4.1 Flash/GO estimation run saved the correct
+42.37 ml/kg/min estimate and method/source, but also invented activity RPE 9. The final benchmark
+rejects that retained trace; no retry or production prompt repair was used to hide the failure.
+See [verification](docs/verification/vo2max-eval.md) and [commands/scope](evals/vo2max.md). Scientific
+and visual judge assessments, the full real-model cases and real-model widget journey remain unrun.
+
 ---
 
 ## 2. Continuation environment facts (verified)

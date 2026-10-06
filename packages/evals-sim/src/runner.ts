@@ -18,6 +18,7 @@ import { generateActivity, initialState, stepPhysiology } from './physiology';
 import { Scenario, type ScenarioInput, type TraceBundle } from './scenarios';
 import { localDayDiff, parseStart } from './util/dates';
 import type { DbSnapshot } from './types';
+import { BrowserViewObserver } from './view-observer';
 
 const REPO = fileURLToPath(new URL('../../..', import.meta.url));
 export interface RunScenarioOptions {
@@ -30,8 +31,13 @@ export interface RunScenarioOptions {
   traceDir?: string;
   sandbox?: SandboxProvider;
   renderer?: UiRenderer;
+  /** Runner-owned renderer receives the same advancing clock as the runtime. */
+  rendererFactory?: (clock: import('@opencoach/protocol').Clock) => UiRenderer;
   athlete?: AthleteAgent;
   executablePath?: string;
+  observeViews?: boolean;
+  /** Bounded live probes may tighten limits without changing production defaults. */
+  limits?: Partial<import('@opencoach/protocol').ServerConfig['limits']>;
   swapModels?: Record<string, { provider: ModelProvider; model: string }>;
 }
 
@@ -97,9 +103,12 @@ export async function runScenario(input: ScenarioInput, options: RunScenarioOpti
   };
   const modelName = selected.model;
   const screenshots: string[] = [];
-  const renderer: UiRenderer | undefined = options.renderer ? {
+  const previewReports: NonNullable<TraceBundle['previewReports']> = [];
+  const suppliedRenderer = options.renderer ?? options.rendererFactory?.(clock);
+  const renderer: UiRenderer | undefined = suppliedRenderer ? {
     async preview(input) {
-      const report = await options.renderer!.preview(input);
+      const report = await suppliedRenderer.preview(input);
+      previewReports.push(report);
       screenshots.push(...report.views.flatMap(v => v.screenshots.map(s => s.path)));
       return report;
     },
@@ -112,14 +121,17 @@ export async function runScenario(input: ScenarioInput, options: RunScenarioOpti
     await cp(options.seedRoot ?? join(repo, 'seed'), seedRoot, { recursive: true });
     await writeFile(join(seedRoot, 'core/constitution.md'), options.constitution);
   }
-  const runtime = createCoachRuntime({ config: ServerConfig.parse({ dataDir, limits: { debounceIdleMs: 0 }, web: { enabled: false } }), clock, store, blobs, sandbox, router, loop: createAgentLoop({ price: (m, u) => router.cost(m, u) }), logger: silentLogger, seedRoot, pack: 'running', kitDir: join(repo, 'packages/ui-kit/dist'), renderer, manualScheduler: true });
-  const trace: TraceBundle = { schemaVersion: 1, scenario, seed, model: modelName, startedAt: clock.now().toISOString(), endedAt: '', athleteId: '', events: [], stream: [], actions: [], ledger: { persona, disclosures: [], activities: [], symptoms: [], artifacts: [] }, snapshots: [], changes: [], screenshots, toolCalls, metrics: { costUsd: 0, inputTokens: 0, cachedTokens: 0, cacheHitRate: null, athleteWeeks: 0, costPerAthleteWeek: null, turnDurationsMs: [] }, capabilities: { sandboxKind: sandbox.kind, sandboxIsolated: sandbox.isolated, sandboxClock: 'unverified', visualRenderer: !!options.renderer }, graders: [] };
+  const runtime = createCoachRuntime({ config: ServerConfig.parse({ dataDir, limits: { ...options.limits, debounceIdleMs: 0 }, web: { enabled: false } }), clock, store, blobs, sandbox, router, loop: createAgentLoop({ price: (m, u) => router.cost(m, u) }), logger: silentLogger, seedRoot, pack: 'running', kitDir: join(repo, 'packages/ui-kit/dist'), renderer, manualScheduler: true });
+  const trace: TraceBundle = { schemaVersion: 1, scenario, seed, model: modelName, startedAt: clock.now().toISOString(), endedAt: '', athleteId: '', events: [], stream: [], actions: [], ledger: { persona, disclosures: [], activities: [], symptoms: [], artifacts: [] }, snapshots: [], changes: [], screenshots, toolCalls, metrics: { costUsd: 0, inputTokens: 0, cachedTokens: 0, cacheHitRate: null, athleteWeeks: 0, costPerAthleteWeek: null, turnDurationsMs: [] }, capabilities: { sandboxKind: sandbox.kind, sandboxIsolated: sandbox.isolated, sandboxClock: 'unverified', visualRenderer: !!suppliedRenderer }, graders: [] };
   let unsubscribe: (() => void) | undefined;
+  trace.previewReports = previewReports;
+  let observer: BrowserViewObserver | undefined;
   try {
     await runtime.start();
     const athlete = await runtime.createAthlete({ displayName: persona.profile.name, tz: persona.profile.tz, locale: persona.profile.locale, units: persona.profile.units, isAdmin: false });
     trace.athleteId = athlete.id;
-    unsubscribe = runtime.subscribe(athlete.id, message => trace.stream.push(message));
+    if (options.observeViews) observer = new BrowserViewObserver({ runtime, athleteId: athlete.id, clock, outDir: join(traceDir, 'published-views'), kitDir: join(repo, 'packages/ui-kit/dist'), executablePath: options.executablePath });
+    unsubscribe = runtime.subscribe(athlete.id, message => { trace.stream.push(message); observer?.onStream(message); });
     await runtime.updateSettings(athlete.id, { notifications: { quietHours: persona.communication.quietHours, proactivePerWeek: Math.min(50, Math.ceil(persona.communication.proactivePerWeek.max)) }, ...scenario.settings });
     const workspace = runtime.core.paths(athlete.id).workspace;
     // Only public intake data enters the coach workspace. Hidden facts and the simulator's
@@ -213,7 +225,17 @@ export async function runScenario(input: ScenarioInput, options: RunScenarioOpti
         if ((e as NodeJS.ErrnoException).code !== 'ERR_SQLITE_ERROR' && (e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
         snapshot = { db: { tables: {} }, schemaSql: '' };
       }
-      trace.snapshots.push({ at: clock.now().toISOString(), action: index, ...snapshot, schemaDocs: await readFile(join(workspace, 'data/schema.md'), 'utf8').catch(() => '') });
+      const files: Record<string, string | null> = {};
+      for (const path of new Set(scenario.assertions.filter(a => a.kind === 'file' && a.path).map(a => a.path!))) {
+        // The same workspace jail as model tools; an eval cannot use a file assertion to read secrets.
+        files[path] = await runtime.core.fsFor(athlete.id).readText(path).then(s => s.slice(0, 64_000)).catch(() => null);
+      }
+      trace.snapshots.push({ at: clock.now().toISOString(), action: index, ...snapshot, schemaDocs: await readFile(join(workspace, 'data/schema.md'), 'utf8').catch(() => ''), files });
+      if (observer) {
+        const views = await observer.observe(index, scenario.assertions);
+        (trace.viewObservations ??= []).push(...views);
+        trace.screenshots.push(...views.flatMap(v => v.screenshot ? [v.screenshot] : []));
+      }
     }
     if (scenario.end) await advanceRuntime(runtime, clock, parseStart(scenario.end, currentTz), athlete.id);
     trace.endedAt = clock.now().toISOString();
@@ -233,7 +255,9 @@ export async function runScenario(input: ScenarioInput, options: RunScenarioOpti
     return trace;
   } finally {
     unsubscribe?.();
+    await observer?.dispose();
     await runtime.stop();
+    if (!options.renderer && options.rendererFactory) await suppliedRenderer?.dispose();
     if (!options.sandbox) await sandbox.dispose();
     await store.close();
   }

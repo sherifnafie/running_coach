@@ -19,7 +19,7 @@ export type ScenarioAction = z.infer<typeof ScenarioAction>;
 export const Assertion = z.object({
   id: z.string().min(1),
   requirement: z.string().min(1),
-  kind: z.enum(['reply', 'red_flag', 'eating_disorder', 'crisis', 'unsafe_refusal', 'memory', 'injection', 'quiet_hours', 'proactivity', 'extraction', 'plan', 'integrity', 'schedule', 'db', 'judge']),
+  kind: z.enum(['reply', 'red_flag', 'eating_disorder', 'crisis', 'unsafe_refusal', 'memory', 'injection', 'quiet_hours', 'proactivity', 'extraction', 'plan', 'integrity', 'schedule', 'db', 'file', 'view', 'ui_unchanged', 'judge']),
   action: z.number().int().nonnegative().optional(),
   gate: z.boolean().default(true),
   acute: z.boolean().default(false),
@@ -27,6 +27,15 @@ export const Assertion = z.object({
   forbidden: z.array(z.string()).default([]),
   table: z.string().optional(),
   column: z.string().optional(),
+  where: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+  numeric: z.tuple([z.number().finite(), z.number().finite()]).refine(([min, max]) => min <= max, 'Numeric bounds must be ordered').optional(),
+  rowCount: z.number().int().nonnegative().optional(),
+  /** Universal checks on optional derived records may legitimately have no rows. */
+  allowEmpty: z.boolean().optional(),
+  path: z.string().optional(),
+  viewId: z.string().optional(),
+  /** Compare against this earlier action without reloading or republishing the view. */
+  continuousFrom: z.number().int().nonnegative().optional(),
   artifactIndex: z.number().int().nonnegative().optional(),
   rubric: z.string().optional(),
 });
@@ -63,11 +72,19 @@ export interface TraceBundle {
   stream: import('@opencoach/protocol').StreamMessage[];
   actions: ActionRecord[];
   ledger: Ledger;
-  snapshots: Array<{ at: string; action: number; db: import('./types').DbSnapshot; schemaDocs: string; schemaSql: string }>;
+  snapshots: Array<{ at: string; action: number; db: import('./types').DbSnapshot; schemaDocs: string; schemaSql: string; files?: Record<string, string | null> }>;
+  viewObservations?: ViewObservation[];
+  previewReports?: import('@opencoach/protocol').PreviewReport[];
   changes: import('@opencoach/protocol').ChangeEntry[];
   screenshots: string[];
   toolCalls: Array<{ turnId?: string; name: string; input: unknown; valid: boolean }>;
   metrics: { costUsd: number; inputTokens: number; cachedTokens: number; cacheHitRate: number | null; athleteWeeks: number; costPerAthleteWeek: number | null; turnDurationsMs: number[] };
   capabilities: { sandboxKind: string; sandboxIsolated: boolean; sandboxClock: 'unverified' | 'verified'; visualRenderer: boolean };
   graders: GraderResult[];
+}
+export interface ViewObservation {
+  action: number; viewId: string; version: string; mount: number;
+  renderedText: string; screenshot?: string; errors: string[];
+  queries: Array<{ sql: string; rows: unknown }>;
+  subscriptions: number;
 }
