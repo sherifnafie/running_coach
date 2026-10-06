@@ -43,6 +43,8 @@ function realpathLenientSync(p: string): string {
 function normalizeScopeGlob(g: string): string {
   let out = g.replace(/^\/workspace(\/|$)/, '').replace(/^(\.\/)+/, '').replace(/^\/+/, '');
   if (out.endsWith('/')) out += '**';
+  // A subtree scope grants files below the directory, not replacing the directory itself.
+  if (out.endsWith('/**')) out += '/*';
   return out;
 }
 
@@ -135,7 +137,13 @@ class MountedFS implements VirtualFS {
     if (mode === 'write') {
       if (!mount.writable) throw new ToolError('EACCES', `${mount.name} is a read-only mount; you cannot write ${virtual}. Write under /workspace instead.`);
       if (!rel) throw new ToolError('EISDIR', `${virtual} is a directory`);
-      const realRel = toPosix(path.relative(realRoot, realTarget));
+      // writeFile atomically replaces the final entry, so a final symlink is not followed.
+      // Parent symlinks still resolve physically and must satisfy the write scope.
+      const writeTarget = path.join(realpathLenientSync(path.dirname(host)), path.basename(host));
+      const realRel = toPosix(path.relative(realRoot, writeTarget));
+      if (!isWithin(realRoot, writeTarget)) throw new ToolError('EACCES', `${virtual} resolves outside the ${mount.name} mount. Access denied.`);
+      const targetRel = toPosix(path.relative(realRoot, realTarget));
+      if (targetRel.split('/').includes('.git')) throw new ToolError('EACCES', `The .git directory is managed by the harness; you cannot modify ${virtual}.`);
       for (const r of new Set([rel, realRel])) {
         if (r.split('/').includes('.git')) throw new ToolError('EACCES', `The .git directory is managed by the harness; you cannot modify ${virtual}.`);
         if (this.scopeMatcher && !this.scopeMatcher(r)) {

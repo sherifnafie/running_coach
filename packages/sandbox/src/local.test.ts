@@ -341,6 +341,38 @@ printf '%s\\n' "a'b"`;
     expect(readFileSync(join(dirs.mounts.workspace, 'conc.log'), 'utf8').trim().split('\n').sort()).toEqual(Array.from({ length: 8 }, (_, i) => String(i)));
   });
 
+  it('protects git metadata against writes, deletion, rename and aliases [SEC-2]', async () => {
+    const gitDir = join(dirs.mounts.workspace, '.git');
+    mkdirSync(join(gitDir, 'hooks'), { recursive: true });
+    writeFileSync(join(gitDir, 'config'), 'trusted config\n');
+    symlinkSync('.git', join(dirs.mounts.workspace, 'git-alias'));
+    for (const command of [
+      'echo injected > .git/config',
+      'echo injected > .git/hooks/pre-commit',
+      'echo injected > git-alias/config',
+      'rm -rf .git',
+      'mv .git .git-stolen',
+      'mount -o remount,rw /workspace/.git',
+    ]) {
+      expect((await run(command)).exitCode, command).not.toBe(0);
+    }
+    expect(readFileSync(join(gitDir, 'config'), 'utf8')).toBe('trusted config\n');
+    expect((await run('echo writable > notes/still-writable')).exitCode).toBe(0);
+  });
+
+  it('protects .git files used by helper worktrees [SUB-3] [SEC-2]', async () => {
+    const other = makeDirs('oc-sbx-worktree-');
+    try {
+      writeFileSync(join(other.mounts.workspace, '.git'), 'gitdir: /trusted/worktree\n');
+      const h = await provider.ensure('ath_worktree', other.mounts);
+      const result = await provider.exec(h, 'echo injected > .git; rm .git; mv .git stolen', { timeoutS: 10 });
+      expect(result.exitCode).not.toBe(0);
+      expect(readFileSync(join(other.mounts.workspace, '.git'), 'utf8')).toBe('gitdir: /trusted/worktree\n');
+    } finally {
+      other.cleanup();
+    }
+  });
+
   it('supports abort signals', async () => {
     const ac = new AbortController();
     const t0 = performance.now();
@@ -433,10 +465,9 @@ printf '%s\\n' "a'b"`;
 
 nsDescribe('local isolated provider configuration', () => {
   it('rejects mounts located inside an exposed host dir', async () => {
-    // not under /tmp (that is the sandbox's own private tmpfs): use a scratch dir inside the repo's node_modules
-    const base = join(process.cwd(), 'node_modules', '.oc-sbx-test');
-    mkdirSync(base, { recursive: true });
-    const dirs = makeDirs('inside-', base);
+    // Use /var/tmp: /tmp and /workspace are reserved virtual mounts.
+    const dirs = makeDirs('oc-sbx-exposed-', '/var/tmp');
+    const base = dirs.root;
     try {
       const p = await createLocalSandboxProvider({ allowUnsafe: false, hostDirs: ['/usr', '/bin', '/lib', '/lib64', '/sbin', '/etc', base] });
       await expect(p.ensure('ath_1', dirs.mounts)).rejects.toThrow(/lies inside the exposed host dir/);

@@ -16,7 +16,8 @@
  */
 import { spawn } from 'node:child_process';
 import { promises as fsp } from 'node:fs';
-import { Parser } from 'node-sql-parser/build/sqlite';
+import sqlParser from 'node-sql-parser/build/sqlite';
+import type { Parser } from 'node-sql-parser';
 import { ToolError } from '@opencoach/protocol';
 import { coachDbPath } from './db';
 import { lexSql, maxParenDepth, splitStatements, type Token } from './sql-lex';
@@ -103,7 +104,7 @@ function collectCtes(node: unknown, out: Set<string>, depth = 0): void {
 
 function parserCheck(stmtText: string, stmt: Token[], allowed: Set<string>): void {
   if (stmtText.length > 20_000 || maxParenDepth(stmt) > 40) return;
-  parserSingleton ??= new Parser();
+  parserSingleton ??= new sqlParser.Parser();
   let ast: unknown;
   let tables: string[];
   try {

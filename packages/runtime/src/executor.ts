@@ -1,3 +1,4 @@
+import { schemaSql } from '@opencoach/workspace';
 import { performance } from 'node:perf_hooks';
 import {
   ToolError,
@@ -44,6 +45,12 @@ const denied = (what: string) => () => {
   throw new ToolError('NOT_ALLOWED', `${what} is not available to helpers. Report back to the coach instead.`);
 };
 
+/** Side effects are replayed by (turn, call), including calls made by helpers [RT-6]. */
+const SIDE_EFFECTS = new Set<string>([
+  'write', 'edit', 'bash', 'send_message', 'no_reply', 'schedule', 'cancel_schedule', 'set_heartbeat',
+  'spawn_agent', 'cancel_task', 'publish_ui', 'rollback_ui',
+]);
+
 export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & { allowed: ToolName[] } {
   const isCoach = o.agent.kind === 'coach';
   const scheduler: SchedulerPort = isCoach
@@ -85,10 +92,35 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
     noReply: () => {},
   };
 
-  return {
+  const executing = new Map<string, Promise<ToolResult>>();
+  const executor: ToolExecutor & { allowed: ToolName[] } = {
     allowed: o.tools,
     specs: () => [...toolSpecsFor(o.agent.kind, o.tools), ...(o.agent.kind === 'voice' ? [] : core.mcp.specs(o.agent.kind))],
     async execute(call: ToolCallPart, signal: AbortSignal): Promise<ToolResult> {
+      if (!SIDE_EFFECTS.has(call.name)) return executeOnce(call, signal);
+      const key = `tool:${o.athleteId}:${o.turnId}:${call.id}`;
+      const pending = executing.get(key);
+      if (pending) return pending;
+      const job = (async () => {
+        const cached = await core.store.getIdempotent(key) as ToolResult | undefined;
+        if (cached) return cached;
+        const result = await executeOnce(call, signal);
+        // A failed postcondition or timeout can follow a completed mutation. Replaying
+        // the same call must return its original result, including failures [RT-6].
+        await core.store.putIdempotent(key, result, new Date(core.clock.now().getTime() + 7 * 86_400_000).toISOString());
+        return result;
+      })();
+      executing.set(key, job);
+      try {
+        return await job;
+      } finally {
+        executing.delete(key);
+      }
+    },
+  };
+  return executor;
+
+  async function executeOnce(call: ToolCallPart, signal: AbortSignal): Promise<ToolResult> {
       const started = performance.now();
       if (core.mcp.handles(call.name) && o.agent.kind !== 'voice') {
         o.onStart?.(call);
@@ -123,9 +155,25 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
         vision: o.vision,
         media: core.media,
       };
+      const tracksSchema = isCoach && (call.name === 'bash' || call.name === 'spawn_agent');
+      const readSchema = async (): Promise<string> => {
+        // Validate physical containment before opening the coach-owned database on the host.
+        o.fs.resolve('data/coach.db', 'read');
+        return schemaSql(o.workspaceDir ?? core.paths(o.athleteId).workspace);
+      };
+      const beforeSchema = tracksSchema ? await readSchema().catch((error: Error) => `schema unavailable: ${error.message}`) : undefined;
       const outcome = await executeTool(call.name, call.input, ctx);
+      let schemaReport: { ok: boolean; text: string } | undefined;
+      if (tracksSchema && beforeSchema !== await readSchema().catch((error: Error) => `schema unavailable: ${error.message}`)) {
+        try {
+          const report = await core.ui.revalidateAfterSchemaChange(o.athleteId);
+          schemaReport = { ok: report.ok, text: `Database schema changed. View revalidation [UI-3]: ${report.ok ? 'passed' : 'failed; repair the affected views before publishing'}.\n${JSON.stringify(report)}` };
+        } catch (error) {
+          schemaReport = { ok: false, text: `Database schema changed. View revalidation [UI-3] failed: ${(error as Error).message}` };
+        }
+      }
       const ms = Math.round(performance.now() - started);
-      o.onEnd?.(call, outcome.ok);
+      o.onEnd?.(call, outcome.ok && schemaReport?.ok !== false);
       void core.store
         .audit({
           athleteId: o.athleteId,
@@ -135,8 +183,11 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
           detail: { turnId: o.turnId, ok: outcome.ok, code: outcome.ok ? undefined : outcome.code, ms },
         })
         .catch(() => {});
+      if (schemaReport) {
+        const content = outcome.ok ? outcome.content : [{ type: 'text' as const, text: `Error [${outcome.code}]: ${outcome.message}` }];
+        return { callId: call.id, name: call.name, isError: !outcome.ok || !schemaReport.ok, content: [...content, { type: 'text', text: schemaReport.text }] };
+      }
       if (outcome.ok) return { callId: call.id, name: call.name, isError: false, content: outcome.content };
       return { callId: call.id, name: call.name, isError: true, content: [{ type: 'text', text: `Error [${outcome.code}]: ${outcome.message}` }] };
-    },
-  };
+  }
 }

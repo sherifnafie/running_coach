@@ -143,6 +143,45 @@ describe('deleteAthlete', () => {
     expect(await store.listEvents({ athleteId: 'ath_1' })).toHaveLength(2);
   });
 
+  it('removes athlete-owned caches and reverse capabilities without deleting another athlete or deployment state [SEC-6]', async () => {
+    const { store } = await memStore();
+    stores.push(store);
+    await populate(store, 'ath_1');
+    // Prefix sibling and SQL LIKE wildcard lookalike must both survive.
+    await populate(store, 'ath_10');
+    await populate(store, 'athX1');
+    const expiry = '2099-01-01T00:00:00.000Z';
+    const owned = [
+      'view-token:ath_1', 'app-manifest:ath_1', 'harness-version:ath_1', 'last-head:ath_1',
+      'turns-since-pinned-write:ath_1', 'notice:budget_exhausted:ath_1', 'telegram-athlete:ath_1',
+      'epoch-system:ep_ath_1', 'export:ath_1:job_one', 'upload-drafts:ath_1', 'upload-draft:ath_1:job_one',
+    ];
+    for (const key of owned) await store.setKv(key, 'private');
+    await store.setKv('view-token-rev:gone_token', 'ath_1');
+    await store.setKv('telegram-chat:123', 'ath_1');
+    await store.setKv('telegram-link:gone_link', JSON.stringify({ athleteId: 'ath_1', expires: 123 }));
+    for (const key of ['message:ath_1:client', 'tool:ath_1:turn_ath_1:tool', 'msg:turn_ath_1:tool']) {
+      await store.putIdempotent(key, { text: 'private health message' }, expiry);
+    }
+    const kept = ['view-token:ath_10', 'app-manifest:athX1', 'epoch-system:ep_ath_10', 'export:ath_10:job', 'notice:budget_exhausted:ath_10', 'telegram-offset'];
+    for (const key of kept) await store.setKv(key, 'keep');
+    await store.setKv('view-token-rev:kept_token', 'ath_10');
+    await store.setKv('telegram-chat:456', 'ath_10');
+    await store.setKv('telegram-link:kept_link', JSON.stringify({ athleteId: 'ath_10', expires: 123 }));
+    await store.setKv('telegram-link:invalid_json', 'bad-json');
+    const keptIdempotency = ['message:ath_10:client', 'message:athX1:client', 'tool:ath_10:turn_ath_10:tool', 'msg:turn_ath_10:tool'];
+    for (const key of keptIdempotency) await store.putIdempotent(key, { text: 'keep' }, expiry);
+    await store.deleteAthlete('ath_1');
+    for (const key of [...owned, 'view-token-rev:gone_token', 'telegram-chat:123', 'telegram-link:gone_link']) expect(await store.getKv(key)).toBeUndefined();
+    for (const key of ['message:ath_1:client', 'tool:ath_1:turn_ath_1:tool', 'msg:turn_ath_1:tool']) expect(await store.getIdempotent(key)).toBeUndefined();
+    for (const key of kept) expect(await store.getKv(key)).toBe('keep');
+    expect(await store.getKv('view-token-rev:kept_token')).toBe('ath_10');
+    expect(await store.getKv('telegram-chat:456')).toBe('ath_10');
+    expect(await store.getKv('telegram-link:kept_link')).toContain('ath_10');
+    expect(await store.getKv('telegram-link:invalid_json')).toBe('bad-json');
+    for (const key of keptIdempotency) expect(await store.getIdempotent(key)).toEqual({ text: 'keep' });
+  });
+
   it('purges freed content from the file (secure_delete)', async () => {
     const { dir, cleanup } = tmpDir();
     try {
@@ -151,6 +190,8 @@ describe('deleteAthlete', () => {
       stores.push(store);
       await store.createAthlete({ id: 'ath_1', displayName: 'x', isAdmin: false, settings: defaultSettings() });
       await store.appendEvent({ athleteId: 'ath_1', type: 'user.message', actor: 'athlete', payload: { text: 'UNIQUE-SENTINEL-4f9c1e7a recovery plan' } });
+      await store.putIdempotent('message:ath_1:client', { text: 'UNIQUE-SENTINEL-4f9c1e7a' }, '2099-01-01T00:00:00.000Z');
+      await store.setKv('app-manifest:ath_1', 'UNIQUE-SENTINEL-4f9c1e7a');
       await store.deleteAthlete('ath_1');
       await store.close();
       stores.pop();

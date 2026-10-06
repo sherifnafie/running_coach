@@ -50,7 +50,14 @@ beforeEach(async () => {
   env = await setup();
 });
 
-describe('resolve', () => {
+describe('resolve [SEC-1] [SEC-2] [SUB-3]', () => {
+  it('protects git metadata through in-mount aliases [SEC-2]', async () => {
+    await fsp.symlink(path.join(env.workspace, '.git'), path.join(env.workspace, 'git-alias'));
+    await expect(env.fs.writeFile('git-alias/config', 'tampered')).rejects.toMatchObject({ code: 'EACCES' });
+    await expect(env.fs.writeFile('.git', 'gitdir: elsewhere')).rejects.toMatchObject({ code: 'EACCES' });
+    expect(await fsp.readFile(path.join(env.workspace, '.git/config'), 'utf8')).toBe('needle in git\n');
+  });
+
   it('maps virtual paths to host paths; relative paths go to /workspace', () => {
     const { fs, workspace, raw, history, system } = env;
     expect(fs.resolve('AGENTS.md', 'read')).toEqual({ virtual: '/workspace/AGENTS.md', host: path.join(workspace, 'AGENTS.md'), mount: '/workspace' });
@@ -192,7 +199,7 @@ describe('readFile / readText / stat', () => {
     expect(await fs.readText('/raw/' + 'a'.repeat(64) + '.png')).toBe('png-bytes');
     await fsp.writeFile(path.join(workspace, 'bin.dat'), new Uint8Array([0, 255, 128, 1]));
     expect([...(await fs.readFile('bin.dat'))]).toEqual([0, 255, 128, 1]);
-    expect(await fs.readText('')).toBeUndefined; // (unreachable: throws below)
+    await expect(fs.readText('')).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   }, 10_000);
 
   it('maps filesystem errors to tool error codes', async () => {

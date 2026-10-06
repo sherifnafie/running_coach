@@ -123,8 +123,9 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     const core = this.core;
     await core.scheduler.stop();
     core.turns.abortAll();
-    await core.helpers.cancelAll();
     core.minds.stopAll();
+    await core.helpers.cancelAll();
+    await core.minds.whenAllIdle();
     await core.mcp.stop();
     this.started = false;
   }
@@ -227,8 +228,12 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
 
   async deleteAthlete(athleteId: string): Promise<void> {
     const core = this.core;
-    core.minds.delete(athleteId);
+    const mind = core.minds.get(athleteId);
+    core.turns.abortAthlete(athleteId);
+    mind.stop();
     await core.helpers.cancelAll(athleteId);
+    await mind.whenIdle();
+    core.minds.delete(athleteId);
     await core.releaseSandbox(athleteId);
     await core.store.deleteAthlete(athleteId);
     await deleteAthleteData(core.paths(athleteId));
@@ -358,7 +363,22 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
         this.safetyFlags.delete(e.id);
       }
     }
-    await this.core.turns.run(athleteId, events, cls, { safety });
+    await this.core.turns.run(athleteId, events, cls, {
+      safety,
+      steeringSafety: (steered) => {
+        const signals = steered.map((e) => {
+          const signal = this.safetyFlags.get(e.id);
+          this.safetyFlags.delete(e.id);
+          return signal;
+        }).filter((signal): signal is SafetyScreenResult => !!signal);
+        return signals.length ? {
+          flagged: true,
+          categories: [...new Set(signals.flatMap((signal) => signal.categories))],
+          acute: signals.some((signal) => signal.acute),
+          method: signals[0]!.method,
+        } : undefined;
+      },
+    });
   }
 
   subscribe(athleteId: string, listener: StreamListener): () => void {

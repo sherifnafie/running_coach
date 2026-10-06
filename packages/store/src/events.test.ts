@@ -347,6 +347,15 @@ describe('searchEvents', () => {
 });
 
 describe('tombstoneEvent', () => {
+  it('imports validated tombstones without indexing or retaining erased content [SEC-5] [SEC-6]', async () => {
+    const { store } = await open();
+    const event = await store.appendEvent({ athleteId: 'ath_1', type: 'user.message', actor: 'athlete', payload: { tombstoned: true } as never, tombstoned: true });
+    expect((await store.getEvent(event.id))!.payload).toEqual({ tombstoned: true });
+    expect(await store.searchEvents({ athleteId: 'ath_1', query: 'tombstoned' })).toEqual([]);
+    await expect(store.appendEvent({ athleteId: 'ath_1', type: 'user.message', actor: 'athlete', payload: { tombstoned: true, text: 'secret' } as never, tombstoned: true })).rejects.toThrow(/exactly/);
+    await expect(store.appendEvent({ athleteId: 'ath_1', type: 'user.message', actor: 'athlete', payload: { tombstoned: true } as never })).rejects.toThrow();
+  });
+
   it('erases the payload, keeps the row, and removes it from search', async () => {
     const { store } = await open();
     const secret = await store.appendEvent(msg('ath_1', 'my secret diagnosis is zebrafever', { turnId: 't1' }));

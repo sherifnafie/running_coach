@@ -61,17 +61,20 @@ export class FakeDocker {
   private server: http.Server | undefined;
   private execs = new Map<string, { containerId: string; exitCode?: number; runningPolls: number }>();
   private seq = 0;
+  private readonly sockets = new Set<Socket>();
 
   async listen(): Promise<string> {
     this.dir = mkdtempSync(join(tmpdir(), 'ocd-'));
     this.socketPath = join(this.dir, 'd.sock');
     this.server = http.createServer((req, res) => void this.onRequest(req, res));
+    this.server.on('connection', (socket: Socket) => { this.sockets.add(socket); socket.on('close', () => this.sockets.delete(socket)); });
     this.server.on('upgrade', (req, socket: Socket, head: Buffer) => void this.onUpgrade(req, socket, head));
     await new Promise<void>((resolve) => this.server!.listen(this.socketPath, resolve));
     return this.socketPath;
   }
 
   async close(): Promise<void> {
+    for (const socket of this.sockets) socket.destroy();
     this.server?.closeAllConnections();
     await new Promise<void>((resolve) => (this.server ? this.server.close(() => resolve()) : resolve()));
     if (this.dir) rmSync(this.dir, { recursive: true, force: true });
@@ -145,6 +148,13 @@ export class FakeDocker {
       return this.send(res, 204);
     }
 
+    if ((m = /^\/containers\/([^/]+)\/stop$/.exec(path)) && method === 'POST') {
+      const c = this.find(m[1]!);
+      if (!c) return this.send(res, 404, { message: 'No such container' });
+      c.running = false;
+      return this.send(res, 204);
+    }
+
     if ((m = /^\/containers\/([^/]+)\/json$/.exec(path)) && method === 'GET') {
       const c = this.find(m[1]!);
       if (!c) return this.send(res, 404, { message: 'No such container' });
@@ -215,12 +225,19 @@ export class FakeDocker {
     socket.on('data', (c: Buffer) => (buf = Buffer.concat([buf, c])));
     socket.on('end', () => (ended = true));
     socket.on('error', () => {});
+    if (!this.upgrade) {
+      const out = await this.runExec(m[1]!, '');
+      const bytes = Buffer.concat(out.pieces);
+      socket.write(`HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\nContent-Length: ${bytes.length}\r\nConnection: close\r\n\r\n`);
+      if (!out.hang) socket.end(bytes);
+      return;
+    }
     socket.write('HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n');
     if (cfg?.AttachStdin) {
       // the client half-closes after writing stdin
       await new Promise<void>((resolve) => {
         const t = setInterval(() => {
-          if (ended) {
+          if (ended || socket.destroyed) {
             clearInterval(t);
             resolve();
           }

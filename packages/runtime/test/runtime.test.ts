@@ -97,7 +97,7 @@ describe('runtime: onboarding & reactive turns', () => {
 });
 
 describe('runtime: proactivity policies', () => {
-  it('holds proactive messages during quiet hours and releases them after', async () => {
+  it('holds proactive messages during quiet hours and releases them after [MSG-4]', async () => {
     // 23:00 local (CEST = UTC+2)
     h = await makeHarness({ start: '2026-10-07T21:00:00Z' });
     const id = await newAthlete(h);
@@ -107,7 +107,10 @@ describe('runtime: proactivity policies', () => {
       if (lastItemKind(req) === 'tool_results') return { text: 'ok' };
       const t = lastUserText(req);
       if (t.includes('schedule.fired')) return send('Quick check: did the tempo happen?');
-      return { toolCalls: [{ name: 'schedule', input: { spec: { at: '2026-10-07T21:30:00Z' }, purpose: 'check tempo' } }] };
+      return { toolCalls: [
+        { name: 'schedule', input: { spec: { at: '2026-10-07T21:30:00Z' }, purpose: 'check tempo' } },
+        { name: 'send_message', input: { text: 'I will check in later.' } },
+      ] };
     });
     await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'remind me later', clientId: 'c4' } });
     await h.settle(id);
@@ -177,20 +180,26 @@ describe('runtime: steering, schedules, helpers, views', () => {
     h.setHandler(async (req) => {
       const text = lastUserText(req);
       if (text.includes('while you were working')) sawSteer = true;
-      if (lastItemKind(req) === 'user' && text.includes('first message')) {
+      if (lastItemKind(req) !== 'tool_results' && !sawSteer && text.includes('first message')) {
         if (!injected) {
           injected = true;
-          void h!.runtime.ingest(id, { type: 'user.message', payload: { text: 'oh and my knee hurts', clientId: 'c7' } });
-          await new Promise((r) => setTimeout(r, 20));
+          await h!.runtime.ingest(id, { type: 'user.message', payload: { text: 'oh and my knee hurts', clientId: 'c7' } });
         }
         return { toolCalls: [{ name: 'read', input: { path: 'AGENTS.md' } }] };
       }
-      if (lastItemKind(req) === 'tool_results') return { text: 'done' };
+      if (lastItemKind(req) === 'tool_results' && !sawSteer) return { text: 'done' };
+      if (lastItemKind(req) === 'tool_results') return { text: 'replied' };
       return send('Thanks — noted about the knee.');
     });
     await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'first message', clientId: 'c6' } });
     await h.settle(id);
-    expect(sawSteer || h.requests.some((r) => lastUserText(r).includes('knee hurts'))).toBe(true);
+    expect(injected).toBe(true);
+    expect(sawSteer).toBe(true);
+    const turns = await h.runtime.core.store.listTurns({ athleteId: id, limit: 20 });
+    expect(turns.filter((t) => t.agent === 'coach' && t.triggerClass === 'reactive')).toHaveLength(1);
+    const epoch = await h.runtime.core.store.getOpenEpoch(id);
+    const items = await h.runtime.core.store.listEpochItems(epoch!.id);
+    expect(items.some(({ item }) => item.kind === 'user' && item.parts.some((p) => p.type === 'text' && p.text.includes('while you were working')))).toBe(true);
   });
 
   it('lets the coach schedule wakes that fire as scheduled turns', async () => {
@@ -235,6 +244,7 @@ describe('runtime: steering, schedules, helpers, views', () => {
       }
       if (lastItemKind(req) === 'tool_results') {
         const tr = req.items.at(-1)!;
+        if (tr.kind === 'tool_results' && tr.results.some((r) => r.name === 'send_message')) return { text: 'done' };
         if (tr.kind === 'tool_results') helperResult = tr.results.map((r) => (r.content[0]?.type === 'text' ? r.content[0].text : '')).join('');
         return send('Plan drafted.');
       }
@@ -257,7 +267,11 @@ describe('runtime: steering, schedules, helpers, views', () => {
     const app = await h.runtime.views.appInfo(id);
     const viewId = app.views[0]!.manifest.id;
     h.setHandler((req) => {
-      if (lastItemKind(req) === 'tool_results') return lastUserText(req).includes('user.view_reverted') ? { text: 'ok' } : send('Updated your view.');
+      if (lastItemKind(req) === 'tool_results') {
+        const tr = req.items.at(-1)!;
+        if (tr.kind === 'tool_results' && tr.results.some((r) => r.name === 'send_message')) return { text: 'done' };
+        return lastUserText(req).includes('user.view_reverted') ? { text: 'ok' } : send('Updated your view.');
+      }
       if (lastUserText(req).includes('user.view_reverted')) return { text: 'noted' };
       return { toolCalls: [{ name: 'publish_ui', input: { views: [viewId], summary: 'Bigger numbers' } }] };
     });
@@ -285,7 +299,8 @@ describe('runtime: steering, schedules, helpers, views', () => {
     const id = await newAthlete(h);
     const app = await h.runtime.views.appInfo(id);
     const view = app.views.find((v) => v.manifest.reads.some((r) => r === 'db:planned_workouts'));
-    if (!view) return; // seed views not present yet
+    expect(view).toBeDefined();
+    if (!view) throw new Error('Seed view with planned_workouts access is required.');
     const rows = await h.runtime.views.query(id, view.manifest.id, 'SELECT COUNT(*) AS n FROM planned_workouts');
     expect(rows[0]!.n).toBe(0);
     await expect(h.runtime.views.query(id, view.manifest.id, 'SELECT * FROM sqlite_master')).rejects.toThrow();

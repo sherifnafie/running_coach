@@ -134,6 +134,14 @@ main() {
   bind_athlete "${OC_HISTORY:?}" /history ro
   bind_athlete "${OC_SYSTEM:?}" /system ro
 
+  # Git metadata belongs to the trusted runtime. A nested read-only bind also stops
+  # rename/unlink attacks; file .git entries used by helper worktrees are protected too.
+  if [ -e "$OC_WORKSPACE/.git" ]; then
+    [ ! -L "$OC_WORKSPACE/.git" ] || fail "workspace .git must not be a symlink"
+    mount --bind "$OC_WORKSPACE/.git" "$R/workspace/.git" || fail "cannot bind git metadata"
+    ro_tree "$R/workspace/.git"
+  fi
+
   # ---- private /tmp
   mount -t tmpfs -o "mode=1777,size=${OC_TMP_SIZE:-256m},nosuid,nodev" tmpfs "$R/tmp" || fail "cannot mount /tmp"
 
@@ -151,11 +159,13 @@ main() {
   mkdir "$R/dev/shm" && mount -t tmpfs -o "mode=1777,size=${OC_SHM_SIZE:-64m},nosuid,nodev" tmpfs "$R/dev/shm" 2>/dev/null
   mount -o remount,bind,ro,nosuid "$R/dev" 2>/dev/null || true
 
-  # ---- /proc of the new pid namespace (best effort: unavailable under some container runtimes)
+  # ---- /proc of the new pid namespace. Docker's inherited masked system paths can
+  # make the kernel refuse a new procfs in a user namespace. Fail before pivot_root;
+  # the trusted server container needs systempaths=unconfined in that configuration.
   if [ "${OC_PROC:-0}" = 1 ]; then
-    if mount -t proc -o nosuid,nodev,noexec proc "$R/proc" 2>/dev/null; then
-      mask_proc
-    fi
+    mount -t proc -o nosuid,nodev,noexec proc "$R/proc" 2>/dev/null \
+      || fail "cannot mount private /proc; a containerized server may require security_opt systempaths=unconfined (the athlete sandbox masks its own private /proc)"
+    mask_proc
   fi
 
   # ---- large command delivered as a file

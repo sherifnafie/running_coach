@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon';
-import { RRule } from 'rrule';
+import rrule from 'rrule';
+import type { RRule as RRuleType } from 'rrule';
+const { RRule } = rrule;
 import { isOneShot, ToolError, type ScheduleSpec } from '@opencoach/protocol';
 
 /** Athlete-local helpers (all DST-correct via luxon). */
@@ -84,7 +86,7 @@ export function nextFire(spec: ScheduleSpec, after: Date, athleteTz: string): Da
   const floatingAfter = new Date(Date.UTC(localAfter.year, localAfter.month - 1, localAfter.day, localAfter.hour, localAfter.minute, localAfter.second));
   const dtstart = new Date(Date.UTC(localAfter.year, localAfter.month - 1, localAfter.day, hour, minute, 0));
   dtstart.setUTCDate(dtstart.getUTCDate() - 1);
-  let rule: RRule;
+  let rule: RRuleType;
   try {
     const opts = RRule.parseString(spec.rrule.replace(/^RRULE:/i, ''));
     rule = new RRule({ ...opts, dtstart, byhour: [hour], byminute: [minute], bysecond: [0], tzid: undefined });

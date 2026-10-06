@@ -4,7 +4,7 @@
 import sharp from 'sharp';
 import { baseMime } from './mime';
 
-const REENCODE: Record<string, 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff'> = {
+const REENCODE: Record<string, 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'> = {
   'image/jpeg': 'jpeg',
   'image/jpg': 'jpeg',
   'image/pjpeg': 'jpeg',
@@ -12,6 +12,7 @@ const REENCODE: Record<string, 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff'> = {
   'image/webp': 'webp',
   'image/avif': 'avif',
   'image/tiff': 'tiff',
+  'image/gif': 'gif',
 };
 
 function toUint8(b: Buffer): Uint8Array {
@@ -21,16 +22,19 @@ function toUint8(b: Buffer): Uint8Array {
 /**
  * Strip GPS/EXIF/XMP/IPTC metadata by re-encoding with sharp (which drops all metadata by default),
  * keeping the format (jpeg/png/webp/avif/tiff) and applying the EXIF orientation so the picture
- * still looks right. Formats that cannot be re-encoded here (HEIC/HEIF, GIF, ...) are returned
- * unchanged. A supported format that fails to decode throws (returning it unchanged would leak
+ * still looks right. Unsupported images (including HEIC/HEIF in this build) are rejected so location
+ * metadata cannot silently pass through. A supported format that fails to decode throws (returning it unchanged would leak
  * location data).
  */
 export async function stripImageLocation(data: Uint8Array, mime: string): Promise<Uint8Array> {
   const m = baseMime(mime);
   const fmt = REENCODE[m];
-  if (!fmt) return data;
+  if (!fmt) {
+    if (m.startsWith('image/')) throw new Error(`stripImageLocation: cannot safely remove location metadata from ${m}; send a JPEG or PNG, or explicitly opt in to keeping metadata.`);
+    return data;
+  }
   try {
-    let img = sharp(data, { failOn: 'none' }).rotate();
+    let img = sharp(data, { failOn: 'none', animated: fmt === 'gif' }).rotate();
     switch (fmt) {
       case 'jpeg':
         img = img.jpeg({ quality: 92, chromaSubsampling: '4:4:4' });
@@ -43,6 +47,9 @@ export async function stripImageLocation(data: Uint8Array, mime: string): Promis
         break;
       case 'avif':
         img = img.avif({ quality: 80 });
+        break;
+      case 'gif':
+        img = img.gif();
         break;
       case 'tiff':
         img = img.tiff();

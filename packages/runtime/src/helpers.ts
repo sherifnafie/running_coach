@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
-import { copyFile, mkdir, rm, stat, unlink } from 'node:fs/promises';
+import { lstat, mkdir, readFile, rm, stat, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { backup, DatabaseSync } from 'node:sqlite';
 import { promisify } from 'node:util';
 import picomatch from 'picomatch';
 import { parse as parseYaml } from 'yaml';
@@ -15,6 +16,7 @@ import {
   type ToolInput,
   type ToolName,
   type UserItem,
+  type VirtualFS,
 } from '@opencoach/protocol';
 import { openWorkspaceGit } from '@opencoach/workspace';
 import type { Core } from './core';
@@ -27,6 +29,10 @@ export interface SpawnParent {
   turnId: string;
   depth: number;
   originEventId?: string;
+  /** Nested helpers read and merge into their parent's worktree, never the live workspace. */
+  workspaceDir?: string;
+  taskId?: string;
+  writeScopes?: string[][];
 }
 
 interface Profile {
@@ -43,6 +49,7 @@ interface Running {
   athleteId: string;
   abort: AbortController;
   done: Promise<void>;
+  parentTaskId?: string;
 }
 
 /**
@@ -90,7 +97,7 @@ export class HelperManager {
     }
     let profile: Profile | undefined;
     if (input.profile) {
-      profile = await this.loadProfile(parent.athleteId, input.profile);
+      profile = await this.loadProfile(parent.athleteId, input.profile, parent.workspaceDir);
       if (!profile) return { ok: false, code: 'NOT_FOUND', message: `No helper profile "${input.profile}" in /workspace/agents/. Write one or omit profile.` };
     }
     const tier: Tier = input.tier ?? profile?.tier ?? 'coach';
@@ -142,7 +149,7 @@ export class HelperManager {
     });
 
     // Snapshot the parent's pending changes so the helper sees them.
-    const git = openWorkspaceGit(core.paths(parent.athleteId).workspace, core.clock);
+    const git = openWorkspaceGit(parent.workspaceDir ?? core.paths(parent.athleteId).workspace, core.clock);
     await git.commitAll(`wip: before helper ${taskId}`, { 'Turn-Id': parent.turnId, Kind: 'turn' }).catch(() => null);
 
     const job = () =>
@@ -151,11 +158,12 @@ export class HelperManager {
     if (input.background) {
       let resolveDone!: () => void;
       const done = new Promise<void>((r) => (resolveDone = r));
-      this.running.set(taskId, { athleteId: parent.athleteId, abort, done });
+      this.running.set(taskId, { athleteId: parent.athleteId, abort, done, parentTaskId: parent.taskId });
       void (async () => {
         try {
           const r = await job();
-          await core.minds.get(parent.athleteId).runExclusive(() => r.copyBack());
+          if (parent.workspaceDir) await r.copyBack();
+          else await core.minds.get(parent.athleteId).runExclusive(() => r.copyBack());
           await core.store.updateTask(taskId, { state: 'done', endedAt: core.clock.now().toISOString(), summary: r.summary, outputs: r.outputs, costUsd: r.costUsd });
           const e = await core.store.appendEvent({
             athleteId: parent.athleteId,
@@ -183,7 +191,7 @@ export class HelperManager {
     }
 
     let resolveDone!: () => void;
-    this.running.set(taskId, { athleteId: parent.athleteId, abort, done: new Promise<void>((r) => (resolveDone = r)) });
+    this.running.set(taskId, { athleteId: parent.athleteId, abort, done: new Promise<void>((r) => (resolveDone = r)), parentTaskId: parent.taskId });
     try {
       const r = await job();
       await r.copyBack();
@@ -198,11 +206,11 @@ export class HelperManager {
     }
   }
 
-  private async loadProfile(athleteId: string, name: string): Promise<Profile | undefined> {
+  private async loadProfile(athleteId: string, name: string, workspaceDir?: string): Promise<Profile | undefined> {
     if (!/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(name)) return undefined;
     let text: string;
     try {
-      text = await this.core.fsFor(athleteId).readText(`/workspace/agents/${name}.md`);
+      text = await this.core.fsFor(athleteId, null, workspaceDir).readText(`/workspace/agents/${name}.md`);
     } catch {
       return undefined;
     }
@@ -242,20 +250,22 @@ export class HelperManager {
     const core = this.core;
     const { parent, taskId } = a;
     const paths = core.paths(parent.athleteId);
+    const parentDir = parent.workspaceDir ?? paths.workspace;
     const wt = join(paths.tmp, 'helpers', taskId);
     await mkdir(dirname(wt), { recursive: true });
-    await exec('git', ['-C', paths.workspace, 'worktree', 'add', '--detach', '--force', wt, 'HEAD']);
+    await exec('git', ['-C', parentDir, 'worktree', 'add', '--detach', '--force', wt, 'HEAD']);
     const cleanup = async () => {
-      await exec('git', ['-C', paths.workspace, 'worktree', 'remove', '--force', wt]).catch(() => rm(wt, { recursive: true, force: true }));
-      await exec('git', ['-C', paths.workspace, 'worktree', 'prune']).catch(() => {});
+      await exec('git', ['-C', parentDir, 'worktree', 'remove', '--force', wt]).catch(() => rm(wt, { recursive: true, force: true }));
+      await exec('git', ['-C', parentDir, 'worktree', 'prune']).catch(() => {});
       await core.releaseSandbox(`${parent.athleteId}:${taskId}`);
     };
     try {
       // Give the helper a copy of the database (gitignored, so not in the worktree).
-      const db = join(paths.workspace, 'data', 'coach.db');
+      const parentFs = core.fsFor(parent.athleteId, null, parentDir);
+      const worktreeFs = core.fsFor(parent.athleteId, null, wt);
+      const db = parentFs.resolve('data/coach.db', 'read').host;
       if (await exists(db)) {
-        await mkdir(join(wt, 'data'), { recursive: true });
-        await copyFile(db, join(wt, 'data', 'coach.db'));
+        await copyDatabaseIntoFs(db, worktreeFs, join(paths.tmp, `helper-db-${taskId}-initial.db`));
       }
 
       const settings = await core.store.getSettings(parent.athleteId);
@@ -301,17 +311,18 @@ export class HelperManager {
       const items: UserItem[] = [{ kind: 'user', parts }];
 
       const helperTurnId = newId('turn', core.clock);
+      const scopes = [...(parent.writeScopes ?? []), a.writeScope];
       const executor = createExecutor(core, {
         athleteId: parent.athleteId,
         turnId: helperTurnId,
         triggerClass: 'followup',
         agent: { kind: 'helper', profile: a.profile?.name, depth: parent.depth + 1, taskId },
         tools: a.tools,
-        fs: core.fsFor(parent.athleteId, a.writeScope, wt),
+        fs: intersectScopes(core, parent.athleteId, wt, scopes),
         sandbox: await core.sandboxFor(parent.athleteId, { key: `${parent.athleteId}:${taskId}`, dir: wt }),
         vision: !!a.route[0]?.capabilities.vision,
         workspaceDir: wt,
-        spawnParent: { athleteId: parent.athleteId, turnId: helperTurnId, depth: parent.depth + 1, originEventId: parent.originEventId },
+        spawnParent: { athleteId: parent.athleteId, turnId: helperTurnId, depth: parent.depth + 1, originEventId: parent.originEventId, workspaceDir: wt, taskId, writeScopes: scopes },
       });
 
       const startedAt = core.clock.now().toISOString();
@@ -369,26 +380,47 @@ export class HelperManager {
       if (result.stopReason === 'error') throw new Error(result.error ?? 'helper model error');
       if (result.stopReason === 'aborted') throw new Error('cancelled');
 
+      // A nested background helper must finish copying into this worktree before it is merged/removed.
+      await Promise.all([...this.running.values()].filter((r) => r.parentTaskId === taskId).map((r) => r.done));
+
       // Determine changes in the worktree.
       const changed = await changedFiles(wt);
-      const isIn = a.writeScope.length ? picomatch(a.writeScope, { dot: true }) : () => false;
-      const keep = changed.filter((c) => isIn(c.path));
-      const discarded = changed.filter((c) => !isIn(c.path)).map((c) => `/workspace/${c.path}`);
+      const matchers = scopes.map((scope) => scope.length ? picomatch(scope, { dot: true }) : () => false);
+      const isIn = (path: string) => matchers.every((matches) => matches(path));
+      const sourceFs = intersectScopes(core, parent.athleteId, wt, scopes);
+      const destinationFs = intersectScopes(core, parent.athleteId, parentDir, scopes);
+      const keep: typeof changed = [];
+      const discarded: string[] = [];
+      for (const change of changed) {
+        try {
+          if (!isIn(change.path)) throw new Error('outside scope');
+          sourceFs.resolve(change.path, 'write');
+          destinationFs.resolve(change.path, 'write');
+          if (!change.deleted && !(await lstat(join(wt, change.path))).isFile()) throw new Error('only regular files may be merged');
+          keep.push(change);
+        } catch {
+          discarded.push(`/workspace/${change.path}`);
+        }
+      }
       const dbInScope = a.writeScope.length > 0 && isIn('data/coach.db');
       const outputs = keep.map((c) => `/workspace/${c.path}`);
       const copyBack = async () => {
         try {
           for (const c of keep) {
-            const dest = join(paths.workspace, c.path);
+            const dest = destinationFs.resolve(c.path, 'write').host;
             if (c.deleted) await unlink(dest).catch(() => {});
             else {
-              await mkdir(dirname(dest), { recursive: true });
-              await copyFile(join(wt, c.path), dest);
+              await destinationFs.writeFile(c.path, await readFile(sourceFs.resolve(c.path, 'read').host));
             }
           }
           if (dbInScope && !a.input.background) {
             const src = join(wt, 'data', 'coach.db');
-            if (await exists(src)) await copyFile(src, join(paths.workspace, 'data', 'coach.db'));
+            if (await exists(src)) {
+              sourceFs.resolve('data/coach.db', 'read');
+              destinationFs.resolve('data/coach.db', 'write');
+              if (!(await lstat(src)).isFile()) throw new Error('helper database must be a regular file');
+              await copyDatabaseIntoFs(src, destinationFs, join(paths.tmp, `helper-db-${taskId}-merge.db`));
+            }
           }
         } finally {
           await cleanup();
@@ -411,6 +443,46 @@ async function exists(p: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** SQLite online backup includes pending WAL pages and produces a coherent helper snapshot. */
+async function copyDatabaseIntoFs(source: string, destination: VirtualFS, temporary: string): Promise<void> {
+  destination.resolve('data/coach.db', 'write');
+  const db = new DatabaseSync(source, { readOnly: true });
+  try {
+    await backup(db, temporary);
+    // Use the path jail's atomic replacement, so an existing destination symlink
+    // cannot make SQLite overwrite a different file outside the helper's grant.
+    await destination.writeFile('data/coach.db', await readFile(temporary));
+    // A replaced database must never replay the previous file's pending WAL.
+    const target = destination.resolve('data/coach.db', 'write').host;
+    for (const suffix of ['-wal', '-shm']) await unlink(target + suffix).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'ENOENT') throw error; });
+  } finally {
+    db.close();
+    await rm(temporary, { force: true });
+  }
+}
+
+/** Nested helpers cannot expand any ancestor's file grant [SUB-3]. */
+function intersectScopes(core: Core, athleteId: string, dir: string, scopes: string[][]): VirtualFS {
+  const filesystems = scopes.map((scope) => core.fsFor(athleteId, scope, dir));
+  const base = filesystems.at(-1)!;
+  const resolve: VirtualFS['resolve'] = (path, mode) => {
+    if (mode === 'write') for (const fs of filesystems) fs.resolve(path, mode);
+    return base.resolve(path, mode);
+  };
+  return {
+    resolve,
+    readFile: (path) => base.readFile(path),
+    readText: (path) => base.readText(path),
+    writeFile: async (path, data) => { resolve(path, 'write'); await base.writeFile(path, data); },
+    stat: (path) => base.stat(path),
+    glob: (pattern, path) => base.glob(pattern, path),
+    grep: (opts) => base.grep(opts),
+    toVirtual: (path) => base.toVirtual(path),
+    withWriteScope: (scope) => intersectScopes(core, athleteId, dir, [...scopes, scope ?? []]),
+    writeScope: base.writeScope,
+  };
 }
 
 /** Changed paths (relative) in a worktree, including untracked files and deletions. */

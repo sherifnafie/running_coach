@@ -93,6 +93,7 @@ export function createCoreBase(deps: CoachRuntimeDeps, bus: StreamBus, web: WebP
           return deps.sandbox.exec(handle, command, {
             timeoutS: opts.timeoutS,
             cwd: opts.cwd,
+            signal: opts.signal,
             tz: settings?.profile.tz,
             maxOutputBytes: deps.config.limits.bashMaxOutputBytes,
             fakeTime: isVirtualClock ? deps.clock.now().toISOString() : undefined,

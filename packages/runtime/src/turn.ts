@@ -43,6 +43,8 @@ export interface TurnOptions {
   situationExtra?: string[];
   replyRequired?: boolean;
   safety?: SafetyScreenResult;
+  /** Consume signals from athlete events injected during this turn [RT-3, SAFE-2]. */
+  steeringSafety?: (events: AnyEvent[]) => SafetyScreenResult | undefined;
   /** Skip epoch persistence of this turn's items (never used for normal turns). */
   ephemeral?: boolean;
 }
@@ -92,12 +94,16 @@ export function partialText(json: string): string | undefined {
 }
 
 export class TurnRunner {
-  private active = new Map<string, AbortController>();
+  private active = new Map<string, { athleteId: string; abort: AbortController }>();
 
   constructor(private core: Core) {}
 
   abortAll(): void {
-    for (const a of this.active.values()) a.abort();
+    for (const a of this.active.values()) a.abort.abort();
+  }
+
+  abortAthlete(athleteId: string): void {
+    for (const a of this.active.values()) if (a.athleteId === athleteId) a.abort.abort();
   }
 
   async run(athleteId: string, triggers: AnyEvent[], cls: TriggerClass, opts: TurnOptions = {}): Promise<TurnOutcome> {
@@ -222,7 +228,7 @@ export class TurnRunner {
       sentTexts: [],
       streamed: new Set(),
     };
-    const streamable = !proactive && msgState.allowMessaging;
+    const streamable = () => !msgState.proactive && msgState.allowMessaging;
     let tools: ToolName[] = opts.tools ?? [...COACH_TOOLS];
     if (!msgState.allowMessaging) tools = tools.filter((t) => t !== 'send_message' && t !== 'no_reply');
     const executor = createExecutor(core, {
@@ -239,7 +245,7 @@ export class TurnRunner {
       onStart: (call) => {
         if (call.name !== 'send_message') core.bus.setPresence(athleteId, 'working');
         const label = PROGRESS_LABELS[call.name];
-        if (label && streamable) core.bus.publish(athleteId, { t: 'progress', turnId, label });
+        if (label && streamable()) core.bus.publish(athleteId, { t: 'progress', turnId, label });
       },
       onEnd: () => core.bus.setPresence(athleteId, 'thinking'),
     });
@@ -249,22 +255,29 @@ export class TurnRunner {
         const evs = mind.drainSteering();
         if (evs.length === 0) return [];
         msgState.proactive = false;
+        // A previous proactive send/no_reply does not answer the newly arrived athlete message.
+        msgState.replied = false;
+        msgState.noReplyReason = undefined;
         msgState.triggers.push(...evs);
         replyRequired = true;
-        return [buildTriggerItem(evs, [], { tz, extraText: 'The athlete sent this while you were working. Take it into account; they expect a reply.' })];
+        const safety = opts.steeringSafety?.(evs);
+        const safetyText = safety?.flagged
+          ? `SAFETY: the harness flagged a possible ${safety.categories.join(', ')} signal${safety.acute ? ' (possibly happening now)' : ''}. Apply the safety protocol in your constitution. The athlete is also being shown a safety banner.`
+          : '';
+        return [buildTriggerItem(evs, [], { tz, extraText: ['The athlete sent this while you were working. Take it into account; they expect a reply.', safetyText].filter(Boolean).join('\n') })];
       },
     };
 
     // ---- run
     const abort = new AbortController();
-    this.active.set(turnId, abort);
+    this.active.set(turnId, { athleteId, abort });
     const streamText = new Map<string, string>();
     let lastPromptTokens = 0;
     const usageKind = cls === 'consolidation' ? 'consolidation' : 'turn';
     const onEvent = (e: TurnStreamEvent) => {
       switch (e.type) {
         case 'tool_call_start':
-          if (e.name === 'send_message' && streamable) {
+          if (e.name === 'send_message' && streamable()) {
             msgState.streamed.add(e.id);
             core.bus.publish(athleteId, { t: 'message.start', streamId: e.id, replyTo: firstAthlete?.id });
             core.bus.setPresence(athleteId, 'typing');
@@ -290,7 +303,7 @@ export class TurnRunner {
           }
           break;
         case 'progress':
-          if (streamable && e.text.trim()) core.bus.publish(athleteId, { t: 'progress', turnId, label: e.text.trim().slice(0, 140) });
+          if (streamable() && e.text.trim()) core.bus.publish(athleteId, { t: 'progress', turnId, label: e.text.trim().slice(0, 140) });
           break;
         case 'step_end':
           lastPromptTokens = 0;
@@ -352,6 +365,7 @@ export class TurnRunner {
           cacheKey: athleteId,
           signal: abort.signal,
           onEvent,
+          steering,
         });
         await persist(r2.newItems);
         totalCost += r2.costUsd;

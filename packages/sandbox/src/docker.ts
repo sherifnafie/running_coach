@@ -12,12 +12,14 @@
  */
 import { createHash } from 'node:crypto';
 import http from 'node:http';
+import { existsSync, lstatSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Duplex } from 'node:stream';
 import { ToolError, type ExecOptions, type ExecResult, type SandboxHandle, type SandboxMounts, type SandboxProvider } from '@opencoach/protocol';
 import { ABORTED_EXIT_CODE, DEFAULT_MAX_OUTPUT_BYTES, OutputCollector, TIMED_OUT_EXIT_CODE, buildEnv, validateCwd } from './common';
 import type { DockerSandboxOptions } from './types';
 
-const DOCKER_PATH = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
+const DOCKER_PATH = '/opt/coach-python/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
 const LABEL_ATHLETE = 'opencoach.athlete';
 const LABEL_CONFIG = 'opencoach.config';
 /** How long past the in-container `timeout` we wait for the stream before giving up on the exec. */
@@ -103,7 +105,7 @@ export class DockerClient {
    * Start an exec and hand back the multiplexed output stream. Uses the connection-upgrade
    * ("hijack") protocol so stdin can be written; falls back to the plain streaming response.
    */
-  startExec(execId: string, stdin: string | undefined): Promise<{ stream: NodeJS.ReadableStream & { destroy(): void }; initial: Buffer }> {
+  startExec(execId: string, stdin: string | undefined, signal?: AbortSignal, timeoutMs = 30_000): Promise<{ stream: NodeJS.ReadableStream & { destroy(): void }; initial: Buffer }> {
     return new Promise((resolve, reject) => {
       const payload = Buffer.from(JSON.stringify({ Detach: false, Tty: false }));
       const req = http.request({
@@ -113,12 +115,19 @@ export class DockerClient {
         agent: false,
         headers: { 'Content-Type': 'application/json', 'Content-Length': String(payload.length), Connection: 'Upgrade', Upgrade: 'tcp' },
       });
-      req.on('error', reject);
+      const onAbort = (): void => { req.destroy(new Error('Docker exec start aborted')); };
+      const timer = setTimeout(() => req.destroy(new Error('Docker exec start timed out')), timeoutMs);
+      const cleanup = (): void => { clearTimeout(timer); signal?.removeEventListener('abort', onAbort); };
+      req.on('error', (error) => { cleanup(); reject(error); });
+      signal?.addEventListener('abort', onAbort, { once: true });
+      if (signal?.aborted) onAbort();
       req.on('upgrade', (_res, socket: Duplex, head: Buffer) => {
+        cleanup();
         if (stdin !== undefined) socket.end(stdin); // half-close: the exec's stdin sees EOF, output keeps flowing
         resolve({ stream: socket, initial: head });
       });
       req.on('response', (res) => {
+        cleanup();
         if ((res.statusCode ?? 0) >= 400) {
           const chunks: Buffer[] = [];
           res.on('data', (c: Buffer) => chunks.push(c));
@@ -196,8 +205,13 @@ class DockerSandboxProvider implements SandboxProvider {
   private readonly byAthlete = new Map<string, Entry>();
   private readonly inflight = new Map<string, Promise<SandboxHandle>>();
   private disposed = false;
+  private readonly active = new Map<NodeJS.ReadableStream & { destroy(): void }, string>();
 
   constructor(private readonly opts: DockerSandboxOptions) {
+    if (!opts.image.trim()) throw new ToolError('INVALID_INPUT', 'sandbox image must not be empty');
+    if (!(opts.memoryMb > 0) || !Number.isFinite(opts.memoryMb)) throw new ToolError('INVALID_INPUT', 'memoryMb must be positive and finite');
+    if (!(opts.cpus > 0) || !Number.isFinite(opts.cpus)) throw new ToolError('INVALID_INPUT', 'cpus must be positive and finite');
+    if (opts.pidsLimit !== undefined && (!Number.isInteger(opts.pidsLimit) || opts.pidsLimit < 1)) throw new ToolError('INVALID_INPUT', 'pidsLimit must be a positive integer');
     this.client = new DockerClient(opts.socketPath);
   }
 
@@ -205,20 +219,24 @@ class DockerSandboxProvider implements SandboxProvider {
 
   async ensure(athleteId: string, mounts: SandboxMounts): Promise<SandboxHandle> {
     this.assertLive();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_:-]{0,255}$/.test(athleteId)) throw new ToolError('INVALID_INPUT', 'invalid athlete id');
     for (const key of ['workspace', 'raw', 'history', 'system'] as const) {
       const p = mounts[key];
       if (typeof p !== 'string' || !p.startsWith('/') || p.includes(':') || p.includes('\0')) throw new Error(`sandbox mount ${key} must be an absolute host path without ":" (got ${JSON.stringify(p)})`);
     }
-    const key = `${athleteId}\n${JSON.stringify(mounts)}`;
-    const pending = this.inflight.get(key);
-    if (pending) return pending;
-    const p = this.doEnsure(athleteId, mounts).finally(() => this.inflight.delete(key));
-    this.inflight.set(key, p);
+    const pending = this.inflight.get(athleteId);
+    const p = (pending ?? Promise.resolve()).catch(() => undefined).then(() => {
+      this.assertLive();
+      return this.doEnsure(athleteId, mounts);
+    }).finally(() => { if (this.inflight.get(athleteId) === p) this.inflight.delete(athleteId); });
+    this.inflight.set(athleteId, p);
     return p;
   }
 
   private createBody(athleteId: string, mounts: SandboxMounts): { body: Record<string, unknown>; hash: string } {
     const o = this.opts;
+    const gitPath = join(mounts.workspace, '.git');
+    if (existsSync(gitPath) && lstatSync(gitPath).isSymbolicLink()) throw new Error('workspace .git must not be a symlink');
     const body = {
       Image: o.image,
       Cmd: ['sleep', 'infinity'],
@@ -226,7 +244,7 @@ class DockerSandboxProvider implements SandboxProvider {
       User: o.user ?? defaultUser(),
       Labels: { [LABEL_ATHLETE]: athleteId, 'opencoach.managed': 'true' } as Record<string, string>,
       HostConfig: {
-        Binds: [`${mounts.workspace}:/workspace:rw`, `${mounts.raw}:/raw:ro`, `${mounts.history}:/history:ro`, `${mounts.system}:/system:ro`],
+        Binds: [`${mounts.workspace}:/workspace:rw`, `${mounts.raw}:/raw:ro`, `${mounts.history}:/history:ro`, `${mounts.system}:/system:ro`, ...(existsSync(gitPath) ? [`${gitPath}:/workspace/.git:ro`] : [])],
         NetworkMode: 'none',
         Memory: Math.round(o.memoryMb * 1024 * 1024),
         MemorySwap: Math.round(o.memoryMb * 1024 * 1024),
@@ -235,7 +253,7 @@ class DockerSandboxProvider implements SandboxProvider {
         CapDrop: ['ALL'],
         SecurityOpt: ['no-new-privileges'],
         Tmpfs: { '/tmp': `rw,nosuid,nodev,size=${o.tmpSize ?? '512m'}` },
-        ReadonlyRootfs: false,
+        ReadonlyRootfs: true,
         PidsLimit: o.pidsLimit ?? 512,
         Init: true,
       },
@@ -275,16 +293,16 @@ class DockerSandboxProvider implements SandboxProvider {
   }
 
   private async createAndStart(athleteId: string, body: Record<string, unknown>): Promise<string> {
-    const name = `opencoach-${sanitizeName(athleteId)}`;
+    const suffix = createHash('sha256').update(athleteId).digest('hex').slice(0, 8);
+    const name = `opencoach-${sanitizeName(athleteId)}-${suffix}`;
     const create = (): Promise<{ Id: string }> => this.client.json<{ Id: string }>('POST', `/containers/create?name=${encodeURIComponent(name)}`, body);
     let created: { Id: string };
     try {
       created = await create();
     } catch (e) {
       if (e instanceof DockerApiError && e.status === 409) {
-        // a container of that name exists but did not carry our label: replace it
-        await this.client.json('DELETE', `/containers/${encodeURIComponent(name)}?force=true`, undefined, [404]);
-        created = await create();
+        // A name collision must never delete a container owned by someone else.
+        throw new Error(`Docker container name ${name} is already in use; refusing to remove an unmanaged container (${e.message})`);
       } else if (e instanceof DockerApiError && e.status === 404) {
         throw new Error(`Docker image ${String(body.Image)} not found on the daemon; build or pull it first (${e.message})`);
       } else {
@@ -303,8 +321,8 @@ class DockerSandboxProvider implements SandboxProvider {
 
   async exec(handle: SandboxHandle, command: string, opts: ExecOptions): Promise<ExecResult> {
     this.assertLive();
-    const entry = this.byContainer.get(handle.id) ?? this.byAthlete.get(handle.athleteId);
-    if (!entry) throw new Error(`unknown or released sandbox handle ${handle.id}; call ensure() first`);
+    const entry = this.byContainer.get(handle.id);
+    if (!entry || entry.athleteId !== handle.athleteId) throw new Error(`unknown or released sandbox handle ${handle.id}; call ensure() first`);
     const cwd = validateCwd(opts.cwd);
     const env = buildEnv({ path: DOCKER_PATH, tz: opts.tz, env: opts.env, fakeTime: opts.fakeTime, faketimeLibrary: this.opts.faketimeLibrary });
     try {
@@ -313,6 +331,8 @@ class DockerSandboxProvider implements SandboxProvider {
       // The container vanished or was stopped behind our back: bring it back once and retry.
       if (e instanceof DockerApiError && (e.status === 404 || e.status === 409)) {
         const fresh = await this.doEnsure(entry.athleteId, entry.mounts);
+        // Preserve only this previously issued handle after an automatic recovery.
+        this.byContainer.set(handle.id, this.byContainer.get(fresh.id)!);
         return this.execOnce(fresh.id, command, opts, cwd, env);
       }
       throw e;
@@ -327,7 +347,8 @@ class DockerSandboxProvider implements SandboxProvider {
 
     const hasStdin = opts.stdin !== undefined;
     const created = await this.client.json<{ Id: string }>('POST', `/containers/${containerId}/exec`, {
-      Cmd: ['timeout', '-s', 'KILL', timeoutArg, 'bash', '-lc', command],
+      // Docker merges exec Env with the image environment; env -i removes inherited entries.
+      Cmd: ['env', '-i', ...Object.entries(env).map(([k, v]) => `${k}=${v}`), 'timeout', '-s', 'KILL', timeoutArg, 'bash', '--noprofile', '--norc', '-c', command],
       AttachStdout: true,
       AttachStderr: true,
       AttachStdin: hasStdin,
@@ -341,7 +362,16 @@ class DockerSandboxProvider implements SandboxProvider {
     const err = new OutputCollector(maxBytes);
     const demux = new DockerDemuxer((s, d) => (s === 'stdout' ? out : err).push(d));
 
-    const { stream, initial } = await this.client.startExec(created.Id, opts.stdin);
+    let connection: Awaited<ReturnType<DockerClient['startExec']>>;
+    try {
+      connection = await this.client.startExec(created.Id, opts.stdin, opts.signal, opts.timeoutS * 1000 + WATCHDOG_GRACE_MS);
+    } catch (error) {
+      if (!opts.signal?.aborted) throw error;
+      await this.stopCommand(containerId);
+      return { stdout: '', stderr: '', exitCode: ABORTED_EXIT_CODE, timedOut: false, truncated: false, durationMs: Math.round(performance.now() - started) };
+    }
+    const { stream, initial } = connection;
+    this.active.set(stream, containerId);
     let watchdogFired = false;
     let aborted = false;
     await new Promise<void>((resolve) => {
@@ -369,8 +399,14 @@ class DockerSandboxProvider implements SandboxProvider {
       stream.on('close', finish);
       stream.on('error', finish);
       if (initial.length > 0) demux.push(initial);
+      if (opts.signal?.aborted) onAbort();
     });
 
+    this.active.delete(stream);
+    // Closing an attached stream does not stop Docker exec. Stop the container so
+    // an aborted command cannot keep mutating the athlete's workspace.
+    if (this.disposed) aborted = true;
+    if (aborted || watchdogFired) await this.stopCommand(containerId);
     const durationMs = Math.round(performance.now() - started);
     const o = out.finish();
     const e = err.finish();
@@ -396,6 +432,10 @@ class DockerSandboxProvider implements SandboxProvider {
     return typeof info.ExitCode === 'number' ? info.ExitCode : -1;
   }
 
+  private async stopCommand(containerId: string): Promise<void> {
+    await this.client.json('POST', `/containers/${containerId}/stop?t=0`, undefined, [304, 404]);
+  }
+
   /** The container is deliberately kept (long-lived per athlete); only our bookkeeping is dropped. */
   async release(handle: SandboxHandle): Promise<void> {
     const entry = this.byContainer.get(handle.id);
@@ -405,6 +445,10 @@ class DockerSandboxProvider implements SandboxProvider {
 
   async dispose(): Promise<void> {
     this.disposed = true;
+    const runningContainers = new Set(this.active.values());
+    for (const stream of this.active.keys()) stream.destroy();
+    await Promise.all([...runningContainers].map((id) => this.stopCommand(id)));
+    this.active.clear();
     this.byContainer.clear();
     this.byAthlete.clear();
   }

@@ -192,7 +192,7 @@ export interface VirtualFS {
 // ------------------------------------------------------------------ ports (implemented by the runtime)
 
 export interface SandboxPort {
-  exec(command: string, opts: { timeoutS: number; cwd?: string }): Promise<ExecResult>;
+  exec(command: string, opts: { timeoutS: number; cwd?: string; signal?: AbortSignal }): Promise<ExecResult>;
 }
 
 export type SendMessageResult =

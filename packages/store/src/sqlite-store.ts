@@ -33,6 +33,7 @@ import {
   type EpochRecord,
   type EventEnvelope,
   type EventPayloadInput,
+  type EventPayload,
   type EventQuery,
   type EventType,
   type MessageStateRecord,
@@ -351,6 +352,27 @@ export class SqliteStore implements Store {
 
   async deleteAthlete(id: string): Promise<void> {
     this.tx(() => {
+      // Privacy includes caches and capability mappings, which do not have athlete_id columns.
+      // Match namespace boundaries exactly (athlete ids contain '_' and must never be SQL LIKE patterns).
+      this.run("DELETE FROM kv WHERE key IN (SELECT 'epoch-system:' || id FROM epochs WHERE athlete_id = ?)", id);
+      this.run(`DELETE FROM idempotency WHERE EXISTS (
+        SELECT 1 FROM turns WHERE athlete_id = ?
+        AND substr(idempotency.key, 1, length('msg:' || turns.id || ':')) = 'msg:' || turns.id || ':'
+      )`, id);
+      for (const prefix of [`message:${id}:`, `tool:${id}:`, `export:${id}:`, `upload-draft:${id}:`]) {
+        this.run('DELETE FROM idempotency WHERE substr(key, 1, length(?)) = ?', prefix, prefix);
+        this.run('DELETE FROM kv WHERE substr(key, 1, length(?)) = ?', prefix, prefix);
+      }
+      for (const key of [
+        `view-token:${id}`, `app-manifest:${id}`, `harness-version:${id}`, `last-head:${id}`,
+        `turns-since-pinned-write:${id}`, `telegram-athlete:${id}`, `upload-drafts:${id}`,
+      ]) this.run('DELETE FROM kv WHERE key = ?', key);
+      this.run("DELETE FROM kv WHERE substr(key, 1, 7) = 'notice:' AND substr(key, -length(?)) = ?", `:${id}`, `:${id}`);
+      this.run(`DELETE FROM kv WHERE value = ? AND (
+        substr(key, 1, 15) = 'view-token-rev:' OR substr(key, 1, 14) = 'telegram-chat:'
+      )`, id);
+      this.run(`DELETE FROM kv WHERE substr(key, 1, 14) = 'telegram-link:'
+        AND CASE WHEN json_valid(value) THEN json_extract(value, '$.athleteId') ELSE NULL END = ?`, id);
       this.run('DELETE FROM events_fts WHERE rowid IN (SELECT seq FROM events WHERE athlete_id = ?)', id);
       this.run('DELETE FROM events WHERE athlete_id = ?', id);
       this.run('DELETE FROM message_state WHERE athlete_id = ?', id);
@@ -470,14 +492,17 @@ export class SqliteStore implements Store {
    */
   async appendEvent<T extends EventType>(e: NewEvent<T>): Promise<EventEnvelope<T>> {
     if (!Object.hasOwn(EventPayloads, e.type)) throw new Error(`unknown event type: ${String(e.type)}`);
-    const payload = parseEventPayload(e.type, e.payload as EventPayloadInput<T>);
+    if (e.tombstoned && (!e.payload || typeof e.payload !== 'object' || Object.keys(e.payload).length !== 1 || (e.payload as { tombstoned?: unknown }).tombstoned !== true)) {
+      throw new Error('tombstoned event payload must be exactly { tombstoned: true }');
+    }
+    const payload = e.tombstoned ? TOMBSTONE_PAYLOAD as unknown as EventPayload<T> : parseEventPayload(e.type, e.payload as EventPayloadInput<T>);
     const id = e.id ?? newId('evt', this.clock);
     const ts = canonIso(e.ts ?? this.nowIso());
-    const text = extractSearchText(e.type, payload);
+    const text = e.tombstoned ? undefined : extractSearchText(e.type, payload);
     this.tx(() => {
       const res = this.prep(
-        `INSERT INTO events (id, athlete_id, ts, type, actor, turn_id, causation_id, payload, tombstoned) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
-      ).run(id, e.athleteId, ts, e.type, e.actor, lit(e.turnId), lit(e.causationId), JSON.stringify(payload));
+        `INSERT INTO events (id, athlete_id, ts, type, actor, turn_id, causation_id, payload, tombstoned) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(id, e.athleteId, ts, e.type, e.actor, lit(e.turnId), lit(e.causationId), JSON.stringify(payload), e.tombstoned ? 1 : 0);
       if (text !== undefined) this.run('INSERT INTO events_fts (rowid, text) VALUES (?, ?)', res.lastInsertRowid as number, text);
     });
     const env: EventEnvelope<T> = { id, athleteId: e.athleteId, ts, type: e.type, actor: e.actor, payload };

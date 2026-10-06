@@ -72,6 +72,8 @@ function athleteWords(body: string): string {
 }
 
 function tappedValue(body: string): string {
+  const value = /\(value: ([^\n]*?)\)(?:\s|$)/i.exec(body);
+  if (value?.[1] !== undefined) return value[1];
   const quoted = /tapped quick reply\s+"([^"]*)"/i.exec(body) ?? /"([^"]*)"/.exec(body);
   if (quoted?.[1] !== undefined) return quoted[1];
   return athleteWords(body);
@@ -316,6 +318,12 @@ function alreadyProactiveToday(items: ConvItem[], before: number, date: string |
 }
 
 function respondToSystem(events: DemoEvent[], items: ConvItem[], startOfRun: number, situation: string): ScriptedStep {
+  if (/FIRST CONTACT/i.test(situation)) {
+    return { toolCalls: [reply(
+      "Hi, I'm your running coach, with one honest caveat: I'm a scripted demo coach, because no model API key is configured on this server. I can't think for real yet, but you can click through the whole app. To get started: what are you training for?",
+      { quick: GOAL_QUICK },
+    )] };
+  }
   const proactive = events.find((e) => PROACTIVE_TYPES.has(e.type));
   if (!proactive) {
     if (/reply required:\s*yes/i.test(situation)) {

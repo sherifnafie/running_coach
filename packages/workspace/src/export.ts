@@ -231,15 +231,16 @@ export async function importAthlete(opts: { dataDir: string; bundlePath: string;
     const eventsFile = path.join(staging, 'events.jsonl');
     if (await pathExists(eventsFile)) {
       const text = await fsp.readFile(eventsFile, 'utf8');
-      for (const line of text.split('\n')) {
-        if (!line.trim()) continue;
-        const e = JSON.parse(line) as AnyEvent;
-        let eventId: string | undefined = e.id;
-        if (!eventId || (await store.getEvent(eventId))) {
-          const fresh = newId('evt', clock);
-          if (eventId) idMap.set(eventId, fresh);
-          eventId = fresh;
-        }
+      const events = text.split('\n').filter((line) => line.trim()).map((line) => JSON.parse(line) as AnyEvent);
+      const seen = new Set<string>();
+      // Allocate all remapped ids before appending, including forward references.
+      for (const e of events) {
+        if (e.id && seen.has(e.id)) throw new Error(`importAthlete: duplicate event id ${e.id}`);
+        if (e.id) seen.add(e.id);
+        if (e.id && (await store.getEvent(e.id))) idMap.set(e.id, newId('evt', clock));
+      }
+      for (const e of events) {
+        const eventId = e.id ? idMap.get(e.id) ?? e.id : newId('evt', clock);
         const payload = idMap.size ? remapIds(e.payload, idMap) : e.payload;
         const causationId = e.causationId ? (idMap.get(e.causationId) ?? e.causationId) : undefined;
         await store.appendEvent({
@@ -249,6 +250,7 @@ export async function importAthlete(opts: { dataDir: string; bundlePath: string;
           actor: e.actor,
           ts: e.ts,
           payload: payload as never,
+          ...((payload as { tombstoned?: unknown })?.tombstoned === true ? { tombstoned: true } : {}),
           ...(e.turnId ? { turnId: e.turnId } : {}),
           ...(causationId ? { causationId } : {}),
         });

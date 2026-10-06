@@ -34,6 +34,11 @@ const sent = (s: ScriptedStep): SendInput => call(s, 'send_message')!.input as S
 const labels = (s: ScriptedStep) => sent(s).ui?.quick_replies?.map((q) => q.label) ?? [];
 const values = (s: ScriptedStep) => sent(s).ui?.quick_replies?.map((q) => q.value) ?? [];
 
+it('[UI-1] uses a labelled quick reply value as the reported effort', async () => {
+  const item = user(`${header(TUE, 'user.ui_action', 'evt_tap')}\nAthlete tapped quick reply "4 · easy" (value: 4) on message evt_prev`);
+  expect(sent(await decide([...prior, item, situation()])).text).toContain('Got it, 4/10');
+});
+
 function expectValidTools(step: ScriptedStep) {
   for (const c of calls(step)) {
     if (c.name === 'send_message' || c.name === 'write' || c.name === 'schedule' || c.name === 'no_reply') {
@@ -44,6 +49,13 @@ function expectValidTools(step: ScriptedStep) {
 }
 
 describe('demo coach: first conversation', () => {
+  it('greets a new athlete when the runtime fires first contact [RT-4, MSG-2]', async () => {
+    const step = await decide([sched('First contact: greet the new athlete'), situation('FIRST CONTACT: greet the athlete\n', 'no')]);
+    expect(sent(step).text).toMatch(/scripted demo coach/);
+    expect(sent(step).text).toMatch(/training for/);
+    expect(labels(step)).toEqual(['First 5K', 'Half marathon', 'Marathon', 'Just get fit']);
+    expectValidTools(step);
+  });
   it('introduces itself as a scripted demo coach and asks about goals with quick replies', async () => {
     const step = await decide([msg('hi', 'evt_first'), situation('athlete: new\n')]);
     expect(calls(step)).toHaveLength(1);

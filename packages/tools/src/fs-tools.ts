@@ -161,7 +161,7 @@ export const bashTool: ToolDef<'bash'> = {
   availableTo: ['coach', 'helper'],
   execute: (input, ctx) =>
     guard(async () => {
-      const r = await ctx.sandbox.exec(input.command, { timeoutS: input.timeout_s ?? 120, cwd: input.cwd });
+      const r = await ctx.sandbox.exec(input.command, { timeoutS: input.timeout_s ?? 120, cwd: input.cwd, signal: ctx.signal });
       const parts: string[] = [];
       parts.push(r.timedOut ? `Timed out after ${input.timeout_s ?? 120}s (killed).` : `Exit code ${r.exitCode} (${(r.durationMs / 1000).toFixed(1)}s).`);
       if (r.stdout) parts.push(`stdout:\n${truncateMiddle(r.stdout, 30_000)}`);

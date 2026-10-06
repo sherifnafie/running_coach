@@ -80,7 +80,11 @@ describe('initWorkspace', () => {
     const { ws, commit, clock } = await freshWorkspace();
     expect(git(ws, 'rev-parse', 'HEAD').trim()).toBe(commit);
     expect(git(ws, 'branch', '--show-current').trim()).toBe('main');
-    expect(git(ws, 'log', '-1', '--format=%an|%ae|%cn|%ce|%aI|%cI').trim()).toBe(`OpenCoach Harness|${HARNESS_GIT_EMAIL}|OpenCoach Harness|${HARNESS_GIT_EMAIL}|${clock.now().toISOString().replace('.000Z', '+00:00')}|${clock.now().toISOString().replace('.000Z', '+00:00')}`);
+    const [author, email, committer, committerEmail, authorAt, committedAt] = git(ws, 'log', '-1', '--format=%an|%ae|%cn|%ce|%aI|%cI').trim().split('|');
+    expect([author, email, committer, committerEmail]).toEqual(['OpenCoach Harness', HARNESS_GIT_EMAIL, 'OpenCoach Harness', HARNESS_GIT_EMAIL]);
+    // Git versions render UTC as either Z or +00:00; both must encode the injected instant.
+    expect(new Date(authorAt!).toISOString()).toBe(clock.now().toISOString());
+    expect(new Date(committedAt!).toISOString()).toBe(clock.now().toISOString());
     expect(git(ws, 'log', '-1', '--format=%B').trim()).toBe('seed: initial workspace\n\nKind: seed');
     expect(git(ws, 'config', '--local', 'user.name').trim()).toBe('OpenCoach Harness');
     expect(git(ws, 'config', '--local', 'commit.gpgsign').trim()).toBe('false');

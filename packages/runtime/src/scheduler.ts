@@ -249,8 +249,8 @@ export class Scheduler {
     const tz = settings.profile.tz;
     const mk = async (id: string, kind: 'heartbeat' | 'consolidation', time: string, enabled: boolean, purpose: string) => {
       const existing = await core.store.getSchedule(id);
-      const spec: ScheduleSpec = { rrule: 'FREQ=DAILY', time };
-      const sameSpec = existing && !isOneShot(existing.spec) && existing.spec.time === time && existing.status === 'active';
+      const spec: ScheduleSpec = { rrule: 'FREQ=DAILY', time, tz };
+      const sameSpec = existing && !isOneShot(existing.spec) && existing.spec.time === time && existing.spec.tz === tz && existing.status === 'active';
       if (sameSpec && enabled && existing.nextFireAt) return;
       await core.store.upsertSchedule({
         id,

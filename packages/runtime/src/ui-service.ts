@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
-import { cp, mkdir, readFile, readdir, rm, stat } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
+import { backup, DatabaseSync } from 'node:sqlite';
 import picomatch from 'picomatch';
 import {
   AppManifest,
@@ -64,7 +65,16 @@ async function dirHash(dir: string): Promise<string | null> {
 }
 
 export class UiService {
+  private locks = new Map<string, Promise<unknown>>();
   constructor(private core: Core) {}
+
+  private withLock<T>(athleteId: string, job: () => Promise<T>): Promise<T> {
+    const running = (this.locks.get(athleteId) ?? Promise.resolve()).then(job, job);
+    const settled = running.catch(() => undefined);
+    this.locks.set(athleteId, settled);
+    void settled.then(() => { if (this.locks.get(athleteId) === settled) this.locks.delete(athleteId); });
+    return running;
+  }
 
   currentViews(athleteId: string): Promise<UiVersionRecord[]> {
     return this.core.store.getCurrentUiVersions(athleteId);
@@ -156,13 +166,13 @@ export class UiService {
     const known = list.filter((v) => manifests.views[v]);
     for (const u of unknown) globalErrors.push(`View "${u}" not found (ui/views/${u}/view.json missing or invalid).`);
     if (!core.deps.renderer) {
-      // No renderer configured: static validation only.
+      // Publishing unrendered coach code would bypass the gates in SPEC §9.6.
       return {
-        ok: globalErrors.length === 0,
+        ok: false,
         globalErrors: [...globalErrors, 'Visual preview is unavailable on this server (no renderer); only manifests were validated.'].filter(Boolean),
         views: known.map((viewId) => ({
           viewId,
-          ok: true,
+          ok: false,
           staticErrors: [],
           runtimeErrors: [],
           cspViolations: [],
@@ -172,13 +182,45 @@ export class UiService {
         })),
       };
     }
-    const outDir = join(core.paths(athleteId).tmp, 'previews', String(core.clock.now().getTime()));
+    const outDir = join(core.paths(athleteId).tmp, 'previews', `${core.clock.now().getTime()}-${randomToken(6)}`);
     await mkdir(outDir, { recursive: true });
     const report = await core.deps.renderer.preview({ athleteId, workspaceDir: ws, views: known, outDir, kitDir: core.deps.kitDir });
     return { ...report, ok: report.ok && globalErrors.length === 0, globalErrors: [...globalErrors, ...report.globalErrors] };
   }
 
+  /** Revalidate workspace and currently visible bundles against a migrated database [UI-3]. */
+  async revalidateAfterSchemaChange(athleteId: string): Promise<{ ok: boolean; workspace: PreviewReport; published: PreviewReport }> {
+    const core = this.core;
+    const paths = core.paths(athleteId);
+    const manifests = await readUiManifests(paths.workspace);
+    const workspaceIds = Object.keys(manifests.views);
+    const workspace = await this.preview(athleteId, workspaceIds);
+    const current = await this.currentViews(athleteId);
+    let published: PreviewReport = { ok: true, views: [], globalErrors: [] };
+    if (current.length === 0) return { ok: workspace.ok, workspace, published };
+
+    const staging = join(paths.tmp, 'schema-views', randomToken(12));
+    try {
+      await mkdir(join(staging, 'ui/views'), { recursive: true });
+      await mkdir(join(staging, 'data'), { recursive: true });
+      await writeFile(join(staging, 'ui/app.json'), JSON.stringify(await this.appManifest(athleteId)));
+      for (const view of current) await cp(view.dir, join(staging, 'ui/views', view.viewId), { recursive: true });
+      // Online backup includes pending WAL data; the live DB is never modified for validation.
+      const databasePath = core.fsFor(athleteId).resolve('data/coach.db', 'read').host;
+      const db = new DatabaseSync(databasePath, { readOnly: true });
+      try { await backup(db, join(staging, 'data/coach.db')); } finally { db.close(); }
+      published = await this.preview(athleteId, current.map((view) => view.viewId), staging);
+      return { ok: workspace.ok && published.ok, workspace, published };
+    } finally {
+      await rm(staging, { recursive: true, force: true });
+    }
+  }
+
   async publish(athleteId: string, views: string[] | undefined, summary: string, turnId?: string): Promise<PublishResult> {
+    return this.withLock(athleteId, () => this.publishInner(athleteId, views, summary, turnId));
+  }
+
+  private async publishInner(athleteId: string, views: string[] | undefined, summary: string, turnId?: string): Promise<PublishResult> {
     const core = this.core;
     const paths = core.paths(athleteId);
     const list = views && views.length ? views : await this.changedViews(athleteId);
@@ -209,19 +251,23 @@ export class UiService {
     const { views: manifests } = await readUiManifests(paths.workspace);
     const published: Array<{ viewId: string; version: string }> = [];
     const now = core.clock.now().toISOString();
-    const head = await git.head().catch(() => '');
+    const prepared: Array<{ viewId: string; version: string; manifest: ViewManifest; dir: string }> = [];
     for (const viewId of list) {
       const manifest = manifests[viewId];
       if (!manifest) continue;
       const versions = await core.store.listUiVersions(athleteId, viewId);
       const version = String(versions.reduce((m, v) => Math.max(m, Number(v.version) || 0), 0) + 1);
       const dir = await copyPublishedView(paths, viewId, version);
-      await core.store.addUiVersion({ athleteId, viewId, version, commit: head, summary, publishedAt: now, publishedBy: 'coach', manifest, dir });
-      await core.store.setCurrentUiVersion(athleteId, viewId, version);
+      prepared.push({ viewId, version, manifest, dir });
       published.push({ viewId, version });
     }
+    const committed = await git.commitAll(`publish: ${summary}`, { Kind: 'publish', ...(turnId ? { 'Turn-Id': turnId } : {}) });
+    const head = committed?.commit ?? await git.head();
+    for (const view of prepared) {
+      await core.store.addUiVersion({ athleteId, ...view, commit: head, summary, publishedAt: now, publishedBy: 'coach' });
+      await core.store.setCurrentUiVersion(athleteId, view.viewId, view.version);
+    }
     if (appChange) await core.store.setKv(APP_KEY(athleteId), JSON.stringify(appChange));
-    await git.commitAll(`publish: ${summary}`, { Kind: 'publish', ...(turnId ? { 'Turn-Id': turnId } : {}) }).catch(() => null);
     for (const p of published) {
       await core.store.appendEvent({ athleteId, type: 'coach.ui_published', actor: 'coach', turnId, payload: { viewId: p.viewId, version: p.version, commit: head, summary } });
       core.bus.publish(athleteId, { t: 'ui.published', viewId: p.viewId, version: p.version, summary });
@@ -246,6 +292,10 @@ export class UiService {
   }
 
   async rollback(athleteId: string, viewId: string, toVersion?: string, turnId?: string): Promise<{ viewId: string; version: string }> {
+    return this.withLock(athleteId, () => this.rollbackInner(athleteId, viewId, toVersion, turnId));
+  }
+
+  private async rollbackInner(athleteId: string, viewId: string, toVersion?: string, turnId?: string): Promise<{ viewId: string; version: string }> {
     const target = await this.targetVersion(athleteId, viewId, toVersion);
     await this.core.store.setCurrentUiVersion(athleteId, viewId, target.version);
     await this.core.store.appendEvent({ athleteId, type: 'coach.ui_published', actor: 'coach', turnId, payload: { viewId, version: target.version, commit: target.commit, summary: `Rolled back to v${target.version}` } });
@@ -325,23 +375,26 @@ export class UiService {
 
   /** Athlete-initiated revert (SPEC [WS-5]): serve the older version AND restore it into the workspace. */
   async revert(athleteId: string, viewId: string, toVersion?: string): Promise<UiVersionRecord> {
+    return this.core.minds.get(athleteId).runExclusive(() => this.withLock(athleteId, () => this.revertInner(athleteId, viewId, toVersion)));
+  }
+
+  private async revertInner(athleteId: string, viewId: string, toVersion?: string): Promise<UiVersionRecord> {
     const core = this.core;
     const current = (await this.currentViews(athleteId)).find((v) => v.viewId === viewId);
     const target = await this.targetVersion(athleteId, viewId, toVersion);
-    await core.store.setCurrentUiVersion(athleteId, viewId, target.version);
     const paths = core.paths(athleteId);
     const dest = join(paths.workspace, 'ui', 'views', viewId);
-    await core.minds.get(athleteId).runExclusive(async () => {
-      await rm(dest, { recursive: true, force: true });
-      await cp(target.dir, dest, { recursive: true });
-      await openWorkspaceGit(paths.workspace, core.clock).commitAll(`revert: ${viewId} to v${target.version} (by athlete)`, { Kind: 'revert' });
-    });
+    await rm(dest, { recursive: true, force: true });
+    await cp(target.dir, dest, { recursive: true });
+    await openWorkspaceGit(paths.workspace, core.clock).commitAll(`revert: ${viewId} to v${target.version} (by athlete)`, { Kind: 'revert' });
+    await core.store.setCurrentUiVersion(athleteId, viewId, target.version);
     const e = await core.store.appendEvent({
       athleteId,
       type: 'user.view_reverted',
       actor: 'athlete',
       payload: { viewId, fromVersion: current?.version ?? '?', toVersion: target.version },
     });
+    core.bus.publish(athleteId, { t: 'event', event: e });
     core.bus.publish(athleteId, { t: 'ui.published', viewId, version: target.version, summary: `Reverted to v${target.version}` });
     core.minds.get(athleteId).enqueue(e, 'followup');
     return target;

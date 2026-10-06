@@ -190,6 +190,8 @@ export interface NewEvent<T extends EventType = EventType> {
   type: T;
   actor: Actor;
   payload: EventPayloadInput<T>;
+  /** Import-only: retain an erased event envelope. Payload must be exactly { tombstoned: true }. */
+  tombstoned?: boolean;
   turnId?: string;
   causationId?: string;
   /** Optional explicit id (e.g. message ids allocated before append). */

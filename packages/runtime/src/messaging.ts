@@ -11,7 +11,7 @@ import {
   type TriggerClass,
 } from '@opencoach/protocol';
 import type { Core } from './core';
-import { localDayStartIso, quietHoursEnd } from './time';
+import { localDayStartIso, nextDailyAt, quietHoursEnd } from './time';
 
 /**
  * Messaging policy & delivery (SPEC §5.4, §5.5, [MSG-1..5]). The coach's ONLY channel to the athlete.
@@ -35,6 +35,22 @@ export interface TurnMessagingState {
   sentTexts: string[];
   /** send_message tool-call ids that are being streamed to clients. */
   streamed: Set<string>;
+}
+
+// Parallel send_message calls and scheduler releases must share policy reservations [MSG-4].
+const messageLocks = new WeakMap<Core, Map<string, Promise<unknown>>>();
+function withMessageLock<T>(core: Core, athleteId: string, job: () => Promise<T>): Promise<T> {
+  let locks = messageLocks.get(core);
+  if (!locks) {
+    locks = new Map();
+    messageLocks.set(core, locks);
+  }
+  const previous = locks.get(athleteId) ?? Promise.resolve();
+  const running = previous.then(job, job);
+  const settled = running.catch(() => undefined);
+  locks.set(athleteId, settled);
+  void settled.then(() => { if (locks!.get(athleteId) === settled) locks!.delete(athleteId); });
+  return running;
 }
 
 /** Follow-up triggers whose resulting messages count as replies, not proactive outreach. */
@@ -62,7 +78,7 @@ export function createMessagingPort(core: Core, state: TurnMessagingState, callI
     async send(input: ToolInput<'send_message'>): Promise<SendMessageResult> {
       const callId = callIdRef.current;
       try {
-        return await sendInner(input, callId);
+        return await withMessageLock(core, state.athleteId, () => sendInner(input, callId));
       } finally {
         // resolved (sent, held or rejected): no longer a provisional bubble
         state.streamed.delete(callId);
@@ -235,14 +251,37 @@ export async function deliver(core: Core, athleteId: string, event: EventEnvelop
 
 /** Release held messages whose time has come (called by the scheduler). */
 export async function releaseHeld(core: Core, athleteId: string): Promise<number> {
+  return withMessageLock(core, athleteId, () => releaseHeldInner(core, athleteId));
+}
+
+async function releaseHeldInner(core: Core, athleteId: string): Promise<number> {
   const now = core.clock.now();
+  const settings = await core.store.getSettings(athleteId);
   const held = (await core.store.listHeldMessages(athleteId)).filter((m) => m.heldUntil && new Date(m.heldUntil).getTime() <= now.getTime());
   let n = 0;
   for (const m of held) {
     const original = await core.store.getEvent(m.messageId);
-    if (!original || original.type !== 'coach.message') {
+    if (!original || original.type !== 'coach.message' || Object.hasOwn(original.payload, 'tombstoned')) {
       await core.store.putMessageState({ ...m, delivery: 'sent', sentAt: now.toISOString() });
       continue;
+    }
+    if (m.proactive) {
+      const tz = settings.profile.tz;
+      const pause = settings.notifications.pauseUntil ? new Date(settings.notifications.pauseUntil) : null;
+      const quietEnd = quietHoursEnd(now, tz, settings.notifications.quietHours);
+      const last = await core.store.lastProactiveAt(athleteId);
+      const gapEnd = last ? new Date(new Date(last).getTime() + settings.notifications.minGapMinutes * 60_000) : null;
+      const today = await core.store.countProactiveSince(athleteId, localDayStartIso(now, tz));
+      const week = await core.store.countProactiveSince(athleteId, new Date(now.getTime() - 7 * 86_400_000).toISOString());
+      const budgetEnd = today >= settings.notifications.proactivePerDay || week >= settings.notifications.proactivePerWeek
+        ? nextDailyAt(now, tz, '00:00') : null;
+      const postponed = [pause, quietEnd, gapEnd, budgetEnd].filter((at): at is Date => !!at && at.getTime() > now.getTime());
+      if (postponed.length) {
+        const at = new Date(Math.max(...postponed.map((date) => date.getTime())));
+        await core.store.putMessageState({ ...m, heldUntil: at.toISOString() });
+        await core.scheduler.ensureRelease(athleteId, at);
+        continue;
+      }
     }
     const released = (await core.store.appendEvent({
       athleteId,
@@ -252,7 +291,7 @@ export async function releaseHeld(core: Core, athleteId: string): Promise<number
       causationId: original.id,
       payload: { ...original.payload, delivery: 'sent', heldUntil: undefined },
     })) as EventEnvelope<'coach.message'>;
-    await core.store.putMessageState({ ...m, delivery: 'sent', sentAt: now.toISOString() });
+    await core.store.putMessageState({ ...m, delivery: 'sent', heldUntil: undefined, sentAt: now.toISOString() });
     core.bus.publish(athleteId, { t: 'message.end', event: released });
     await deliver(core, athleteId, released);
     n++;
