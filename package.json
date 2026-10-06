@@ -11,11 +11,14 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && pnpm --filter @opencoach/web --if-present typecheck",
-    "test": "vitest run",
+    "test": "vitest run --exclude packages/ui-kit/test/renderer.test.ts && vitest run packages/ui-kit/test/renderer.test.ts --maxWorkers=1",
     "test:watch": "vitest",
     "dev": "pnpm --filter @opencoach/server dev",
     "build": "pnpm -r --if-present build",
-    "start": "pnpm --filter @opencoach/server start"
+    "start": "pnpm --filter @opencoach/server start",
+    "test:e2e": "pnpm --filter @opencoach/web exec vitest run test/gateway-e2e.spec.ts",
+    "eval:selftest": "pnpm --filter @opencoach/evals-sim eval:selftest",
+    "eval": "pnpm --filter @opencoach/evals-sim eval"
   },
   "devDependencies": {
     "@types/node": "22",

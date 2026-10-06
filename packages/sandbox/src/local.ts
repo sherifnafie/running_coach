@@ -111,9 +111,12 @@ export function findFaketimeLibrary(hostDirs: readonly string[], override?: stri
 
 /** PATH for sandboxed commands: the standard dirs plus the directory of the running node binary when it is exposed. */
 export function sandboxPath(hostDirs: readonly string[]): string {
+  const pythonDir = '/opt/coach-python/bin';
+  const pythonVisible = existsSync(join(pythonDir, 'python')) && hostDirs.some((d) => containsPath(d, pythonDir));
+  const basePath = pythonVisible ? `${pythonDir}:${SANDBOX_PATH}` : SANDBOX_PATH;
   const nodeDir = dirname(process.execPath);
   const visible = hostDirs.some((d) => containsPath(d, nodeDir));
-  return visible && !SANDBOX_PATH.split(':').includes(nodeDir) ? `${SANDBOX_PATH}:${nodeDir}` : SANDBOX_PATH;
+  return visible && !basePath.split(':').includes(nodeDir) ? `${basePath}:${nodeDir}` : basePath;
 }
 
 // -------------------------------------------------------------------------------- the runner

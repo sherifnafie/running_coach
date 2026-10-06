@@ -1,7 +1,7 @@
 # HANDOVER: OpenCoach implementation status
 
-**Written:** 2026-10-06, at the point the original agent ran out of budget.
-**Branch:** `ccr-a500ac00-ytsl89`. All work is committed and pushed here.
+**Updated:** 2026-10-06 by the continuing Codex collective. The original handover brief is retained below; §1–§3 describe the current implementation.
+**Branch:** `ccr-a500ac00-ytsl89`. Continuation work is committed locally. Both Git push and the connected GitHub app reject repository writes with HTTP 403; preserve the local commits or supplied Git bundle before replacing this workspace.
 **Goal:** a full end-to-end implementation of `SPEC.md`: Phase 1 MVP plus the core of Phase 2 (calls, helpers, MCP, native shell). The user asked for a complete implementation.
 
 ## 0. Preamble: read this first
@@ -52,42 +52,48 @@ Read in this order:
 
 ---
 
-## 1. State at a glance (updated at the moment of handover)
+## 1. Current continuation status
 
-At the last minute, all parallel work-in-progress branches were **merged into this branch**, so everything below is in the repo.
+The original WIP is now integrated into a runnable server and PWA. The gateway, composition root, evaluation runner, missing seed skills, kit documentation, Docker packaging and browser acceptance tests are implemented. Runtime and filesystem failures from the original snapshot are repaired.
 
-**Snapshot:** `npx tsc -p tsconfig.json` shows 3 errors, all in `apps/server/src/http/context.ts`. Missing `@fastify/cookie` type augmentation: register the plugin / import its types. `npx vitest run packages`: **611 passed, 7 failed** (31 files).
+**Final verification:** frozen dependency installation, aggregate typecheck and production build pass. `pnpm test` passes **738 tests** (735 unit/integration plus three isolated Chromium renderer gates). Web unit tests pass **127/127**, and real-gateway Chromium acceptance passes **6/6**. Offline self-test passes ten reference cases and rejects six bad controls; the full offline gate catalog passes **120 scenarios / 173 assertions**, with zero failures or missing evidence.
+
+The shipping sandbox image built and passed real Docker isolation, Python-library and date/Node/Python virtual-time smoke checks. A non-root Node **22.23.3** container using that image and a read-only source mount passed setup → two delivered demo replies → four views/PWA/kit serving → deletion. Its local namespace commands also passed Python-library and virtual-time checks. Earlier server-image builds passed, but the final fresh server-image rebuild is **blocked by external npm/Docker registry proxy 503 errors**. Docker source permissions were corrected with `COPY --chown=node:node`; final Dockerfile startup should be rechecked once registry access recovers. A disk-full interruption was resolved by removing obsolete task-generated images/cache; the clean aggregate suite then passed.
 
 | Package / area | Status |
 |---|---|
 | `packages/protocol` | ✅ done, tested |
-| `packages/engine` | ✅ done, 201 tests |
+| `packages/engine` | ✅ provider contracts and scripted demo; quick-reply value parsing repaired |
 | `packages/voice` | ✅ done, 64 tests |
 | `packages/tools` | ✅ done (exercised via runtime tests) |
-| `packages/runtime` | ✅ written. Unit tests pass. Integration `test/runtime.test.ts`: 9/13 pass. **Failing:** quiet-hours hold/release, steering [RT-3], publish/revert [WS-5], helpers in worktree [SUB-3]. Debug these first: they may be runtime bugs or test assumptions. |
-| `packages/store` | ✅ all `Store` methods, ~70 tests pass |
-| `packages/sandbox` | ✅ local namespace provider (uses pivot_root) + unsafe fallback, tested. ⚠️ `docker.ts`/`fake-docker.ts` were never run or typechecked against a real daemon; `docker.test.ts` is missing. libfaketime is absent here, so `fakeTime` is untested. |
-| `packages/workspace` | ✅ every export implemented, ~140 tests. ⚠️ 3 `mounted-fs.test.ts` failures (read bytes/text, write-scope globs, symlink bypass). No tests for blobs, images, export/import or buildSystemDir. `runViewQuery` uses a SIGKILLed child process because `Worker.terminate()` can't interrupt node:sqlite. **Security gap:** `/workspace/.git` should not be writable from the sandbox; consider an ro bind of `.git`. |
-| `packages/ui-kit` | 🟡 browser kit builds (kit.js 90 KB), `kitDistDir`/`kitDocsDir`, renderer runs end to end on a trivial view. ⚠️ No tests; the 4 seed views (`seed/running/workspace/ui/`) were never run through the renderer; the **docs files are missing** (`packages/ui-kit/docs/{ui-kit,bridge,views}.md`); the bridge `changed`/`subscribe` payload shapes are guesses. The views origin must send `Access-Control-Allow-Origin: *` (sandboxed iframes load module scripts in CORS mode). |
-| `seed/` | 🟡 constitution (~3.3k words assembled), coaching/safety pack, pack.json, 8 addenda, workspace template, 4 docs, changelog, 12 skills, 7 scripts. ⚠️ Missing: `SKILL.md` for `calendar-export` and `data-hygiene` (their scripts exist), and `seed/seed.test.ts`. |
-| `apps/web` | 🟡 typecheck + build pass, 100 unit tests (stream reducer, bridge host, markdown, micro-UI, offline queue, WS, nav, safety, SW). ⚠️ The Playwright e2e and `dev/mock-server.ts` have never been run. Response shapes for views/settings/admin/export are assumed: reconcile them with the server (§4.7). Bundle ~560 kB (no code-splitting). |
-| `apps/server` | 🔴 partial: `config.ts` (YAML + env, model defaults, demo fallback, origin checks), `paths.ts`, `setup-code.ts`, `http/{errors,static,security,auth,context,sockets,visibility}.ts`. **Missing:** gateway.ts and all routes, the views-origin server, push, telegram, `compose.ts`, main/CLI/bin, Docker files, config example, `.env.example`, `docs/self-hosting.md`, all tests. Contract note: Store has no "extend session expiry", so renewal recreates the session. |
-| `packages/evals-sim` + `evals/` | 🔴 partial: persona schema + YAML loader, 12 personas, seeded RNG, date utils, types. **Missing:** physiology, artifacts, athletes, runner, graders, judges, reference/bad coach, suites, conformance, CLI, README, tests. |
-| `apps/native` | ✅ scaffold (not compiled, no Android SDK) |
-| CI (`.github/workflows`) | written. It references scripts that don't exist yet (`build` per package, `eval:selftest`). |
+| `packages/runtime` | ✅ integration failures repaired; steering, serialized message reservations/release, tool replay, nested helper grants/WAL backup, publish/revert locks and schema revalidation covered |
+| `packages/store` | ✅ all Store methods; hard deletion clears private KV/idempotency/epoch content without prefix collisions; tombstoned import roundtrips covered |
+| `packages/sandbox` | ✅ local namespace isolation and cancellation; Docker fake-Engine contract tests plus real-daemon isolation/stdin/timeout/recovery smoke test |
+| `packages/workspace` | ✅ mounted path jail/globs/symlinks repaired; `.git` protected in filesystem and sandboxes; blobs, metadata stripping, exports/imports and system-dir tests added; real Node ESM parser import fixed |
+| `packages/ui-kit` | ✅ kit/bridge/views docs and canonical bridge contracts; killable SQL child; all four seed views pass empty/sample data, CSP/runtime/accessibility and 4× CPU performance gates; screenshots capture full view height |
+| `seed/` | ✅ missing calendar-export/data-hygiene/ui-kit skills, YAML frontmatter repairs and migrations/scripts/placeholder validation |
+| `apps/web` | ✅ real gateway integration, actual passkey cryptography via Chromium virtual authenticator, iframe writes/subscriptions, safety/settings/export/calendar/delete flows; microphone capture and cascaded-call transcript fixes; CSRF and conditional Health Connect controls tested |
+| `apps/server` | ✅ full gateway and separate views origin, composition/lifecycle, push/Telegram, CLI, config/examples/docs; consent/session/CSRF/WS/admin guards, resumable uploads, privacy/delete drain, health sync, calendar/export/calls; real inject/WS tests |
+| `packages/evals-sim` + `evals/` | ✅ seeded physiology, screenshots/GPX, scripted/LLM athlete interfaces, real-runtime time machine, deterministic graders/judges, positive/negative controls, focused/cohort/conformance suites, CLI and viewer; see `evals/README.md` for evidence limits |
+| `apps/native` | ⚠️ existing native scaffold retained; PWA bridge contract covered, no Android/iOS SDK or physical-device validation; native push/HealthKit/share work remains scaffold scope |
+| CI (`.github/workflows`) | ✅ scripts reconciled; isolated preview performance tests, Chromium installation, real gateway browser acceptance and offline self-test wired |
+
+**Contract repairs:** `NewEvent.tombstoned` permits only the exact tombstone marker for safe import; `SandboxPort.exec.signal` propagates cancellation. `SandboxProvider.releaseAthlete` removes persisted athlete/helper containers before hard deletion; sandbox/disk failures preserve ownership for retry. Helpers stop before inspecting/merging files. Quiet hours apply to proactive messages; held releases recheck current policy. Helpers use separate worktrees, intersect every ancestor grant, and merge only validated regular files. Session-authenticated mutations require the public Origin and a session-bound `X-CSRF-Token`; bearer clients remain exempt. Tus uploads are additive at `/v1/uploads/resumable`. Compatible providers accept deployment headers and a stable conversation header; the OpenCode GO example uses an environment key without changing default provider selection.
+
+**Known validation limits:** no paid model, live voice, Telegram or Web Push network run was performed. Offline controls verify harness and grader behavior, not coaching quality. Human judge calibration and consented real-world extraction corpora remain Appendix E follow-up work. The native scaffold was not compiled.
 
 The WIP commits are on this branch (look for commit subjects starting with "WIP:"); each lists what works and what's missing. The **stub signatures in each package's `src/index.ts` are the contracts**: keep them.
 
 ---
 
-## 2. Environment facts (verified)
+## 2. Continuation environment facts (verified)
 
-- Node 22.22, pnpm 10.28 (workspaces), TypeScript **5.9 pinned on purpose** (TS 7, the Go port, is available; don't upgrade), vitest 5. Packages are consumed as TS source (`main: ./src/index.ts`); there is no build step except `apps/web` (Vite) and the browser kit bundle (esbuild).
+- Host Node 24.19, pnpm 11.19; project packageManager remains pnpm 10.28 and TypeScript **5.9 pinned on purpose**. The Docker image uses Node 22 and pnpm 10.28. Packages are consumed as TS source; only the web and browser kit need builds. Dependencies were resolved against the host's 24-hour minimum release age, and frozen installation passes.
 - `node:sqlite` (built-in) works with **FTS5 + JSON1**, SQLite 3.50; `require('node:sqlite').backup` exists. There is no `sqlite3` CLI; Python's `sqlite3` module works.
-- **Unprivileged namespaces work:** `unshare --user --map-root-user --mount --net --fork` plus a tmpfs root, rbinds of `/usr /bin /lib /lib64 /etc /opt /sbin`, the workspace bind (rw), raw/history/system bind + `remount,bind,ro`, rbind `/dev`, tmpfs `/tmp`, then `chroot`. This was verified: writes are visible on the host, `/raw` is read-only, there is no network, and node and python run. This is the design for `LocalSandboxProvider` (ADR 0004).
-- There is no Docker daemon, so the Docker provider can't be tested here (test it against a fake Engine API on a unix socket).
-- Chromium for Playwright: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`). Don't download browsers.
-- **No LLM API keys.** Everything is tested with the scripted provider (`createScriptedProvider`) and the demo coach (`demoCoachHandler`). The server must fall back to demo mode when there are no keys.
+- **Unprivileged namespaces work:** the local provider uses pivot_root, drops capabilities, protects Git metadata, mounts private procfs and denies networking. See ADR 0004. Docker nesting requires `systempaths=unconfined` as well as the documented seccomp/AppArmor settings on the trusted server; athlete isolation remains enabled.
+- A real Docker daemon is available at `/var/run/docker.sock`. Real provider smoke tests and shipping-image builds are possible here.
+- Chromium is at `/usr/bin/chromium`; the old `/opt/pw-browsers` path is absent. Automatic discovery and `OPENCOACH_CHROMIUM_PATH` are supported.
+- The user supplied an OpenCode GO key during continuation, but outbound policy denies `opencode.ai`; no live request was made and the key was never persisted or committed. Model tests use scripted providers. The server falls back to demo mode when no provider keys are configured.
 - Commit message footer (required on every commit):
   ```
   Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
@@ -99,9 +105,18 @@ Commands: `pnpm install` · `npx tsc -p tsconfig.json` (root typecheck; also `pn
 
 ---
 
-## 3. Recommended order of work
+## 3. Continuation checklist
 
-1. Fix the 3 server typecheck errors and the 7 failing tests (runtime integration + mounted-fs) → 2. finish the **seed** gaps (2 skills + seed.test.ts) → 3. **ui-kit**: docs, tests, run the seed views through the renderer → 4. **server** (largest remaining piece; the PWA depends on it) → 5. **web** e2e against the real server → 6. **evals** → 7. **integration**: Playwright e2e against the real server in demo mode, Docker, CI scripts, README quickstart, spec updates.
+- [x] Repair the failing runtime/filesystem baseline and Node ESM startup imports.
+- [x] Finish seed skills, documentation and validation.
+- [x] Finish UI kit docs/contracts and run all seed views through real browser gates.
+- [x] Build server gateway/composition, adapters, CLI and self-hosting packaging.
+- [x] Prove PWA flows against the real server, including actual passkeys and iframe writes.
+- [x] Implement and self-test the offline evaluation runner and graders.
+- [x] Reconcile CI scripts, README and significant spec/ADR decisions.
+- [x] Record final aggregate checks, offline gate catalog and non-root container startup.
+- [x] Commit final changes and preserve them in a Git bundle because remote writes remain denied.
+- [ ] Recheck the final server-image build/startup when external registry access recovers.
 
 Each item below is a condensed version of the brief the original agent wrote. The detailed behavior is also in the stub JSDoc and the SPEC.
 

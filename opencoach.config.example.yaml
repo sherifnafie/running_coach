@@ -1,0 +1,35 @@
+# Copy to opencoach.config.yaml. Credentials belong in environment variables.
+dataDir: ./.data
+host: 0.0.0.0
+port: 8080
+viewsPort: 8081
+publicUrl: http://localhost:8080
+viewsUrl: http://localhost:8081
+logLevel: info
+sandbox:
+  provider: local
+  allowUnsafe: false
+# With no model keys the scripted demo is selected automatically.
+# Override models.tiers to use another model or an OpenAI-compatible endpoint.
+# providers:
+#   compatible:
+#     - id: local
+#       baseUrl: http://localhost:11434/v1
+#       vision: false
+# models:
+#   tiers:
+#     coach: { provider: local, model: your-model }
+#     fast: { provider: local, model: your-model }
+#     deep: { provider: local, model: your-model }
+web:
+  search: { provider: none }
+  fetch: { enabled: true }
+push:
+  vapidSubject: mailto:admin@example.com
+# mcp:
+#   servers:
+#     - name: example
+#       transport: http
+#       url: https://your-mcp-server.example/mcp
+#       allowTools: [search]
+#       helpers: false

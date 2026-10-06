@@ -370,7 +370,7 @@ This mirrors Claude Managed Agents' "dreaming" and Hermes' consolidation, done i
 - `[MSG-1]` **The only channel to the athlete is the `send_message` tool**, in every turn type. The model's final free text is a private "turn note", logged in traces and never delivered. One explicit channel makes proactivity, multi-message replies, attachments and evals unambiguous.
 - `[MSG-2]` `send_message` supports: markdown text; attachments (raw blobs, workspace files, images and charts the coach rendered, PDFs); **micro-UI** (quick replies, simple forms; §9.3); a voice-note flag (rendered by TTS); a notification level (`none | silent | normal`); and `reply_to`.
 - `[MSG-3]` Text streams to the client as the tool input is generated (eager or fine-grained tool-input streaming where the provider supports it), so chat feels live.
-- `[MSG-4]` Delivery policy is applied *after* the coach sends (§5.5). If a message is held or rejected, the tool result says so, e.g. `"held until 07:00 (quiet hours)"` or `"rejected: proactive budget exhausted"`, and the coach can adapt.
+- `[MSG-4]` Delivery policy is applied *after* the coach sends (§5.5). Quiet hours apply to proactive messages; athlete-requested replies, first contact and calls can be delivered immediately. If a message is held or rejected, the tool result says so, e.g. `"held until 07:00 (quiet hours)"` or `"rejected: proactive budget exhausted"`, and the coach can adapt. A released held message is a new event with the same stable `payload.messageId`, allowing clients to deduplicate it. The release rechecks the athlete's current quiet hours, pause, budgets and minimum gap.
 - `[MSG-5]` The coach SHOULD acknowledge long work fast ("Give me ~10 minutes to build this properly") and then deliver. Background tasks (§5.6) make this natural.
 - Message style is governed by the constitution, not code: short, warm, specific, texting-style, several messages allowed.
 
@@ -416,6 +416,7 @@ sequenceDiagram
 - `[SUB-1]` The `spawn_agent` tool starts a helper with: a task, an optional **profile** (`workspace/agents/*.md`, front-matter: model tier, tools allowlist, effort, write scope), explicit input paths, and `background: bool`.
 - `[SUB-2]` **One voice:** helpers MUST NOT message the athlete or create schedules. The head coach is the single point of contact, like a head coach with assistants.
 - `[SUB-3]` Helpers get a **scoped context**: the task, their profile, the constitution's helper section, and read access to the workspace. Write access is only within their declared write scope. They don't see the conversation unless the coach passes excerpts.
+  Helpers work in separate Git worktrees. The harness copies only permitted regular files back into the parent's workspace; nested scopes intersect ancestor grants. A foreground helper receives a consistent copy of `coach.db`, merged back only if the database is explicitly within scope. Git metadata stays read-only in tool execution.
 - `[SUB-4]` Limits: depth ≤ 2, ≤ 4 concurrent per athlete, a per-helper budget.
 - `[SUB-5]` A background helper returns a `task_id` immediately. Completion emits `task.completed`, which triggers a follow-up turn. If the task traces back to an athlete request, the coach's resulting message counts as a reply (not proactive).
 - **Seed profiles** (Appendix D), all coach-editable:

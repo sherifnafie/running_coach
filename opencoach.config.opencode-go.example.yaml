@@ -1,0 +1,20 @@
+# Copy to an absolute configuration path and set OPENCOACH_CONFIG to that path.
+# Supply OPENCODE_GO_API_KEY through your shell or process manager, never YAML.
+# Set OPENCOACH_DEMO=0 when starting the server.
+# Official endpoint/model reference: https://opencode.ai/docs/go/
+demo: false
+providers:
+  compatible:
+    - id: opencode-go
+      baseUrl: https://opencode.ai/zen/go/v1
+      apiKeyEnv: OPENCODE_GO_API_KEY
+      headers:
+        User-Agent: OpenCoach/0.1.0
+      sessionHeader: x-opencode-session
+      # Image input has not been verified for this integration.
+      vision: false
+models:
+  tiers:
+    coach: { provider: opencode-go, model: kimi-k2.6 }
+    deep: { provider: opencode-go, model: kimi-k2.6 }
+    fast: { provider: opencode-go, model: glm-5.3-flash }

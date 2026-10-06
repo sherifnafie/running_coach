@@ -453,6 +453,9 @@ export class PlaywrightRenderer implements UiRenderer {
       // Screenshot the whole page: grow the iframe to the content height reported by the kit.
       const full = Math.min(MAX_SHOT_HEIGHT, Math.max(def.h, Math.ceil(height)));
       await page.evaluate(`window.__setFrameHeight(${full})`);
+      // Opaque-origin iframes can be out-of-process. Give their compositor a real viewport
+      // covering the whole frame; fullPage's temporary viewport alone may leave a white tail.
+      await page.setViewportSize({ width: def.w, height: full });
       await page.evaluate('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))');
       const shot = join(outDir, `${view.id}-${variant}.png`);
       await page.screenshot({ path: shot, fullPage: true, type: 'png', timeout: 15_000 });

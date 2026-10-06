@@ -2,7 +2,17 @@
 
 **An open-source, AI-native running coach.** An agentic LLM *is* the coach. The app is a thin harness that gives it a persistent workspace, a clock, senses (chat, screenshots, files, voice), hands (code, files, web, messaging, helpers) and a face (app screens it writes itself).
 
-> Status: **specification phase.** No code yet. Start with the spec.
+The TypeScript monorepo includes a self-hosted server, React PWA, isolated coach workspaces, model adapters, voice services and an offline evaluation harness.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm build
+OPENCOACH_DEMO=1 pnpm start
+```
+
+Open **http://localhost:8080** and use the setup code printed at startup. The demo requires no API keys. For a real coach, remove `OPENCOACH_DEMO` and set `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `DEEPSEEK_API_KEY`. Linux user namespaces or a configured Docker sandbox are required. Chromium enables coach-authored view previews.
+
+See [self-hosting](docs/self-hosting.md) for configuration, separate view origins, mobile access, Docker, export and import. Development checks: `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm eval:selftest`, and `pnpm test:e2e`.
 
 ## Documents
 

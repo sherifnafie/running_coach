@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, ccr-a500ac00-ytsl89]
   pull_request:
 
 concurrency:
@@ -30,7 +30,7 @@ jobs:
           npx --yes playwright@1.56.1 install --with-deps chromium
           echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright" >> "$GITHUB_ENV"
       - name: Install Python libraries used by seed scripts
-        run: python3 -m pip install --user --break-system-packages pandas numpy || true
+        run: python3 -m pip install --user --break-system-packages pandas numpy
       - name: Typecheck
         run: pnpm typecheck
       - name: Unit and integration tests
@@ -38,6 +38,8 @@ jobs:
       - name: Build UI kit and web client
         run: pnpm build
       - name: Web client tests
-        run: pnpm --filter @opencoach/web --if-present test
+        run: pnpm --filter @opencoach/web test:unit
+      - name: Real gateway browser acceptance
+        run: pnpm test:e2e
       - name: Offline eval self-test (scripted coach, no API keys)
-        run: pnpm --filter @opencoach/evals-sim --if-present eval:selftest
+        run: pnpm eval:selftest
