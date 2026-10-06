@@ -149,7 +149,7 @@ export class TurnRunner {
     const images = model.capabilities.vision ? await this.collectImages(athleteId, triggers) : [];
     const visionNote =
       !model.capabilities.vision && triggers.some((t) => imageBlobsOf(t).length > 0)
-        ? 'Note: your current model cannot see images. To read the screenshots, use spawn_agent with profile "extractor" and the /raw paths as inputs.'
+        ? 'Note: your current model cannot see images. Check the situation report for image-capable helper tiers. When one is configured, use an extractor helper with the /raw paths as inputs; otherwise disclose the missing image capability instead of claiming extraction.'
         : undefined;
     const heartbeat = triggers.some((t) => t.type === 'system.heartbeat') ? await this.readWorkspaceFile(athleteId, 'HEARTBEAT.md') : undefined;
     const consolidation = cls === 'consolidation' ? await core.addendum('consolidation', { coach_name: settings.profile.coachName, athlete_name: settings.profile.name }) : undefined;
@@ -167,12 +167,16 @@ export class TurnRunner {
     };
     const nudge = await this.nudge(athleteId, triggers);
     const firstContactText = firstContact && cls !== 'consolidation' ? await core.addendum('first-contact', { coach_name: settings.profile.coachName, athlete_name: settings.profile.name }) : '';
+    const allowMessaging = opts.allowMessaging ?? cls !== 'consolidation';
+    let tools: ToolName[] = opts.tools ?? [...COACH_TOOLS];
+    if (!allowMessaging) tools = tools.filter((t) => t !== 'send_message' && t !== 'no_reply');
     const situation = await buildSituation(core, {
       athleteId,
       settings,
       cls,
       triggers,
       model,
+      tools,
       epoch: { localDate: ep.epoch.localDate, seq: ep.epoch.seq },
       pinned: ep.pinned,
       replyRequired,
@@ -222,15 +226,13 @@ export class TurnRunner {
       cls,
       triggers: [...triggers],
       proactive,
-      allowMessaging: opts.allowMessaging ?? cls !== 'consolidation',
+      allowMessaging,
       channel: opts.channel ?? 'app',
       replied: false,
       sentTexts: [],
       streamed: new Set(),
     };
     const streamable = () => !msgState.proactive && msgState.allowMessaging;
-    let tools: ToolName[] = opts.tools ?? [...COACH_TOOLS];
-    if (!msgState.allowMessaging) tools = tools.filter((t) => t !== 'send_message' && t !== 'no_reply');
     const executor = createExecutor(core, {
       athleteId,
       turnId,

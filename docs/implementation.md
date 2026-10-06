@@ -51,6 +51,10 @@ seed/running/workspace/                → copied into each new athlete workspac
 Placeholders rendered at workspace init: `{{athlete_name}}`, `{{coach_name}}`, `{{voice_id}}`, `{{created_date}}`.
 Placeholders rendered per epoch in the constitution: `{{coach_name}}`, `{{athlete_name}}`, `{{harness_version}}`, `{{pack_version}}`.
 
+The runtime loads the constitution and running addenda, a skill index (not all skill bodies), `AGENTS.md` plus its pinned files, and `briefing.md` into a frozen epoch system prompt. Detailed product guidance lives at `/system/docs/opencoach.md`; research procedures live in the `research` skill. New workspaces include quick/deep research profiles; old coach-owned profiles are not overwritten. The skill explains how to add the deep profile when missing.
+
+`capabilities.ts` renders granted core tools, configured web search/fetch and renderer state, and primary model/vision routes into each coach situation report and helper environment. Helpers also receive the Clock-derived time, their role, inputs and write scope, without the main conversation. Configuration facts are not live service certification. Constitution/skill-index edits take effect at the next epoch; current turns receive guide/skill pointers through the fresh report. Never put provider credentials or deployment headers into model context. Runtime context tests execute research helpers and inspect the actual requests and persisted outputs.
+
 ## Views at runtime
 
 - Views origin (separate port/host, [SEC-3]) serves:

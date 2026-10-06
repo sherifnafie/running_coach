@@ -103,7 +103,7 @@ export const spawnAgentTool: ToolDef<'spawn_agent'> = {
   name: 'spawn_agent',
   description:
     'Delegate focused work to a helper agent (profiles live in /workspace/agents/<profile>.md: extractor, analyst, planner, reviewer, ' +
-    'researcher, ui-builder, or ones you wrote). Helpers cannot message the athlete or schedule. Give a clear task and the input paths. ' +
+    'researcher (quick lookups), deep-researcher (evidence reviews), ui-builder, or ones you wrote). Helpers cannot message the athlete or schedule. Give a clear task and the input paths. ' +
     'write_scope = globs under /workspace the helper may change (default read-only). background:true returns a task id immediately; ' +
     'you will be woken with task.completed when it finishes — tell the athlete if they are waiting.',
   input: ToolInputs.spawn_agent,

@@ -27,6 +27,12 @@ These are the four bundled training screens. A real coach can also propose chang
 
 The first two screenshots come from the running demo. The third shows the actual Today view with **test data**, to illustrate a populated screen. New accounts start with empty training data. Demo mode does not populate a training plan or activity charts.
 
+## What the AI knows about the app
+
+The coach receives instructions explaining that it lives inside OpenCoach, how its memory persists, how to save training records, and how to change its views. It also receives your saved profile and current-week notes, a skill index, tool definitions, conversation history and a report of the current time, budgets and configured capabilities. It reads detailed skills when needed; it does not receive every document at once.
+
+It can delegate analysis, planning, independent review, UI work and research to helpers. A research skill and separate quick/deep research profiles explain source checking, citations, uncertainty and saving findings. Fresh web search requires Brave, Tavily or SearXNG configuration; fetching public pages is separately enabled. The DeepSeek GO example is text-only and has no search backend by default. The coach is told those limits rather than being allowed to assume every feature is configured. See the [context audit](docs/verification/coach-context-audit.md) for what was checked and what remains unverified.
+
 ## Try it locally, without an API key
 
 ### 1. Prepare your computer

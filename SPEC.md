@@ -428,9 +428,10 @@ sequenceDiagram
 | `planner` | Draft a training block under stated constraints | deep |
 | `reviewer` | Independent sanity and safety check of plan changes ("second coach") | coach or a *different* provider |
 | `researcher` | Web research: race courses, weather, literature, with citations | fast |
+| `deep-researcher` | Focused evidence reviews and explicitly requested deep research, with primary sources, uncertainty and durable cited reports | deep (high effort) |
 | `ui-builder` | Build and test views | coach |
 
-The coach can write new profiles. Using a different model family for `reviewer` is a cheap way to get decorrelated errors.
+The coach can write new profiles. Using a different model family for `reviewer` is a cheap way to get decorrelated errors. Research profiles that save files need a writing tool and an allowed scope; a `research` skill explains depth selection, source verification, privacy and reporting limits. Coach situation reports and helper environment reports describe actual granted tools, configured search/fetch/rendering services and primary model/vision routes. Configuration is not a live service health check; unavailable capabilities must not be represented as successful research or inspection.
 
 ### 5.7 Model layer
 

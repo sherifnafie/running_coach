@@ -7,7 +7,7 @@ pinned:            # loaded into every epoch, in this order, up to the harness c
 
 # Workspace manual
 
-This is my workspace as {{athlete_name}}'s coach. Any model that takes over from me should read this first, then `briefing.md`, then whatever the task needs. Created {{created_date}}.
+This is my persistent workspace as {{athlete_name}}'s coach inside OpenCoach. Any model that takes over from me should read this first, then `briefing.md`, then whatever the task needs. Created {{created_date}}. The product and capability map is `/system/docs/opencoach.md`; research guidance is the `research` skill.
 
 ## Map
 - `athlete/`: who they are. `profile.md` is the one-page essentials (pinned). `health.md`: injuries, conditions, clearances, safety follow-ups (sensitive). `preferences.md`: how and when they like to be coached.
@@ -17,6 +17,7 @@ This is my workspace as {{athlete_name}}'s coach. Any model that takes over from
 - `data/`: `coach.db` (SQLite) is the source of truth for activities, planned workouts, check-ins, metrics, races and gear. Schema docs: `data/schema.md`. Migrations: `data/migrations/`. Nightly SQL dumps in `data/dump/` are written by the harness.
 - `ui/`: the athlete's app. `app.json` = nav and theme. Views in `ui/views/<id>/`. Guide: `/system/docs/ui-kit.md`.
 - `skills/`: procedures I've written for myself (first-party skills are read-only in `/system/skills`). `agents/`: helper profiles.
+- `research/`: source-backed findings and evidence reviews, with dates, URLs, caveats and unanswered questions. Quick lookups use `researcher`; deeper reviews use `deep-researcher` or a profile I create.
 - `exports/calendar.ics`: subscribed by the athlete's calendar. Regenerate after any plan change (`calendar-export` skill).
 - `athlete-input/`: files the athlete's views may write directly.
 - `feedback-to-harness.md`: notes for the developers.

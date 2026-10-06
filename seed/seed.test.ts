@@ -13,7 +13,7 @@ const seedRoot = join(root, 'seed');
 const packRoot = join(seedRoot, 'running');
 const requiredSkills = [
   'calendar-export', 'data-hygiene', 'environment', 'file-import', 'fueling-basics',
-  'illness-return', 'injury-and-pain', 'intake', 'plan-design', 'race-prep',
+  'illness-return', 'injury-and-pain', 'intake', 'plan-design', 'race-prep', 'research',
   'screenshot-extraction', 'strength-mobility', 'training-load', 'ui-kit', 'zones-and-paces',
 ];
 const tables = ['activities', 'activity_gear', 'blocks', 'checkins', 'gear', 'metrics', 'planned_workouts', 'races'];
@@ -77,7 +77,7 @@ describe('running seed pack (Appendix D)', () => {
 
   it('[SUB-3] ships constrained helper profiles without messaging, scheduling or publishing tools', async () => {
     const profiles = (await fs.readdir(join(workspace, 'agents'))).filter((file) => file.endsWith('.md')).sort();
-    expect(profiles).toEqual(['analyst.md', 'extractor.md', 'planner.md', 'researcher.md', 'reviewer.md', 'ui-builder.md']);
+    expect(profiles).toEqual(['analyst.md', 'deep-researcher.md', 'extractor.md', 'planner.md', 'researcher.md', 'reviewer.md', 'ui-builder.md']);
     for (const file of profiles) {
       const { data, body, error } = parseFrontMatter(await fs.readFile(join(workspace, 'agents', file), 'utf8'));
       expect(error, file).toBeUndefined();

@@ -1,4 +1,5 @@
-import type { AnyEvent, AthleteSettings, ResolvedModel, SafetyScreenResult, TriggerClass } from '@opencoach/protocol';
+import type { AnyEvent, AthleteSettings, ResolvedModel, SafetyScreenResult, ToolName, TriggerClass } from '@opencoach/protocol';
+import { capabilityLines } from './capabilities';
 import type { PinnedReport } from './context';
 import type { Core } from './core';
 import { formatLocal, localDayStartIso, localMonthStartIso, quietHoursEnd } from './time';
@@ -9,6 +10,7 @@ export interface SituationInput {
   cls: TriggerClass;
   triggers: AnyEvent[];
   model: ResolvedModel;
+  tools: ToolName[];
   epoch: { localDate: string; seq: number };
   pinned: PinnedReport;
   replyRequired: boolean;
@@ -70,8 +72,9 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
     .filter(Boolean)
     .join(' · ');
   lines.push(
-    `context: epoch ${s.epoch.localDate} #${s.epoch.seq} · pinned ${(s.pinned.tokens / 1000).toFixed(1)}k/${(s.pinned.cap / 1000).toFixed(0)}k tokens${pinnedNote ? ` (${pinnedNote})` : ''} · model ${s.model.model} (${s.model.provider.id}, ${s.model.tier} tier, vision ${s.model.capabilities.vision ? 'yes' : 'NO — use an extractor helper for images'})`,
+    `context: epoch ${s.epoch.localDate} #${s.epoch.seq} · pinned ${(s.pinned.tokens / 1000).toFixed(1)}k/${(s.pinned.cap / 1000).toFixed(0)}k tokens${pinnedNote ? ` (${pinnedNote})` : ''} · model ${s.model.model} (${s.model.provider.id}, ${s.model.tier} tier, vision ${s.model.capabilities.vision ? 'yes' : 'NO'})`,
   );
+  lines.push(...capabilityLines(core, s.settings, s.model, s.tools));
 
   const dayCost = (await store.sumUsage(s.athleteId, localDayStartIso(now, tz))).costUsd;
   const monthCost = (await store.sumUsage(s.athleteId, localMonthStartIso(now, tz))).costUsd;

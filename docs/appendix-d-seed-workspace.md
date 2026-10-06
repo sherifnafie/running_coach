@@ -268,7 +268,8 @@ Others (front-matter plus a 5–15 line brief each):
 | `analyst` | coach | read, glob, grep, bash | `journal/**`, `exports/**`, `/tmp` | Answer data questions with code; produce charts as PNG; show method and caveats |
 | `planner` | deep | read, glob, grep, bash | `plan/drafts/**` | Draft a block from given constraints and history; state assumptions, the weekly load table, the key-session rationale, and risks |
 | `reviewer` | coach (prefer a different provider than the coach) | read, glob, grep, bash | `plan/reviews/**` | Independently check a proposed plan change for safety and sanity: ramp rate, long-run share, intensity distribution, recovery, constraints, athlete-specific risks. Verdict: approve, concerns or reject, with reasons |
-| `researcher` | fast | read, web_search, web_fetch | `research/**` | Course profiles, race logistics, weather, literature; cite sources; flag the evidence level |
+| `researcher` | fast | read, write, web_search, web_fetch | `research/**` | Focused lookups for courses, logistics, weather and literature; save cited findings; flag the evidence level |
+| `deep-researcher` | deep, high effort | read, write, glob, grep, web_search, web_fetch | `research/**` | Complex questions and requested deep evidence reviews; compare primary sources and disagreements; preserve a cited report with uncertainty |
 | `ui-builder` | coach | read, write, edit, glob, grep, bash, preview_ui | `ui/**` | Build or modify views using the kit; iterate until preview passes and the screenshots look right; never publish (the coach publishes) |
 
 ---
@@ -276,6 +277,8 @@ Others (front-matter plus a 5–15 line brief each):
 ## D.6 First-party skills (`/system/skills`, read-only)
 
 All skills follow the Agent Skills format. Each is **knowledge plus suggested procedure, with evidence notes**, and invites adaptation. Contents outlines:
+
+The implementation also ships a `research` skill: depth selection, source retrieval and verification, privacy, uncertainty, bounded delegation and persistent cited reports. `/system/docs/opencoach.md` explains the actual product and ownership boundaries. Runtime reports state configured services and model/vision routes; mentioning a feature in these documents is not proof that it is available in a deployment.
 
 | Skill | Description (front-matter) | Body outline |
 |---|---|---|

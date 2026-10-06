@@ -20,7 +20,9 @@ import {
 } from '@opencoach/protocol';
 import { openWorkspaceGit } from '@opencoach/workspace';
 import type { Core } from './core';
+import { capabilityLines } from './capabilities';
 import { createExecutor } from './executor';
+import { formatLocal } from './time';
 
 const exec = promisify(execFile);
 
@@ -277,6 +279,8 @@ export class HelperManager {
             addendum || `You are a helper to ${settings.profile.coachName}, a running coach. You do not talk to the athlete.`,
             '',
             '## Your environment',
+            `now: ${core.clock.now().toISOString()} · athlete local time: ${formatLocal(core.clock.now(), settings.profile.tz)} (${settings.profile.tz})`,
+            ...capabilityLines(core, settings, a.route[0]!, a.tools),
             '- /workspace is a private copy of the coach\'s workspace. /raw (athlete uploads), /history and /system are read-only.',
             a.writeScope.length
               ? `- Only changes to these paths will be kept: ${a.writeScope.join(', ')}. Everything else you change is discarded.`

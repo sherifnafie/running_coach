@@ -11,6 +11,8 @@ import {
   type StreamMessage,
   type UiRenderer,
   type PreviewReport,
+  type ModelCapabilities,
+  type WebSearchBackend,
 } from '@opencoach/protocol';
 import { createAgentLoop, createModelRouter, createScriptedProvider, type ScriptHandler, type ScriptedStep } from '@opencoach/engine';
 import { createLocalSandboxProvider } from '@opencoach/sandbox';
@@ -78,14 +80,14 @@ export function send(text: string, extra: Record<string, unknown> = {}): Scripte
   return { toolCalls: [{ name: 'send_message', input: { text, ...extra } }] };
 }
 
-export async function makeHarness(opts: { start?: string; renderer?: UiRenderer; config?: Record<string, unknown> } = {}): Promise<Harness> {
+export async function makeHarness(opts: { start?: string; renderer?: UiRenderer | null; webSearch?: WebSearchBackend; capabilities?: Partial<ModelCapabilities>; config?: Record<string, unknown> } = {}): Promise<Harness> {
   const dataDir = await mkdtemp(join(tmpdir(), 'oc-rt-'));
   const clock = new VirtualClock(opts.start ?? '2026-10-07T08:00:00Z');
   const store = await openSqliteStore({ path: ':memory:', clock });
   const blobs = createFsBlobStore({ dataDir, store, clock });
   const sandbox = await createLocalSandboxProvider({ allowUnsafe: true });
   let handler: ScriptHandler = () => ({ text: 'ok' });
-  const scripted = createScriptedProvider({ id: 'scripted', handler: (req, ctx) => handler(req, ctx) });
+  const scripted = createScriptedProvider({ id: 'scripted', capabilities: opts.capabilities, handler: (req, ctx) => handler(req, ctx) });
   const router = createModelRouter(
     { tiers: { coach: { provider: 'scripted', model: 'scripted-coach' }, fast: { provider: 'scripted', model: 'scripted-fast' } }, fallbacks: {}, pricing: {} },
     { scripted },
@@ -103,7 +105,8 @@ export async function makeHarness(opts: { start?: string; renderer?: UiRenderer;
     seedRoot: join(REPO, 'seed'),
     pack: 'running',
     kitDir: join(REPO, 'packages/ui-kit/dist'),
-    renderer: opts.renderer ?? passRenderer,
+    renderer: opts.renderer === null ? undefined : opts.renderer ?? passRenderer,
+    webSearch: opts.webSearch,
     manualScheduler: true,
   });
   await runtime.start();
