@@ -98,7 +98,7 @@ export async function makeHarness(opts: { start?: string; renderer?: UiRenderer;
     blobs,
     sandbox,
     router,
-    loop: createAgentLoop(),
+    loop: createAgentLoop({ price: (m, u) => router.cost(m, u) }),
     logger: silentLogger,
     seedRoot: join(REPO, 'seed'),
     pack: 'running',

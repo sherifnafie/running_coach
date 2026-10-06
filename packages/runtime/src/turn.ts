@@ -280,6 +280,16 @@ export class TurnRunner {
             }
           }
           break;
+        case 'retry':
+        case 'fallback':
+          // the engine discards the failed attempt: retract its provisional bubbles
+          for (const id of [...msgState.streamed]) {
+            if (!streamText.has(id) && !msgState.sentTexts.length) continue;
+            msgState.streamed.delete(id);
+            streamText.delete(id);
+            core.bus.publish(athleteId, { t: 'message.cancel', streamId: id, reason: 'retrying' });
+          }
+          break;
         case 'progress':
           if (streamable && e.text.trim()) core.bus.publish(athleteId, { t: 'progress', turnId, label: e.text.trim().slice(0, 140) });
           break;
