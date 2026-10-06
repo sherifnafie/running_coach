@@ -1,7 +1,7 @@
 # HANDOVER: OpenCoach implementation status
 
 **Updated:** 2026-10-06 by the continuing Codex collective. The original handover brief is retained below; §1–§3 describe the current implementation.
-**Branch:** `ccr-a500ac00-ytsl89`. Continuation work is committed locally. Both Git push and the connected GitHub app reject repository writes with HTTP 403; preserve the local commits or supplied Git bundle before replacing this workspace.
+**Branch:** `ccr-a500ac00-ytsl89`. Continuation work is committed locally. Git push has failed with HTTP 403 and a proxy HTTP 503; the connected GitHub app also rejects writes with HTTP 403. Preserve the local commits or supplied Git bundle before replacing this workspace.
 **Goal:** a full end-to-end implementation of `SPEC.md`: Phase 1 MVP plus the core of Phase 2 (calls, helpers, MCP, native shell). The user asked for a complete implementation.
 
 ## 0. Preamble: read this first
@@ -55,6 +55,8 @@ Read in this order:
 ## 1. Current continuation status
 
 The original WIP is now integrated into a runnable server and PWA. The gateway, composition root, evaluation runner, missing seed skills, kit documentation, Docker packaging and browser acceptance tests are implemented. Runtime and filesystem failures from the original snapshot are repaired.
+
+**User-facing guide:** `README.md` now explains the actual screens, illustrated with real demo screenshots and a clearly labeled sample-data Today view. It includes prerequisites, first-account setup, a scripted demo walkthrough, data persistence, real providers/OpenCode GO, Docker/mobile setup, troubleshooting, and implemented versus unverified features. The README demo launch was rechecked on the host with `local-isolated` sandboxes; Chromium signup, effort journaling, scheduling, and Today loading passed without browser errors. No application code changed for this documentation follow-up.
 
 **Final verification:** frozen dependency installation, aggregate typecheck and production build pass. `pnpm test` passes **738 tests** (735 unit/integration plus three isolated Chromium renderer gates). Web unit tests pass **127/127**, and real-gateway Chromium acceptance passes **6/6**. Offline self-test passes ten reference cases and rejects six bad controls; the full offline gate catalog passes **120 scenarios / 173 assertions**, with zero failures or missing evidence.
 
