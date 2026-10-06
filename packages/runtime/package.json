@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@types/luxon": "^3.7.6",
-    "@types/picomatch": "^4.0.3"
+    "@types/picomatch": "^4.0.3",
+    "@opencoach/engine": "workspace:*",
+    "@opencoach/sandbox": "workspace:*"
   }
 }

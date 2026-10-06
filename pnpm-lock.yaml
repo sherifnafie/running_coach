@@ -132,6 +132,12 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
     devDependencies:
+      '@opencoach/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@opencoach/sandbox':
+        specifier: workspace:*
+        version: link:../sandbox
       '@types/luxon':
         specifier: ^3.7.6
         version: 3.7.6
