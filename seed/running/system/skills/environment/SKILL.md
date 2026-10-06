@@ -1,6 +1,6 @@
 ---
 name: environment
-description: Training and racing in heat, cold, altitude and poor air quality: effort and pace adjustments, acclimatization, warning signs, and when to move indoors or skip. Use when weather, travel, a race location or air quality changes the plan.
+description: "Training and racing in heat, cold, altitude and poor air quality: effort and pace adjustments, acclimatization, warning signs, and when to move indoors or skip. Use when weather, travel, a race location or air quality changes the plan."
 ---
 
 # Environment: heat, cold, altitude, air quality

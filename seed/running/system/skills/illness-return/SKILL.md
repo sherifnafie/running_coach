@@ -1,6 +1,6 @@
 ---
 name: illness-return
-description: Train around illness: the neck check, the fever rule, when to stop, post-viral caution, return progressions after short and long illness, plan adjustments and race-week decisions. Use when an athlete is or was sick, including COVID-like illness and stomach bugs.
+description: "Train around illness: the neck check, the fever rule, when to stop, post-viral caution, return progressions after short and long illness, plan adjustments and race-week decisions. Use when an athlete is or was sick, including COVID-like illness and stomach bugs."
 ---
 
 # Illness and return

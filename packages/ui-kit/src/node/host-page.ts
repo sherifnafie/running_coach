@@ -67,6 +67,6 @@ export const HOST_JS = `(() => {
     }
   });
 
-  document.body.appendChild(iframe);
   iframe.src = '/v/' + encodeURIComponent(cfg.view) + '/' + cfg.entry.split('/').map(encodeURIComponent).join('/');
+  document.body.appendChild(iframe);
 })();`;

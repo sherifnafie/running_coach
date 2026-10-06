@@ -27,7 +27,7 @@ export function createPlaywrightRenderer(opts?: PlaywrightRendererOptions): UiRe
 }
 
 // ---- additional exports (reusable by the gateway / tools)
-export { chromiumAvailable, VARIANT_DEFS } from './node/renderer';
+export { chromiumAvailable, chromiumExecutable, VARIANT_DEFS } from './node/renderer';
 export { buildViewCsp, type CspOptions } from './node/server';
 export { checkApp, checkViewStatic, scanSource, globMatch, type ViewStatic } from './node/static-checks';
 export { readDbSchema, createEmptyDb, validateReadOnlySql, type DbSchema } from './node/sql';

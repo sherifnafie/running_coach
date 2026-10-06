@@ -161,5 +161,9 @@ function renderNext(n) {
   list.onselect = () => coach.navigate('calendar', { date: n.date });
 }
 
-const typeName = (t) => ({ easy: 'Easy run', long: 'Long run', tempo: 'Tempo', intervals: 'Intervals', hills: 'Hills', race: 'Race', strength: 'Strength', rest: 'Rest day', cross: 'Cross-training' })[t] || 'Workout';
-const statusText = (s) => ({ done: 'Done', partial: 'Partly done', skipped: 'Skipped' })[s] || s;
+function typeName(t) {
+  return ({ easy: 'Easy run', long: 'Long run', tempo: 'Tempo', intervals: 'Intervals', hills: 'Hills', race: 'Race', strength: 'Strength', rest: 'Rest day', cross: 'Cross-training' })[t] || 'Workout';
+}
+function statusText(s) {
+  return ({ done: 'Done', partial: 'Partly done', skipped: 'Skipped' })[s] || s;
+}

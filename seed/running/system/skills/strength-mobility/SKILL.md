@@ -1,6 +1,6 @@
 ---
 name: strength-mobility
-description: Strength and mobility for runners: why it helps, minimal effective routines (home and gym), scheduling around key runs, progression, taper, and when to modify for pain. Use when adding or revising strength work, or when economy or injury resilience is a goal.
+description: "Strength and mobility for runners: why it helps, minimal effective routines (home and gym), scheduling around key runs, progression, taper, and when to modify for pain. Use when adding or revising strength work, or when economy or injury resilience is a goal."
 ---
 
 # Strength and mobility

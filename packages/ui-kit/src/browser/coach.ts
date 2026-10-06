@@ -201,11 +201,13 @@ export function createCoach(opts: CreateCoachOptions): Coach {
     if (method !== 'changed') return;
     const p = isRecord(params) ? params : {};
     const changed = Array.isArray(p.targets) ? (p.targets.filter((t) => typeof t === 'string') as string[]) : [];
-    const subId = typeof p.subscriptionId === 'string' ? p.subscriptionId : undefined;
+    const subIds = Array.isArray(p.subscriptionIds)
+      ? p.subscriptionIds.filter((id): id is string => typeof id === 'string')
+      : typeof p.subscriptionId === 'string' ? [p.subscriptionId] : undefined;
     for (const s of [...subs]) {
       if (s.dead) continue;
-      if (subId && s.hostId) {
-        if (s.hostId !== subId) continue;
+      if (subIds && s.hostId) {
+        if (!subIds.includes(s.hostId)) continue;
       } else if (changed.length > 0 && !changed.some((t) => s.targets.some((pat) => targetMatches(pat, t)))) continue;
       try {
         s.cb(changed);
@@ -382,7 +384,10 @@ function startAutoResize(win: Window & typeof globalThis, bridge: Bridge): void 
     queued = false;
     const meta = win.document.querySelector('meta[name="rc-resize"]');
     if (meta?.getAttribute('content') === 'off') return;
-    const height = Math.min(10_000, Math.max(0, Math.ceil(win.document.documentElement.getBoundingClientRect().height)));
+    const root = win.document.documentElement;
+    const height = Math.min(10_000, Math.max(0, Math.ceil(Math.max(
+      root.getBoundingClientRect().height, root.scrollHeight, win.document.body?.scrollHeight ?? 0,
+    ))));
     if (height === last) return;
     last = height;
     bridge.send('resize', { height });

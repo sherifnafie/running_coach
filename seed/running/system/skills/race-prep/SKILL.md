@@ -1,6 +1,6 @@
 ---
 name: race-prep
-description: Race-specific preparation from about six weeks out through the debrief: goal setting, taper, pacing, fueling and hydration plan, logistics checklist, race-morning message, post-race recovery and debrief. Use when a goal race is on the calendar.
+description: "Race-specific preparation from about six weeks out through the debrief: goal setting, taper, pacing, fueling and hydration plan, logistics checklist, race-morning message, post-race recovery and debrief. Use when a goal race is on the calendar."
 ---
 
 # Race preparation

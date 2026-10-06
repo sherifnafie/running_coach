@@ -1,6 +1,6 @@
 ---
 name: injury-and-pain
-description: Handle pain and injury as a coach, not a clinician: red flags, triage conversation, traffic-light pain monitoring, load modification, cross-training, return-to-run progressions, referral triggers. Use whenever the athlete mentions pain, a niggle, or an injury.
+description: "Handle pain and injury as a coach, not a clinician: red flags, triage conversation, traffic-light pain monitoring, load modification, cross-training, return-to-run progressions, referral triggers. Use whenever the athlete mentions pain, a niggle, or an injury."
 ---
 
 # Injury and pain

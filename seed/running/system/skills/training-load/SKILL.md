@@ -1,6 +1,6 @@
 ---
 name: training-load
-description: Quantify and reason about training load: weekly volume and time, session-RPE load, monotony and strain, acute:chronic ratios with their critique, wellness check-ins. Includes load.py. Use when judging ramp rate, fatigue or whether a week was too much.
+description: "Quantify and reason about training load: weekly volume and time, session-RPE load, monotony and strain, acute:chronic ratios with their critique, wellness check-ins. Includes load.py. Use when judging ramp rate, fatigue or whether a week was too much."
 ---
 
 # Training load

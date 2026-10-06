@@ -243,8 +243,8 @@ export class PreviewServer {
         const sql = String(params.sql);
         const dbPath = b.empty ? this.o.emptyDb : this.o.realDb;
         try {
-          const r = await this.o.exec.query(dbPath, sql, (params.params as unknown[] | undefined) ?? []);
           const declared = new Set(m.reads.filter((x) => x.startsWith('db:')).map((x) => x.slice(3).toLowerCase()));
+          const r = await this.o.exec.query(dbPath, sql, (params.params as unknown[] | undefined) ?? [], undefined, [...declared]);
           const undeclared = r.tables.filter((t) => !declared.has(t.toLowerCase()));
           if (undeclared.length) {
             const msg = `undeclared read: query touches ${undeclared.map((t) => `"${t}"`).join(', ')} but view.json reads only [${[...declared].join(', ') || 'nothing'}]; add "db:${undeclared[0]}" to reads`;

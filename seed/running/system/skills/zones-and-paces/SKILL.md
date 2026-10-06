@@ -1,6 +1,6 @@
 ---
 name: zones-and-paces
-description: Set and use intensity guidance: RPE, talk test, heart-rate zones, pace targets, VDOT-style race equivalences and their limits, heat and terrain adjustments, coaching without HR. Includes vdot.py. Use when prescribing sessions or interpreting paces and HR.
+description: "Set and use intensity guidance: RPE, talk test, heart-rate zones, pace targets, VDOT-style race equivalences and their limits, heat and terrain adjustments, coaching without HR. Includes vdot.py. Use when prescribing sessions or interpreting paces and HR."
 ---
 
 # Zones and paces

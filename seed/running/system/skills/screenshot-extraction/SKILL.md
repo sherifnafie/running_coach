@@ -1,6 +1,6 @@
 ---
 name: screenshot-extraction
-description: Read workout screenshots (Samsung Health, Garmin Connect, Apple Fitness, Strava, Coros, Polar, Nike Run Club...) into trustworthy activity rows: visible fields only, unit and locale traps, merging screens, graphs, dedupe, when to confirm.
+description: "Read workout screenshots (Samsung Health, Garmin Connect, Apple Fitness, Strava, Coros, Polar, Nike Run Club...) into trustworthy activity rows: visible fields only, unit and locale traps, merging screens, graphs, dedupe, when to confirm."
 ---
 
 # Screenshot extraction

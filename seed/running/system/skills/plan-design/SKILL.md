@@ -1,6 +1,6 @@
 ---
 name: plan-design
-description: Design and adapt training blocks: periodization, phase intent, progression, long-run share, intensity distribution, down weeks, sample weeks from 5K to marathon, tapering, fitting plans to real schedules. Includes plan_check.py. Use for any new block or plan change.
+description: "Design and adapt training blocks: periodization, phase intent, progression, long-run share, intensity distribution, down weeks, sample weeks from 5K to marathon, tapering, fitting plans to real schedules. Includes plan_check.py. Use for any new block or plan change."
 ---
 
 # Plan design

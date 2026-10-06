@@ -1,11 +1,11 @@
 /**
  * SQLite helpers for the preview renderer: schema reading, the empty-state fixture DB and a
- * read-only query executor that runs in a worker thread so a runaway query can be terminated
+ * read-only query executor that runs in a child process so a runaway query can be terminated
  * (node:sqlite is synchronous; a recursive CTE must never block the server's event loop).
  */
 import { DatabaseSync } from 'node:sqlite';
 import { existsSync } from 'node:fs';
-import { Worker } from 'node:worker_threads';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { VIEW_QUERY_LIMITS } from '@opencoach/protocol';
 
 export interface DbSchema {
@@ -89,8 +89,7 @@ export interface QueryResult {
   truncated: boolean;
 }
 
-const WORKER_SRC = `
-const { parentPort } = require('node:worker_threads');
+const CHILD_SRC = `
 const { DatabaseSync } = require('node:sqlite');
 const dbs = new Map();
 function open(path) {
@@ -98,22 +97,19 @@ function open(path) {
   if (!db) { db = new DatabaseSync(path, { readOnly: true }); db.exec('PRAGMA query_only = ON'); dbs.set(path, db); }
   return db;
 }
-function tablesUsed(db, sql) {
+function tablesUsed(db, sql, params) {
   const names = new Set();
   const master = db.prepare('SELECT name, tbl_name, rootpage FROM sqlite_master').all();
   const byRoot = new Map(master.map((m) => [Number(m.rootpage), m.tbl_name]));
-  try {
-    for (const op of db.prepare('EXPLAIN ' + sql).all()) {
-      if ((op.opcode === 'OpenRead' || op.opcode === 'ReopenIdx') && Number(op.p3) === 0) {
-        const t = Number(op.p2) === 1 ? 'sqlite_master' : byRoot.get(Number(op.p2));
-        if (t) names.add(t);
-      }
+  for (const op of db.prepare('EXPLAIN ' + sql).all(...params)) {
+    if (op.opcode === 'OpenWrite') throw new Error('view queries cannot write');
+    if ((op.opcode === 'OpenRead' || op.opcode === 'ReopenIdx') && Number(op.p3) === 0) {
+      const t = Number(op.p2) === 1 ? 'sqlite_master' : byRoot.get(Number(op.p2));
+      if (t) names.add(t);
     }
-  } catch (e) { /* fall through to regex */ }
-  const re = /\\b(?:from|join)\\s+["\\x60\\[]?([A-Za-z_][A-Za-z0-9_]*)/gi;
-  let m;
-  const known = new Set(master.map((x) => x.tbl_name.toLowerCase()));
-  while ((m = re.exec(sql))) if (known.has(m[1].toLowerCase())) names.add(master.find((x) => x.tbl_name.toLowerCase() === m[1].toLowerCase()).tbl_name);
+    // Virtual tables and table-valued PRAGMAs cannot be resolved through root pages.
+    if (op.opcode === 'VOpen') throw new Error('virtual tables are not allowed in view queries');
+  }
   return [...names];
 }
 function plain(v) {
@@ -121,10 +117,16 @@ function plain(v) {
   if (typeof v === 'bigint') return Number(v);
   return v;
 }
-parentPort.on('message', (m) => {
+process.on('message', (m) => {
   try {
     const db = open(m.path);
-    const tables = tablesUsed(db, m.sql);
+    const tables = tablesUsed(db, m.sql, m.params);
+    if (tables.some(t => /^sqlite_/i.test(t))) throw new Error('SQLite metadata is not allowed in view queries');
+    if (m.allowedTables) {
+      const declared = new Set(m.allowedTables.map(t => t.toLowerCase()));
+      const bad = tables.filter(t => !declared.has(t.toLowerCase()));
+      if (bad.length) throw new Error('undeclared read: ' + bad.join(', '));
+    }
     const stmt = db.prepare(m.sql);
     const rows = [];
     let truncated = false;
@@ -134,9 +136,9 @@ parentPort.on('message', (m) => {
       for (const k of Object.keys(r)) o[k] = plain(r[k]);
       rows.push(o);
     }
-    parentPort.postMessage({ id: m.id, ok: true, rows, tables, truncated });
+    process.send({ id: m.id, ok: true, rows, tables, truncated });
   } catch (e) {
-    parentPort.postMessage({ id: m.id, ok: false, error: String(e && e.message || e) });
+    process.send({ id: m.id, ok: false, error: String(e && e.message || e) });
   }
 });
 `;
@@ -145,6 +147,7 @@ parentPort.on('message', (m) => {
 function bindable(v: unknown): unknown {
   if (v === undefined || v === null) return null;
   if (typeof v === 'boolean') return v ? 1 : 0;
+  if (v instanceof Uint8Array) return v;
   if (typeof v === 'number' || typeof v === 'string' || typeof v === 'bigint') return v;
   return JSON.stringify(v);
 }
@@ -152,13 +155,16 @@ function bindable(v: unknown): unknown {
 type Pending = { resolve: (r: QueryResult) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> };
 
 export class SqlExecutor {
-  private worker?: Worker;
+  private child?: ChildProcess;
   private seq = 0;
   private pending = new Map<number, Pending>();
 
-  private ensure(): Worker {
-    if (this.worker) return this.worker;
-    const w = new Worker(WORKER_SRC, { eval: true, execArgv: ['--disable-warning=ExperimentalWarning'] });
+  private ensure(): ChildProcess {
+    if (this.child) return this.child;
+    // Worker.terminate() cannot interrupt synchronous node:sqlite execution. SIGKILL can.
+    const w = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', '--eval', CHILD_SRC], {
+      stdio: ['ignore', 'ignore', 'ignore', 'ipc'], serialization: 'advanced',
+    });
     w.on('message', (m: { id: number; ok: boolean; error?: string } & Partial<QueryResult>) => {
       const p = this.pending.get(m.id);
       if (!p) return;
@@ -168,7 +174,9 @@ export class SqlExecutor {
       else p.reject(new Error(m.error ?? 'query failed'));
     });
     const dead = (err: Error) => {
-      if (this.worker === w) this.worker = undefined;
+      // A timed-out process can exit after its replacement has already started.
+      if (this.child !== w) return;
+      this.child = undefined;
       for (const [id, p] of this.pending) {
         clearTimeout(p.timer);
         p.reject(err);
@@ -177,37 +185,46 @@ export class SqlExecutor {
     };
     w.on('error', (e) => dead(e instanceof Error ? e : new Error(String(e))));
     w.on('exit', () => dead(new Error('query worker exited')));
-    this.worker = w;
+    this.child = w;
     return w;
   }
 
-  /** Run a validated read-only query. Rejects on SQL errors and after `timeoutMs` (the worker is killed). */
-  query(dbPath: string, sql: string, params: unknown[] = [], timeoutMs: number = VIEW_QUERY_LIMITS.timeoutMs): Promise<QueryResult> {
+  /** Run read-only SQL; check real table access before execution. Kill the process on timeout. */
+  query(dbPath: string, sql: string, params: unknown[] = [], timeoutMs: number = VIEW_QUERY_LIMITS.timeoutMs, allowedTables?: string[]): Promise<QueryResult> {
     const bad = validateReadOnlySql(sql);
     if (bad) return Promise.reject(new Error(bad));
     const w = this.ensure();
     const id = ++this.seq;
     return new Promise<QueryResult>((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.pending.delete(id);
-        reject(new Error(`query timed out after ${timeoutMs} ms`));
-        const dying = this.worker;
-        this.worker = undefined;
-        void dying?.terminate();
+        if (this.child !== w) return;
+        this.child = undefined;
+        const error = new Error(`query timed out after ${timeoutMs} ms`);
+        for (const pending of this.pending.values()) {
+          clearTimeout(pending.timer);
+          pending.reject(error);
+        }
+        this.pending.clear();
+        w.kill('SIGKILL');
       }, timeoutMs);
       this.pending.set(id, { resolve, reject, timer });
-      w.postMessage({ id, path: dbPath, sql, params: params.map(bindable), maxRows: VIEW_QUERY_LIMITS.maxRows });
+      w.send({ id, path: dbPath, sql, params: params.map(bindable), maxRows: VIEW_QUERY_LIMITS.maxRows, allowedTables });
     });
   }
 
   async close(): Promise<void> {
-    const w = this.worker;
-    this.worker = undefined;
+    const w = this.child;
+    this.child = undefined;
     for (const [id, p] of this.pending) {
       clearTimeout(p.timer);
       p.reject(new Error('executor closed'));
       this.pending.delete(id);
     }
-    await w?.terminate();
+    if (w && w.exitCode === null && w.signalCode === null) {
+      await new Promise<void>((resolve) => {
+        w.once('exit', () => resolve());
+        w.kill('SIGKILL');
+      });
+    }
   }
 }

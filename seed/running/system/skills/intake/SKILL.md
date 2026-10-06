@@ -1,6 +1,6 @@
 ---
 name: intake
-description: Run a coaching intake as a conversation over one or more sessions: goals, history, volume, injuries, health screening, schedule, devices, preferences. Use for a new athlete, a return after a long gap, or when the profile has big holes.
+description: "Run a coaching intake as a conversation over one or more sessions: goals, history, volume, injuries, health screening, schedule, devices, preferences. Use for a new athlete, a return after a long gap, or when the profile has big holes."
 ---
 
 # Intake

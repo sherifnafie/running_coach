@@ -69,14 +69,22 @@ const VARIANT_HARD_TIMEOUT_MS = 40_000;
 const MAX_SHOT_HEIGHT = 4000;
 const MAX_LIST = 25;
 
+/** Resolve configured, Playwright-managed, or system Chromium without downloading a browser. */
+export function chromiumExecutable(executablePath?: string): string | undefined {
+  const configured = executablePath ?? process.env.OPENCOACH_CHROMIUM_PATH;
+  if (configured) return existsSync(configured) ? configured : undefined;
+  try {
+    const p = chromium.executablePath();
+    if (p && existsSync(p)) return p;
+  } catch {
+    /* Playwright browser may not be installed. */
+  }
+  return ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome'].find(existsSync);
+}
+
 /** Is a Chromium available for the renderer? (Tests use this to skip cleanly.) */
 export function chromiumAvailable(executablePath?: string): boolean {
-  try {
-    const p = executablePath ?? chromium.executablePath();
-    return !!p && existsSync(p);
-  } catch {
-    return false;
-  }
+  return !!chromiumExecutable(executablePath);
 }
 
 let axeSource: string | undefined;
@@ -175,7 +183,8 @@ export class PlaywrightRenderer implements UiRenderer {
     if (!this.browser) {
       const asRoot = typeof process.getuid === 'function' && process.getuid() === 0;
       const sandbox = this.opts.chromiumSandbox ?? (!asRoot && process.env.OPENCOACH_CHROMIUM_NO_SANDBOX !== '1');
-      const exe = this.opts.executablePath ?? process.env.OPENCOACH_CHROMIUM_PATH;
+      const exe = chromiumExecutable(this.opts.executablePath);
+      if (!exe) return Promise.reject(new Error('Chromium is unavailable for UI preview (set OPENCOACH_CHROMIUM_PATH or install Chromium)'));
       const p = chromium
         .launch({
           headless: true,

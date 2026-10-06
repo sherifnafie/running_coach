@@ -1,5 +1,5 @@
 /**
- * Test workspaces: the Appendix D §D.4 schema (verbatim, test/fixtures/0001_init.sql), the seed UI
+ * Test workspaces: the actual seed migration (Appendix D §D.4), the seed UI
  * (seed/running/workspace/ui) and, optionally, three weeks of realistic sample data.
  */
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -12,7 +12,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const PKG_ROOT = resolve(here, '..', '..');
 export const REPO_ROOT = resolve(PKG_ROOT, '..', '..');
 export const SEED_UI = join(REPO_ROOT, 'seed', 'running', 'workspace', 'ui');
-export const SCHEMA_SQL = join(PKG_ROOT, 'test', 'fixtures', '0001_init.sql');
+export const SCHEMA_SQL = join(REPO_ROOT, 'seed', 'running', 'workspace', 'data', 'migrations', '0001_init.sql');
 
 /** "Now" for the sample data: Tuesday 2026-10-06, 09:30 local (UTC+2). */
 export const NOW = new Date('2026-10-06T07:30:00Z');
