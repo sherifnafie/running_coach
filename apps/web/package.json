@@ -5,11 +5,48 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "tsx dev/run-dev-mock.ts",
+    "mock": "tsx dev/mock-server.ts",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "icons": "node scripts/gen-icons.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.sw.json --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run src"
   },
   "dependencies": {
-    "@opencoach/protocol": "workspace:*"
+    "@opencoach/protocol": "workspace:*",
+    "@simplewebauthn/browser": "^14.0.0",
+    "dompurify": "^3.4.16",
+    "idb-keyval": "^6.3.0",
+    "marked": "^18.1.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^6.1.2",
+    "concurrently": "^10.0.5",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^30.1.2",
+    "playwright-core": "^1.63.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.3",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.3",
+    "workbox-build": "^7.4.1",
+    "workbox-core": "^7.4.1",
+    "workbox-expiration": "^7.4.1",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1",
+    "workbox-strategies": "^7.4.1",
+    "workbox-window": "^7.4.1",
+    "ws": "^8.22.0"
   }
 }

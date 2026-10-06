@@ -1,0 +1,204 @@
+import { useEffect, useState } from 'react';
+import { Section, Spinner } from '../../components/Atoms';
+import { describeError } from '../../lib/api';
+import { admin } from '../../lib/endpoints';
+
+/**
+ * Admin (self-host owner / hosted operator; only shown when `me.athlete.isAdmin`).
+ * The admin response shapes are not fixed by the contract, so lists are rendered generically.
+ */
+function asRows(data: unknown, keys: string[] = []): Array<Record<string, unknown>> {
+  if (Array.isArray(data)) return data.filter((x): x is Record<string, unknown> => typeof x === 'object' && x !== null);
+  if (data && typeof data === 'object') {
+    const o = data as Record<string, unknown>;
+    for (const k of [...keys, 'items', 'rows', 'data']) if (Array.isArray(o[k])) return asRows(o[k]);
+  }
+  return [];
+}
+
+function cell(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(4);
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
+function GenericTable({ rows, max = 12 }: { rows: Array<Record<string, unknown>>; max?: number }) {
+  if (rows.length === 0) return <p className="hint">Nothing to show.</p>;
+  const cols = [...new Set(rows.flatMap((r) => Object.keys(r)))].slice(0, 6);
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            {cols.map((c) => (
+              <th key={c} scope="col">
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.slice(0, max).map((r, i) => (
+            <tr key={i}>
+              {cols.map((c) => (
+                <td key={c}>{cell(r[c])}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function useLoad<T>(fn: () => Promise<T>, enabled: boolean) {
+  const [state, setState] = useState<{ loading: boolean; data?: T; error?: string }>({ loading: false });
+  useEffect(() => {
+    if (!enabled || state.data !== undefined) return;
+    setState({ loading: true });
+    fn()
+      .then((data) => setState({ loading: false, data }))
+      .catch((e) => setState({ loading: false, error: describeError(e) }));
+  }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  return state;
+}
+
+function Block({ title, children }: { title: string; children: (open: boolean) => React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="admin-block">
+      <button type="button" className="list-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <span className="list-title">{title}</span>
+      </button>
+      {open && <div className="admin-body">{children(open)}</div>}
+    </div>
+  );
+}
+
+function Athletes({ open }: { open: boolean }) {
+  const s = useLoad(admin.athletes, open);
+  return s.loading ? <Spinner /> : s.error ? <p className="form-error">{s.error}</p> : <GenericTable rows={asRows(s.data, ['athletes'])} />;
+}
+
+function Costs({ open }: { open: boolean }) {
+  const s = useLoad(admin.costs, open);
+  if (s.loading) return <Spinner />;
+  if (s.error) return <p className="form-error">{s.error}</p>;
+  const rows = asRows(s.data, ['byDay', 'days', 'costs']);
+  const valueKey = ['usd', 'costUsd', 'cost', 'total', 'amount'].find((k) => rows.some((r) => typeof r[k] === 'number'));
+  const dayKey = ['date', 'day'].find((k) => rows.some((r) => typeof r[k] === 'string'));
+  const max = valueKey ? Math.max(...rows.map((r) => Number(r[valueKey] ?? 0)), 0.0001) : 0;
+  return (
+    <>
+      {valueKey && dayKey && (
+        <ul className="bars" aria-label="Cost per day">
+          {rows.slice(-14).map((r) => (
+            <li key={String(r[dayKey])}>
+              <span className="bar-label">{String(r[dayKey]).slice(5)}</span>
+              <span className="bar" style={{ width: `${Math.max(2, (Number(r[valueKey]) / max) * 100)}%` }} />
+              <span className="bar-value">${Number(r[valueKey]).toFixed(2)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <GenericTable rows={rows} />
+    </>
+  );
+}
+
+function Turns({ open }: { open: boolean }) {
+  const s = useLoad(admin.turns, open);
+  const [detail, setDetail] = useState<{ id: string; body?: unknown; error?: string } | null>(null);
+  if (s.loading) return <Spinner />;
+  if (s.error) return <p className="form-error">{s.error}</p>;
+  const rows = asRows(s.data, ['turns']);
+  const idOf = (r: Record<string, unknown>) => String(r.id ?? r.turnId ?? '');
+  return (
+    <>
+      <GenericTable rows={rows} />
+      {rows.length > 0 && (
+        <ul className="list">
+          {rows.slice(0, 12).map((r) => (
+            <li key={idOf(r)}>
+              <button
+                type="button"
+                className="btn link small"
+                onClick={() => {
+                  const id = idOf(r);
+                  setDetail({ id });
+                  admin
+                    .turn(id)
+                    .then((body) => setDetail({ id, body }))
+                    .catch((e) => setDetail({ id, error: describeError(e) }));
+                }}
+              >
+                Trace {idOf(r).slice(-8)}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {detail && (
+        <div className="trace">
+          <p className="list-title">Turn {detail.id}</p>
+          {detail.error ? <p className="form-error">{detail.error}</p> : <pre>{detail.body === undefined ? 'Loading…' : JSON.stringify(detail.body, null, 2)}</pre>}
+          <button type="button" className="btn link small" onClick={() => setDetail(null)}>
+            Close
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Invite() {
+  const [code, setCode] = useState<string | undefined>();
+  const [error, setError] = useState<string | undefined>();
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="admin-body">
+      <button
+        type="button"
+        className="btn"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setError(undefined);
+          try {
+            setCode((await admin.invite()).code);
+          } catch (e) {
+            setError(describeError(e));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Create invite code
+      </button>
+      {code && (
+        <p role="status" className="code-box">
+          <code>{code}</code>{' '}
+          <button type="button" className="btn link small" onClick={() => void navigator.clipboard?.writeText(code)}>
+            Copy
+          </button>
+        </p>
+      )}
+      {error && <p className="form-error">{error}</p>}
+    </div>
+  );
+}
+
+export function AdminSection() {
+  return (
+    <Section title="Admin">
+      <Block title="Athletes">{(open) => <Athletes open={open} />}</Block>
+      <div className="admin-block">
+        <p className="list-title pad">Invite someone</p>
+        <Invite />
+      </div>
+      <Block title="Costs by day">{(open) => <Costs open={open} />}</Block>
+      <Block title="Recent turns">{(open) => <Turns open={open} />}</Block>
+    </Section>
+  );
+}
