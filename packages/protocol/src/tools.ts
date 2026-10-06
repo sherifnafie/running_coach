@@ -282,6 +282,14 @@ export interface ToolContext {
   signal: AbortSignal;
   /** Whether the coach's model can see images (capability routing, SPEC [MOD-1]). */
   vision: boolean;
+  /** Image preparation for model input (downscale/convert). Absent → images are passed through. */
+  media?: MediaPort;
+}
+
+export interface MediaPort {
+  prepareImage(data: Uint8Array, mime: string): Promise<{ data: Uint8Array; mediaType: 'image/png' | 'image/jpeg' }>;
+  /** Read a host file produced by the harness itself (e.g. preview screenshots). */
+  readHostFile(path: string): Promise<Uint8Array>;
 }
 
 export interface ToolDef<N extends ToolName = ToolName> {
