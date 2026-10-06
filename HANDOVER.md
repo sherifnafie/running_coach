@@ -4,7 +4,51 @@
 **Branch:** `ccr-a500ac00-ytsl89`. All work is committed and pushed here.
 **Goal:** a full end-to-end implementation of `SPEC.md`: Phase 1 MVP plus the core of Phase 2 (calls, helpers, MCP, native shell). The user asked for a complete implementation.
 
-Read in this order: this file → `AGENTS.md` → `docs/implementation.md` (package map, data/seed layout, conventions, context-rendering format) → the `SPEC.md` section for your task → `packages/protocol/src/*` (the contracts).
+## 0. Preamble: read this first
+
+### What happened so far
+
+You are picking up a project mid-build from another AI coding agent (Claude). That agent's session ran out of usage limits, so it stopped and wrote this file. You only have this repository; there is no other context, chat history or local state. Everything that exists is on this branch.
+
+1. **Specification.** The project owner (the user) brainstormed an idea for an "AI-native running coach": an app where an agentic LLM *is* the coach and the app is only a harness around it. The previous agent turned that into the founding spec, `SPEC.md`, plus appendices in `docs/`. The user reviewed it and then asked for a **full end-to-end implementation of the spec**.
+2. **Implementation.** The previous agent:
+   - set up the pnpm monorepo;
+   - wrote all shared contracts (`packages/protocol`) and stub entry points with final signatures for every package;
+   - wrote the core runtime (`packages/runtime`) and tools (`packages/tools`) itself;
+   - fanned the other packages out to parallel sub-agents, each working in its own git worktree against the frozen contracts.
+
+   The engine and voice packages were finished and merged. Then the user said limits were nearly exhausted, so the agent stopped all sub-agents, had them commit their work in progress ("WIP:" commits) and merged that into this branch so nothing was lost. The result is a codebase where some packages are complete and tested, some are partial, and two are barely started. §1 has the exact status.
+
+### Your job
+
+**Finish the implementation so the whole system runs end to end.** The definition of done:
+- `pnpm install && pnpm typecheck && pnpm test` is green.
+- A self-hosted server starts in **demo mode** (no API keys, scripted coach) with `OPENCOACH_DEMO=1 pnpm start`.
+- The PWA works against it: setup → chat with streamed replies → quick replies → coach-authored views render in sandboxed iframes → settings.
+- A Playwright e2e test proves this flow.
+- With real API keys (Anthropic / OpenAI / DeepSeek), the same server runs a real coach.
+
+After that, complete the remaining Phase 1–2 items listed in §4.
+
+### How to work
+
+- **Don't redesign.** The architecture, contracts and key decisions are settled (`docs/adr/`, §5 below, and `SPEC.md`). Your job is to make the existing design work, not to rethink it. If you find a genuine contract bug, fix it in `packages/protocol` and every caller in the same commit, and note it in this file.
+- **Trust but verify the WIP.** Code from "WIP:" commits was written quickly by sub-agents and often never run. Read before relying on it, run its tests, and fix what's broken. Code without a WIP marker (protocol, engine, voice, runtime, tools, store, sandbox local provider) was tested, but the runtime has never been run end to end with the real store, workspace and seed until just before handover (see the failing tests in §1).
+- **Work in small, verified steps.** After each step run `npx tsc -p tsconfig.json` and the relevant `npx vitest run <path>`, commit with the required footer (§2), and push to `ccr-a500ac00-ytsl89`. Pushing often means nothing is lost if *your* session also ends abruptly.
+- **Keep this file current.** When you finish a work package, update its row in §1 and tick it off in §3. If you run low on budget yourself, update this file *before* you stop, as the previous agent did.
+- **Follow the repo rules** in `AGENTS.md`: no coaching logic in harness code (the "deletion test"), guarantees enforced in code, all time through `Clock`, no secrets in the sandbox, provider features behind interfaces, requirement IDs (`[RT-3]` etc.) cited in commits and tests.
+- **Environment limits** (§2): there are no LLM API keys, so test with the scripted provider and demo coach and never call real APIs in tests. There is no Docker daemon and no Android SDK. Chromium for Playwright is at `/opt/pw-browsers`. If your environment differs (for example you do have Docker or keys), say so in this file and use it.
+- **Don't open a pull request** unless the user asks for one.
+
+### Where to look
+
+Read in this order:
+1. this file;
+2. `AGENTS.md`;
+3. `docs/implementation.md` (package map, data/seed layout, conventions, the context-rendering format);
+4. the `SPEC.md` section for your task (§9 UI, §15 API, Appendix C contracts, Appendix D seed, Appendix E evals);
+5. `packages/protocol/src/*` (the contracts);
+6. the stub or WIP code of the package you're working on.
 
 ---
 
