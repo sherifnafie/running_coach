@@ -1,0 +1,21 @@
+{
+  "name": "@opencoach/native",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Android-first Capacitor shell around the OpenCoach PWA (Health Connect sync, native push, share target).",
+  "scripts": {
+    "sync": "cap sync android",
+    "open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/push-notifications": "^7.0.7"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
+    "typescript": "~5.9.3"
+  }
+}
