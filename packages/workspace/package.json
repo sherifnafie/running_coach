@@ -1,0 +1,24 @@
+{
+  "name": "@opencoach/workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@opencoach/protocol": "workspace:*",
+    "@opencoach/store": "workspace:*",
+    "node-sql-parser": "^5.4.0",
+    "picomatch": "^4.0.7",
+    "sharp": "^0.35.5",
+    "tar": "^7.5.22",
+    "tinyglobby": "^0.2.17",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/picomatch": "^4.0.3"
+  }
+}

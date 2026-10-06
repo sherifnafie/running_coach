@@ -1,0 +1,23 @@
+{
+  "name": "@opencoach/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": { "opencoach": "./bin/opencoach.mjs" },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@opencoach/protocol": "workspace:*",
+    "@opencoach/store": "workspace:*",
+    "@opencoach/sandbox": "workspace:*",
+    "@opencoach/workspace": "workspace:*",
+    "@opencoach/engine": "workspace:*",
+    "@opencoach/tools": "workspace:*",
+    "@opencoach/runtime": "workspace:*",
+    "@opencoach/voice": "workspace:*",
+    "@opencoach/ui-kit": "workspace:*"
+  }
+}

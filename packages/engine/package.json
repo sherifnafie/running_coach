@@ -1,0 +1,17 @@
+{
+  "name": "@opencoach/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@opencoach/protocol": "workspace:*",
+    "openai": "^7.28.0",
+    "partial-json": "^0.1.7"
+  }
+}
