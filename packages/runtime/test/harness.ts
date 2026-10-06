@@ -104,6 +104,7 @@ export async function makeHarness(opts: { start?: string; renderer?: UiRenderer;
     pack: 'running',
     kitDir: join(REPO, 'packages/ui-kit/dist'),
     renderer: opts.renderer ?? passRenderer,
+    manualScheduler: true,
   });
   await runtime.start();
   const stream: StreamMessage[] = [];

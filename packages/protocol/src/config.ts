@@ -109,6 +109,32 @@ export const ServerConfig = z.object({
   /** Default settings applied to new athletes (deep-merged). */
   defaultSettings: z.unknown().optional(),
   telegram: z.object({ botToken: z.string().optional(), botTokenEnv: z.string().default('TELEGRAM_BOT_TOKEN') }).optional(),
+  /**
+   * MCP servers whose tools are offered to the coach (SPEC §7, Phase 2). Deployment-level (admin).
+   * Tool names are exposed as mcp__<name>__<tool>; outputs are untrusted content. Check each
+   * platform's terms before connecting fitness-data servers (SPEC §10.5).
+   */
+  mcp: z
+    .object({
+      servers: z
+        .array(
+          z.object({
+            name: z.string().regex(/^[a-z0-9_-]{1,32}$/),
+            transport: z.enum(['http', 'stdio']),
+            url: z.string().url().optional(),
+            headers: z.record(z.string(), z.string()).default({}),
+            command: z.string().optional(),
+            args: z.array(z.string()).default([]),
+            env: z.record(z.string(), z.string()).default({}),
+            /** Only expose these tools (default: all). */
+            allowTools: z.array(z.string()).optional(),
+            /** Expose to helpers too (default false: coach only). */
+            helpers: z.boolean().default(false),
+          }),
+        )
+        .default([]),
+    })
+    .prefault({}),
   admin: z.object({ token: z.string().optional() }).optional(),
 });
 export type ServerConfig = z.infer<typeof ServerConfig>;

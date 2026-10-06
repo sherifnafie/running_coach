@@ -46,9 +46,10 @@ export interface Core {
   ui: import('./ui-service').UiService;
   helpers: import('./helpers').HelperManager;
   turns: import('./turn').TurnRunner;
+  mcp: import('./mcp').McpManager;
 }
 
-export function createCoreBase(deps: CoachRuntimeDeps, bus: StreamBus, web: WebPort, harnessVersion: string): Omit<Core, 'minds' | 'scheduler' | 'ui' | 'helpers' | 'turns'> {
+export function createCoreBase(deps: CoachRuntimeDeps, bus: StreamBus, web: WebPort, harnessVersion: string): Omit<Core, 'minds' | 'scheduler' | 'ui' | 'helpers' | 'turns' | 'mcp'> {
   const handles = new Map<string, SandboxHandle>();
   const isVirtualClock = !(deps.clock instanceof SystemClock);
   const base = {

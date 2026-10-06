@@ -229,6 +229,7 @@ describe('runtime: steering, schedules, helpers, views', () => {
           toolCalls: [
             { name: 'write', input: { path: 'plan/drafts/block.md', content: '# draft' } },
             { name: 'write', input: { path: 'athlete/profile.md', content: 'HIJACKED' } },
+            { name: 'bash', input: { command: 'echo HIJACKED > athlete/preferences.md' } },
           ],
         };
       }
@@ -237,13 +238,15 @@ describe('runtime: steering, schedules, helpers, views', () => {
         if (tr.kind === 'tool_results') helperResult = tr.results.map((r) => (r.content[0]?.type === 'text' ? r.content[0].text : '')).join('');
         return send('Plan drafted.');
       }
-      return { toolCalls: [{ name: 'spawn_agent', input: { task: 'Draft a block', write_scope: ['plan/drafts/**'], tools: ['read', 'write'] } }] };
+      return { toolCalls: [{ name: 'spawn_agent', input: { task: 'Draft a block', write_scope: ['plan/drafts/**'], tools: ['read', 'write', 'bash'] } }] };
     });
     await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'make me a plan', clientId: 'c9' } });
     await h.settle(id);
     expect(await readFile(join(ws, 'plan/drafts/block.md'), 'utf8')).toBe('# draft');
     expect(await readFile(join(ws, 'athlete/profile.md'), 'utf8')).not.toBe('HIJACKED');
+    expect(await readFile(join(ws, 'athlete/preferences.md'), 'utf8')).not.toContain('HIJACKED');
     expect(helperResult).toContain('Discarded');
+    expect(helperResult).toContain('athlete/preferences.md');
   });
 
   it('publishes coach-edited views and lets the athlete revert [WS-5]', async () => {

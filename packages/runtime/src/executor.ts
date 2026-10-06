@@ -87,9 +87,18 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
 
   return {
     allowed: o.tools,
-    specs: () => toolSpecsFor(o.agent.kind, o.tools),
+    specs: () => [...toolSpecsFor(o.agent.kind, o.tools), ...(o.agent.kind === 'voice' ? [] : core.mcp.specs(o.agent.kind))],
     async execute(call: ToolCallPart, signal: AbortSignal): Promise<ToolResult> {
       const started = performance.now();
+      if (core.mcp.handles(call.name) && o.agent.kind !== 'voice') {
+        o.onStart?.(call);
+        const r = await core.mcp.call(call.id, call.name, call.input, o.agent.kind);
+        o.onEnd?.(call, !r.isError);
+        void core.store
+          .audit({ athleteId: o.athleteId, at: core.clock.now().toISOString(), actor: o.agent.kind, action: `tool:${call.name}`, detail: { turnId: o.turnId, ok: !r.isError, ms: Math.round(performance.now() - started) } })
+          .catch(() => {});
+        return r;
+      }
       if (!o.tools.includes(call.name as ToolName)) {
         return { callId: call.id, name: call.name, isError: true, content: [{ type: 'text', text: `Error [NOT_ALLOWED]: tool "${call.name}" is not available here.` }] };
       }

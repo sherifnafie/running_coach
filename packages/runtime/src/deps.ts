@@ -35,4 +35,6 @@ export interface CoachRuntimeDeps {
   safety?: SafetyScreen;
   synthesizer?: Synthesizer;
   delivery?: DeliveryHook;
+  /** Tests/evals: don't run the background scheduler loop; call tickScheduler() explicitly. */
+  manualScheduler?: boolean;
 }
