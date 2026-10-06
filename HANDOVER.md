@@ -8,29 +8,31 @@ Read in this order: this file → `AGENTS.md` → `docs/implementation.md` (pack
 
 ---
 
-## 1. State at a glance
+## 1. State at a glance (updated at the moment of handover)
 
-| Package / area | Status | Tests |
-|---|---|---|
-| `packages/protocol` (all shared contracts: zod schemas + interfaces) | ✅ done | 9 pass |
-| `packages/engine` (agent loop; Anthropic, OpenAI Responses, OpenAI-compatible and scripted providers; demo coach; router; pricing) | ✅ done | 201 pass |
-| `packages/voice` (STT/TTS, OpenAI realtime + sideband, call service, cascaded calls) | ✅ done | 64 pass |
-| `packages/tools` (every model-facing tool definition) | ✅ done | covered by runtime tests |
-| `packages/runtime` (the mind loop: turns, epochs, policies, scheduler, helpers, UI service, MCP, safety, voice bridge) | ✅ written, typechecks | 16 unit pass; **`test/runtime.test.ts` integration tests not yet run** (they need store/workspace/sandbox/seed) |
-| `apps/native` (Capacitor Android shell + Health Connect Kotlin plugin) | ✅ scaffold | not compiled (no Android SDK) |
-| `.github/workflows/ci.yml`, `evals.yml` | ✅ written | reference scripts that don't exist yet (`build`, `eval:selftest`) |
-| `packages/store` | ❌ **stub**: signatures only (`src/index.ts`) | — |
-| `packages/sandbox` | ❌ **stub** | — |
-| `packages/workspace` | ❌ **stub** (largest stub; JSDoc describes each function) | — |
-| `packages/ui-kit` (browser kit, Playwright preview renderer, coach docs) | ❌ **stub** (node entry only) | — |
-| `seed/` (constitution, addenda, skills, workspace template incl. seed views) | ❌ **empty** | — |
-| `apps/server` (gateway + composition root + Docker files) | ❌ only `package.json` | — |
-| `apps/web` (PWA) | ❌ only `package.json` | — |
-| `packages/evals-sim` + `evals/` | ❌ only `package.json` | — |
+At the last minute, all parallel work-in-progress branches were **merged into this branch**, so everything below is in the repo.
 
-The **stub files define the final export signatures**. Implement them exactly. Other packages already call them, and the runtime compiles against them. Adding exports is fine; changing existing signatures means updating every caller.
+**Snapshot:** `npx tsc -p tsconfig.json` shows 3 errors, all in `apps/server/src/http/context.ts`. Missing `@fastify/cookie` type augmentation: register the plugin / import its types. `npx vitest run packages`: **611 passed, 7 failed** (31 files).
 
-Note: in the original container, parallel sub-agents had partially implemented the ❌ items on local branches named `worktree-agent-*` (git worktrees under `.claude/worktrees/`, which is gitignored). Those were **never pushed**. If you are in a fresh clone they don't exist: implement from this document. If you are in the same container, `git branch --list 'worktree-agent-*'` shows them. Their commits are WIP: review before merging, then run `pnpm install` (the lockfile was deliberately left uncommitted on those branches).
+| Package / area | Status |
+|---|---|
+| `packages/protocol` | ✅ done, tested |
+| `packages/engine` | ✅ done, 201 tests |
+| `packages/voice` | ✅ done, 64 tests |
+| `packages/tools` | ✅ done (exercised via runtime tests) |
+| `packages/runtime` | ✅ written. Unit tests pass. Integration `test/runtime.test.ts`: 9/13 pass. **Failing:** quiet-hours hold/release, steering [RT-3], publish/revert [WS-5], helpers in worktree [SUB-3]. Debug these first: they may be runtime bugs or test assumptions. |
+| `packages/store` | ✅ all `Store` methods, ~70 tests pass |
+| `packages/sandbox` | ✅ local namespace provider (uses pivot_root) + unsafe fallback, tested. ⚠️ `docker.ts`/`fake-docker.ts` were never run or typechecked against a real daemon; `docker.test.ts` is missing. libfaketime is absent here, so `fakeTime` is untested. |
+| `packages/workspace` | ✅ every export implemented, ~140 tests. ⚠️ 3 `mounted-fs.test.ts` failures (read bytes/text, write-scope globs, symlink bypass). No tests for blobs, images, export/import or buildSystemDir. `runViewQuery` uses a SIGKILLed child process because `Worker.terminate()` can't interrupt node:sqlite. **Security gap:** `/workspace/.git` should not be writable from the sandbox; consider an ro bind of `.git`. |
+| `packages/ui-kit` | 🟡 browser kit builds (kit.js 90 KB), `kitDistDir`/`kitDocsDir`, renderer runs end to end on a trivial view. ⚠️ No tests; the 4 seed views (`seed/running/workspace/ui/`) were never run through the renderer; the **docs files are missing** (`packages/ui-kit/docs/{ui-kit,bridge,views}.md`); the bridge `changed`/`subscribe` payload shapes are guesses. The views origin must send `Access-Control-Allow-Origin: *` (sandboxed iframes load module scripts in CORS mode). |
+| `seed/` | 🟡 constitution (~3.3k words assembled), coaching/safety pack, pack.json, 8 addenda, workspace template, 4 docs, changelog, 12 skills, 7 scripts. ⚠️ Missing: `SKILL.md` for `calendar-export` and `data-hygiene` (their scripts exist), and `seed/seed.test.ts`. |
+| `apps/web` | 🟡 typecheck + build pass, 100 unit tests (stream reducer, bridge host, markdown, micro-UI, offline queue, WS, nav, safety, SW). ⚠️ The Playwright e2e and `dev/mock-server.ts` have never been run. Response shapes for views/settings/admin/export are assumed: reconcile them with the server (§4.7). Bundle ~560 kB (no code-splitting). |
+| `apps/server` | 🔴 partial: `config.ts` (YAML + env, model defaults, demo fallback, origin checks), `paths.ts`, `setup-code.ts`, `http/{errors,static,security,auth,context,sockets,visibility}.ts`. **Missing:** gateway.ts and all routes, the views-origin server, push, telegram, `compose.ts`, main/CLI/bin, Docker files, config example, `.env.example`, `docs/self-hosting.md`, all tests. Contract note: Store has no "extend session expiry", so renewal recreates the session. |
+| `packages/evals-sim` + `evals/` | 🔴 partial: persona schema + YAML loader, 12 personas, seeded RNG, date utils, types. **Missing:** physiology, artifacts, athletes, runner, graders, judges, reference/bad coach, suites, conformance, CLI, README, tests. |
+| `apps/native` | ✅ scaffold (not compiled, no Android SDK) |
+| CI (`.github/workflows`) | written. It references scripts that don't exist yet (`build` per package, `eval:selftest`). |
+
+The WIP commits are on this branch (look for commit subjects starting with "WIP:"); each lists what works and what's missing. The **stub signatures in each package's `src/index.ts` are the contracts**: keep them.
 
 ---
 
@@ -55,7 +57,7 @@ Commands: `pnpm install` · `npx tsc -p tsconfig.json` (root typecheck; also `pn
 
 ## 3. Recommended order of work
 
-1. **store** → 2. **workspace** → 3. **sandbox** → 4. **seed content** → 5. **run `packages/runtime/test/runtime.test.ts` and fix runtime bugs** (it was never executed end to end; expect fixes) → 6. **ui-kit + seed views** → 7. **server** → 8. **web** → 9. **evals** → 10. **integration**: Playwright e2e against the real server in demo mode, Docker, CI scripts, README quickstart, spec updates.
+1. Fix the 3 server typecheck errors and the 7 failing tests (runtime integration + mounted-fs) → 2. finish the **seed** gaps (2 skills + seed.test.ts) → 3. **ui-kit**: docs, tests, run the seed views through the renderer → 4. **server** (largest remaining piece; the PWA depends on it) → 5. **web** e2e against the real server → 6. **evals** → 7. **integration**: Playwright e2e against the real server in demo mode, Docker, CI scripts, README quickstart, spec updates.
 
 Each item below is a condensed version of the brief the original agent wrote. The detailed behavior is also in the stub JSDoc and the SPEC.
 
