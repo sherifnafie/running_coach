@@ -288,7 +288,7 @@ class DockerSandboxProvider implements SandboxProvider {
   }
 
   private async findContainers(athleteId: string): Promise<Array<{ Id: string }>> {
-    const filters = encodeURIComponent(JSON.stringify({ label: [`${LABEL_ATHLETE}=${athleteId}`] }));
+    const filters = encodeURIComponent(JSON.stringify({ label: ['opencoach.managed=true', `${LABEL_ATHLETE}=${athleteId}`] }));
     return (await this.client.json<Array<{ Id: string }>>('GET', `/containers/json?all=true&filters=${filters}`)) ?? [];
   }
 
@@ -329,7 +329,7 @@ class DockerSandboxProvider implements SandboxProvider {
       return await this.execOnce(entry.containerId, command, opts, cwd, env);
     } catch (e) {
       // The container vanished or was stopped behind our back: bring it back once and retry.
-      if (e instanceof DockerApiError && (e.status === 404 || e.status === 409)) {
+      if (e instanceof DockerApiError && (e.status === 404 || e.status === 409) && this.byContainer.has(handle.id)) {
         const fresh = await this.doEnsure(entry.athleteId, entry.mounts);
         // Preserve only this previously issued handle after an automatic recovery.
         this.byContainer.set(handle.id, this.byContainer.get(fresh.id)!);
@@ -436,11 +436,31 @@ class DockerSandboxProvider implements SandboxProvider {
     await this.client.json('POST', `/containers/${containerId}/stop?t=0`, undefined, [304, 404]);
   }
 
-  /** The container is deliberately kept (long-lived per athlete); only our bookkeeping is dropped. */
+  /** Force removal kills detached children and relinquishes every athlete bind [SEC-6]. */
   async release(handle: SandboxHandle): Promise<void> {
     const entry = this.byContainer.get(handle.id);
-    if (entry && this.byAthlete.get(entry.athleteId) === entry) this.byAthlete.delete(entry.athleteId);
-    this.byContainer.delete(handle.id);
+    if (!entry) return;
+    if (entry.athleteId !== handle.athleteId) throw new Error(`sandbox handle ${handle.id} belongs to a different athlete`);
+    await this.removeContainer(entry.containerId);
+  }
+
+  async releaseAthlete(athleteId: string): Promise<void> {
+    this.assertLive();
+    // Query the daemon, not only this process's maps: containers can survive a server crash.
+    const filters = encodeURIComponent(JSON.stringify({ label: ['opencoach.managed=true'] }));
+    const containers = await this.client.json<Array<{ Id: string; Labels?: Record<string, string> }>>('GET', `/containers/json?all=true&filters=${filters}`);
+    for (const container of containers ?? []) {
+      const key = container.Labels?.[LABEL_ATHLETE];
+      if (key === athleteId || key?.startsWith(`${athleteId}:`)) await this.removeContainer(container.Id);
+    }
+  }
+
+  private async removeContainer(containerId: string): Promise<void> {
+    // Keep all bookkeeping if the daemon refuses removal; the caller must fail closed.
+    await this.client.json('DELETE', `/containers/${containerId}?force=true`, undefined, [404]);
+    for (const [stream, id] of this.active) if (id === containerId) { stream.destroy(); this.active.delete(stream); }
+    for (const [id, entry] of this.byContainer) if (entry.containerId === containerId) this.byContainer.delete(id);
+    for (const [athleteId, entry] of this.byAthlete) if (entry.containerId === containerId) this.byAthlete.delete(athleteId);
   }
 
   async dispose(): Promise<void> {

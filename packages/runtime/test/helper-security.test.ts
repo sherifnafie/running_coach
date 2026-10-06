@@ -1,11 +1,11 @@
-import { copyFile, lstat, readFile, symlink, unlink } from 'node:fs/promises';
+import { copyFile, lstat, readFile, readdir, symlink, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { lastItemKind, lastUserText, makeHarness, send, type Harness } from './harness';
 
 let h: Harness | undefined;
-afterEach(async () => { await h?.close(); h = undefined; });
+afterEach(async () => { vi.restoreAllMocks(); await h?.close(); h = undefined; });
 async function athlete() {
   h = await makeHarness();
   return (await h.runtime.createAthlete({ displayName: 'Sam', coachName: 'Kip', tz: 'Europe/Amsterdam', locale: 'en', isAdmin: false })).id;
@@ -16,6 +16,25 @@ function coachDone(req: Parameters<Parameters<Harness['setHandler']>[0]>[0]) {
 }
 
 describe('helper worktree isolation [SUB-3] [SEC-2]', () => {
+  it('does not merge or remove a worktree if its sandbox cannot be stopped [SEC-6]', async () => {
+    const id = await athlete();
+    vi.spyOn(h!.runtime.core.deps.sandbox, 'release').mockRejectedValue(new Error('helper sandbox still running'));
+    h!.setHandler((req) => {
+      if (lastUserText(req).includes('STOP_TASK')) {
+        return lastItemKind(req) === 'tool_results' ? { text: 'done' } : { toolCalls: [{ name: 'write', input: { path: 'plan/drafts/helper.md', content: 'untrusted until stopped' } }] };
+      }
+      if (coachDone(req)) return { text: 'done' };
+      if (lastItemKind(req) === 'tool_results') return send('Helper could not finish.');
+      return { toolCalls: [{ name: 'spawn_agent', input: { task: 'STOP_TASK', tools: ['write'], write_scope: ['plan/drafts/**'] } }] };
+    });
+    await h!.runtime.ingest(id, { type: 'user.message', payload: { text: 'run helper' } }); await h!.settle(id);
+    const paths = h!.runtime.core.paths(id);
+    await expect(lstat(join(paths.workspace, 'plan/drafts/helper.md'))).rejects.toThrow();
+    const worktrees = await readdir(join(paths.tmp, 'helpers'));
+    expect(worktrees).toHaveLength(1);
+    expect(await readFile(join(paths.tmp, 'helpers', worktrees[0]!, 'plan/drafts/helper.md'), 'utf8')).toBe('untrusted until stopped');
+  });
+
   it('discards an in-scope file symlink instead of following it during merge', async () => {
     const id = await athlete();
     h!.setHandler((req) => {

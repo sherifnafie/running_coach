@@ -126,7 +126,30 @@ describe('Docker Engine API contract [SEC-1] [SEC-2]', () => {
     await expect(provider.exec({ ...handle, athleteId: 'ath_other' }, 'true', { timeoutS: 2 })).rejects.toThrow(/unknown or released/);
     await provider.release?.(handle);
     await expect(provider.exec(handle, 'true', { timeoutS: 2 })).rejects.toThrow(/unknown or released/);
-    expect(daemon.containers.size).toBe(1);
+    expect(daemon.containers.size).toBe(0);
+  });
+
+  it('fails closed on release errors and keeps the handle for a safe retry [SEC-6]', async () => {
+    daemon.failRemove = { status: 500, times: 1 };
+    await expect(provider.release!(handle)).rejects.toThrow(/removal refused/);
+    expect(daemon.containers.has(handle.id)).toBe(true);
+    daemon.handler = () => ({ stdout: 'retained handle' });
+    expect((await provider.exec(handle, 'true', { timeoutS: 2 })).stdout).toBe('retained handle');
+    await provider.release!(handle);
+    expect(daemon.containers.size).toBe(0);
+    const recreated = await provider.ensure('ath_1', dirs.mounts);
+    expect(recreated.id).not.toBe(handle.id);
+  });
+
+  it('removes persisted athlete and helper containers after a provider restart [SEC-6]', async () => {
+    const helper = await provider.ensure('ath_1:tsk_old', dirs.mounts);
+    const other = await provider.ensure('ath_10', dirs.mounts);
+    await provider.dispose();
+    provider = createDockerProvider({ image: 'opencoach:test', socketPath: daemon.socketPath, memoryMb: 256, cpus: 1 });
+    await provider.releaseAthlete!('ath_1');
+    expect(daemon.containers.has(handle.id)).toBe(false);
+    expect(daemon.containers.has(helper.id)).toBe(false);
+    expect(daemon.containers.has(other.id)).toBe(true);
   });
 
   it('never deletes an unmanaged container on a name collision', async () => {

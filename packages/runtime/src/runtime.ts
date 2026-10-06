@@ -234,9 +234,11 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     await core.helpers.cancelAll(athleteId);
     await mind.whenIdle();
     core.minds.delete(athleteId);
-    await core.releaseSandbox(athleteId);
-    await core.store.deleteAthlete(athleteId);
+    await core.releaseAthleteSandboxes(athleteId);
+    // Keep the account and job state until every filesystem operation succeeds,
+    // so a sandbox or disk failure remains retryable instead of losing ownership.
     await deleteAthleteData(core.paths(athleteId));
+    await core.store.deleteAthlete(athleteId);
   }
 
   async updateSettings(athleteId: string, patch: unknown): Promise<AthleteSettings> {

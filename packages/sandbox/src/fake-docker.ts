@@ -52,6 +52,8 @@ export class FakeDocker {
   readonly execRequests: FakeExecRequest[] = [];
   /** Respond to the next N exec creates with this status (e.g. 404 = container vanished). */
   failExecCreate: { status: number; times: number } | undefined;
+  /** Reject the next N container removals without changing their state. */
+  failRemove: { status: number; times: number } | undefined;
   /** Use the plain 200 streaming response instead of the 101 upgrade. */
   upgrade = true;
   handler: FakeExecHandler = () => ({ stdout: '', exitCode: 0 });
@@ -127,7 +129,7 @@ export class FakeDocker {
           const [k, v] = l.split('=');
           return c.body.Labels?.[k!] === v;
         }))
-        .map((c) => ({ Id: c.id, Names: [`/${c.name}`], State: c.running ? 'running' : 'exited' }));
+        .map((c) => ({ Id: c.id, Names: [`/${c.name}`], State: c.running ? 'running' : 'exited', Labels: c.body.Labels }));
       return this.send(res, 200, list);
     }
 
@@ -162,6 +164,7 @@ export class FakeDocker {
     }
 
     if ((m = /^\/containers\/([^/]+)$/.exec(path)) && method === 'DELETE') {
+      if (this.failRemove && this.failRemove.times > 0) { this.failRemove.times--; return this.send(res, this.failRemove.status, { message: 'container removal refused' }); }
       const c = this.find(m[1]!);
       if (!c) return this.send(res, 404, { message: 'No such container' });
       this.containers.delete(c.id);

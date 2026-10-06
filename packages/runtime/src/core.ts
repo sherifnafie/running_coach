@@ -35,6 +35,7 @@ export interface Core {
   fsFor(athleteId: string, writeScope?: string[] | null, workspaceOverride?: string): VirtualFS;
   sandboxFor(athleteId: string, workspaceOverride?: { key: string; dir: string }): Promise<SandboxPort>;
   releaseSandbox(key: string): Promise<void>;
+  releaseAthleteSandboxes(athleteId: string): Promise<void>;
   readSystemFile(rel: string): Promise<string>;
   addendum(name: string, vars?: Record<string, string>): Promise<string>;
   settings(athleteId: string): Promise<AthleteSettings>;
@@ -101,10 +102,17 @@ export function createCoreBase(deps: CoachRuntimeDeps, bus: StreamBus, web: WebP
         },
       };
     },
-    async releaseSandbox(key: string) {
+    async releaseSandbox(key: string): Promise<void> {
       const h = handles.get(key);
+      if (h && deps.sandbox.release) await deps.sandbox.release(h);
+      // Retain the handle on failure so a deletion retry can stop the same sandbox.
       handles.delete(key);
-      if (h && deps.sandbox.release) await deps.sandbox.release(h).catch(() => {});
+    },
+    async releaseAthleteSandboxes(athleteId: string): Promise<void> {
+      if (deps.sandbox.releaseAthlete) await deps.sandbox.releaseAthlete(athleteId);
+      for (const key of [...handles.keys()]) {
+        if (key === athleteId || key.startsWith(`${athleteId}:`)) await base.releaseSandbox(key);
+      }
     },
     async readSystemFile(rel: string): Promise<string> {
       return readFile(join(base.systemDir, rel), 'utf8');

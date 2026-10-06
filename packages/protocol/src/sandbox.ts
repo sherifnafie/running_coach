@@ -51,6 +51,9 @@ export interface SandboxProvider {
   readonly isolated: boolean;
   ensure(athleteId: string, mounts: SandboxMounts): Promise<SandboxHandle>;
   exec(handle: SandboxHandle, command: string, opts: ExecOptions): Promise<ExecResult>;
+  /** Stop execution and remove resources for this sandbox before its files can be deleted. */
   release?(handle: SandboxHandle): Promise<void>;
+  /** Remove every persisted sandbox for an athlete, including orphan helper sandboxes after restart. */
+  releaseAthlete?(athleteId: string): Promise<void>;
   dispose(): Promise<void>;
 }

@@ -255,9 +255,10 @@ export class HelperManager {
     await mkdir(dirname(wt), { recursive: true });
     await exec('git', ['-C', parentDir, 'worktree', 'add', '--detach', '--force', wt, 'HEAD']);
     const cleanup = async () => {
+      // Stop every process with this mount before unlinking its worktree files.
+      await core.releaseSandbox(`${parent.athleteId}:${taskId}`);
       await exec('git', ['-C', parentDir, 'worktree', 'remove', '--force', wt]).catch(() => rm(wt, { recursive: true, force: true }));
       await exec('git', ['-C', parentDir, 'worktree', 'prune']).catch(() => {});
-      await core.releaseSandbox(`${parent.athleteId}:${taskId}`);
     };
     try {
       // Give the helper a copy of the database (gitignored, so not in the worktree).
@@ -382,6 +383,9 @@ export class HelperManager {
 
       // A nested background helper must finish copying into this worktree before it is merged/removed.
       await Promise.all([...this.running.values()].filter((r) => r.parentTaskId === taskId).map((r) => r.done));
+
+      // Quiesce detached bash children before inspecting or merging the helper's files.
+      await core.releaseSandbox(`${parent.athleteId}:${taskId}`);
 
       // Determine changes in the worktree.
       const changed = await changedFiles(wt);
