@@ -1,7 +1,7 @@
 # HANDOVER: OpenCoach implementation status
 
 **Updated:** 2026-10-06 by the continuing Codex collective. The original handover brief is retained below; §1–§3 describe the current implementation.
-**Branch:** `ccr-a500ac00-ytsl89`. Continuation work is committed locally. Git push has failed with HTTP 403 and a proxy HTTP 503; the connected GitHub app also rejects writes with HTTP 403. Preserve the local commits or supplied Git bundle before replacing this workspace.
+**Branch:** `ccr-a500ac00-ytsl89`. GitHub write access is restored. All eight continuation commits through `25799c1b4ee5fafbe4046f6de1791ffc5118eaa6` were pushed successfully, and the remote branch SHA was checked to match. Earlier Git HTTP 403/proxy 503 and connected-app write failures are historical. A new conversation can clone this branch directly; the supplied bundle is an optional backup. Live OpenCode GO testing and the final server-image rebuild remain outstanding.
 **Goal:** a full end-to-end implementation of `SPEC.md`: Phase 1 MVP plus the core of Phase 2 (calls, helpers, MCP, native shell). The user asked for a complete implementation.
 
 ## 0. Preamble: read this first
@@ -117,7 +117,7 @@ Commands: `pnpm install` · `npx tsc -p tsconfig.json` (root typecheck; also `pn
 - [x] Implement and self-test the offline evaluation runner and graders.
 - [x] Reconcile CI scripts, README and significant spec/ADR decisions.
 - [x] Record final aggregate checks, offline gate catalog and non-root container startup.
-- [x] Commit final changes and preserve them in a Git bundle because remote writes remain denied.
+- [x] Commit final changes, preserve a Git bundle, and push all continuation work after GitHub access was restored; verify the remote branch SHA.
 - [ ] Recheck the final server-image build/startup when external registry access recovers.
 
 Each item below is a condensed version of the brief the original agent wrote. The detailed behavior is also in the stub JSDoc and the SPEC.
