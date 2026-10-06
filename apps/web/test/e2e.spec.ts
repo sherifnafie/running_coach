@@ -19,6 +19,7 @@ const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 function findChromium(): string | undefined {
   const candidates: string[] = [];
   if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) candidates.push(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH);
+  candidates.push('/usr/bin/chromium', '/usr/bin/chromium-browser');
   const bases = [process.env.PLAYWRIGHT_BROWSERS_PATH, '/opt/pw-browsers'].filter((b): b is string => !!b);
   for (const base of bases) {
     if (!existsSync(base)) continue;
@@ -151,7 +152,7 @@ describe.skipIf(!chromePath)('web e2e smoke (Chromium)', () => {
     await frame.locator('li', { hasText: 'Easy 8 km' }).getByText('done').waitFor({ timeout: 10_000 });
     expect(mock.state.checkins).toHaveLength(1);
     expect(mock.state.log.viewActs).toHaveLength(1);
-    await page.getByText('Saved').first().waitFor(); // coach.toast → shell toast
+    await page.locator('.toast').getByText('Saved', { exact: true }).waitFor(); // coach.toast → shell toast
     // openChat → back to chat with the composer prefilled
     await frame.getByRole('button', { name: 'Ask coach' }).click();
     await composer().waitFor();
@@ -246,8 +247,8 @@ describe.skipIf(!chromePath)('web e2e smoke (Chromium)', () => {
     await page.mouse.up();
     await page.getByText('I did an easy run today.').waitFor({ timeout: 15_000 });
     await page.getByText(/Keep tomorrow easy/).waitFor();
-    await page.getByRole('button', { name: 'End' }).click();
-    await page.getByRole('button', { name: 'Back to chat' }).click();
+    await page.locator('.call-controls').getByRole('button', { name: 'End', exact: true }).click();
+    await composer().waitFor();
     await page.getByText(/Call ended/).waitFor({ timeout: 10_000 });
   }, T);
 

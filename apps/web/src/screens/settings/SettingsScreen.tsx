@@ -13,6 +13,7 @@ import { useRoute } from '../../lib/router';
 import { useStore } from '../../lib/store';
 import { AdminSection } from './AdminSection';
 import { ChangesSection, DataSection, DeleteSection, ViewHistorySection } from './DataSections';
+import { HealthConnectSection } from './HealthConnectSection';
 import { NumberRow, Row, SaveContext, SelectRow, TextRow, TimeRow, Toggle, useCommit, type SaveStatus } from './Controls';
 
 const VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin', 'cedar'];
@@ -56,6 +57,7 @@ export function SettingsScreen() {
         <BudgetSection />
         <DevicesSection />
         <CalendarSection />
+        <HealthConnectSection />
         <ChangesSection />
         <ViewHistorySection />
         <DataSection />

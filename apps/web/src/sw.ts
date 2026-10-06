@@ -4,7 +4,7 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
-import { API_CACHE, VIEWS_CACHE, notificationActionRequest, notificationOptions, parsePushPayload, safeTargetUrl } from './sw-shared';
+import { API_CACHE, VIEWS_CACHE, notificationActionRequest, notificationOptions, parsePushPayload, postWorkerMutation, safeTargetUrl } from './sw-shared';
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<{ url: string; revision: string | null }> };
 
@@ -86,13 +86,8 @@ self.addEventListener('notificationclick', (event) => {
       if (event.action) {
         const { url, body } = notificationActionRequest(data, event.action);
         try {
-          const res = await fetch(url, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'content-type': 'application/json', accept: 'application/json' },
-            body: JSON.stringify(body),
-          });
-          if (res.ok) return;
+          const res = await postWorkerMutation(url, body);
+          if (res?.ok) return;
         } catch {
           /* fall through: open the app so the athlete can answer there */
         }
@@ -121,12 +116,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
       if (!sub) return;
       const json = sub.toJSON();
       if (!json.keys) return;
-      await fetch('/v1/push/subscriptions', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ endpoint: sub.endpoint, keys: json.keys }),
-      }).catch(() => undefined);
+      await postWorkerMutation('/v1/push/subscriptions', { endpoint: sub.endpoint, keys: json.keys }).catch(() => undefined);
     })(),
   );
 });

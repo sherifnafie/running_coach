@@ -286,6 +286,43 @@ function useVoiceRecorder() {
     [],
   );
 
+  // Recording replaces the mic button with the meter. Keep completing the gesture even when its
+  // original pointer-capture element leaves the DOM; keyboard recording also retains its stop key.
+  useEffect(() => {
+    const move = (e: globalThis.PointerEvent) => {
+      if (!holding.current) return;
+      const cancel = startX.current - e.clientX > CANCEL_DRAG_PX;
+      cancelled.current = cancel;
+      setState((s) => (s === 'idle' ? s : cancel ? 'cancel' : 'recording'));
+    };
+    const up = () => {
+      if (!holding.current) return;
+      holding.current = false;
+      void finish(!cancelled.current);
+    };
+    const cancel = () => {
+      if (!holding.current) return;
+      holding.current = false;
+      void finish(false);
+    };
+    const key = (e: globalThis.KeyboardEvent) => {
+      if (!usingKeyboard.current || !rec.current || e.repeat || (e.key !== ' ' && e.key !== 'Enter')) return;
+      e.preventDefault();
+      usingKeyboard.current = false;
+      void finish(true);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+      window.removeEventListener('keydown', key);
+    };
+  }, [finish]);
+
   const handlers = {
     onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();

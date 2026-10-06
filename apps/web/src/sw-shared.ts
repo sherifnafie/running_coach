@@ -81,6 +81,20 @@ export function notificationActionRequest(data: PushPayload['data'], action: str
   };
 }
 
+/** Workers cannot read document.cookie: obtain a proof for the active cookie session before each write. */
+export async function postWorkerMutation(url: string, body: unknown, fetcher: typeof fetch = fetch): Promise<Response | undefined> {
+  const proof = await fetcher('/v1/auth/csrf', { credentials: 'include', cache: 'no-store', headers: { accept: 'application/json' } });
+  if (!proof.ok) return undefined;
+  const data: unknown = await proof.json();
+  const token = isObj(data) && typeof data.token === 'string' ? data.token : undefined;
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) return undefined;
+  return fetcher(url, {
+    method: 'POST', credentials: 'include',
+    headers: { 'content-type': 'application/json', accept: 'application/json', 'X-CSRF-Token': token },
+    body: JSON.stringify(body),
+  });
+}
+
 /** Cache names owned by the app (cleared on sign-out). */
 export const API_CACHE = 'oc-api-v1';
 export const VIEWS_CACHE = 'oc-views-v1';

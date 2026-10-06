@@ -13,7 +13,7 @@ import type {
   UiVersionRecord,
 } from '@opencoach/protocol';
 import type { BlobRef } from '@opencoach/protocol';
-import { api, upload, type RequestOptions } from './api';
+import { api, request, upload, type RequestOptions } from './api';
 
 /** Typed gateway client (SPEC Appendix C §C.5). Paths are same-origin. */
 
@@ -34,6 +34,10 @@ export const auth = {
 
 export const me = {
   get: (opts?: RequestOptions) => api.get<MeResponse>('/v1/me', opts),
+};
+
+export const health = {
+  sync: (body: { source: 'health_connect'; range: [string, string]; workouts: unknown[] }) => api.post<PostEventResponse>('/v1/sync/health', body),
 };
 
 export const settingsApi = {
@@ -125,7 +129,7 @@ export const push = {
 export const account = {
   startExport: () => api.post<{ jobId: string }>('/v1/export'),
   exportUrl: (jobId: string) => `/v1/export/${enc(jobId)}`,
-  delete: () => api.del<void>('/v1/account'),
+  delete: () => request<void>('DELETE', '/v1/account', { confirm: 'DELETE' }),
 };
 
 // ---- admin ----------------------------------------------------------------------------------

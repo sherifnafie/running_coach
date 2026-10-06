@@ -25,7 +25,7 @@ function setup() {
     file: vi.fn(async () => ({ content: '# plan' })),
     write: vi.fn(async () => ({ ok: true })),
     act: vi.fn(async () => ({ ok: true })),
-    error: vi.fn(async () => ({ ok: true })),
+    error: vi.fn(async (..._args: Parameters<BridgeBackend['error']>) => ({ ok: true })),
   } satisfies BridgeBackend;
   const actions = {
     navigate: vi.fn(),

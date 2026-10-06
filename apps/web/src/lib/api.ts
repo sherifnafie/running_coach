@@ -1,4 +1,5 @@
 import type { ApiError } from '@opencoach/protocol';
+import { browserCsrfHeaders } from './csrf';
 
 /** The server answered with a non-2xx status. */
 export class ApiRequestError extends Error {
@@ -71,7 +72,7 @@ async function toError(res: Response): Promise<ApiRequestError> {
 }
 
 export async function request<T>(method: Method, path: string, body?: unknown, opts: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = { accept: 'application/json', ...opts.headers };
+  const headers: Record<string, string> = { accept: 'application/json', ...opts.headers, ...browserCsrfHeaders(method) };
   let payload: BodyInit | undefined;
   if (body instanceof FormData) {
     payload = body;
@@ -115,6 +116,7 @@ export function upload<T>(path: string, form: FormData, onProgress?: (fraction: 
     xhr.open('POST', path);
     xhr.withCredentials = true;
     xhr.setRequestHeader('accept', 'application/json');
+    for (const [name, value] of Object.entries(browserCsrfHeaders('POST'))) xhr.setRequestHeader(name, value);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
     };

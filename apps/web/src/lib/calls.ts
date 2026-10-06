@@ -197,7 +197,7 @@ function handleProviderEvent(ev: ProviderEvent): void {
   }
 }
 
-/** `{t:'call'}` stream messages from the server (authoritative state, plus text lines). */
+/** `{t:'call'}` stream messages update presence; transcript comes from WebRTC or the utterance response. */
 export function applyServerCallMessage(m: { callId: string; state: 'speaking' | 'listening' | 'thinking' | 'ended'; text?: string }): void {
   const s = callStore.getState();
   if (s.callId && m.callId !== s.callId) return;
@@ -206,7 +206,6 @@ export function applyServerCallMessage(m: { callId: string; state: 'speaking' | 
     return;
   }
   patch({ agent: m.state });
-  if (m.text && s.mode !== 'realtime') addLine('coach', m.text);
 }
 
 // ---- cascaded (push-to-talk / hands-free) ---------------------------------------------------------------------
