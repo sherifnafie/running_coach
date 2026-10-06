@@ -1,0 +1,47 @@
+/* rc-chart */
+rc-chart { display: block; min-width: 0; }
+.rc-chart { margin: 0; }
+.rc-chart__plot { position: relative; border-radius: var(--rc-radius-sm); touch-action: pan-y; }
+.rc-chart__svg { display: block; width: 100%; height: auto; overflow: visible; }
+.rc-chart__gl { stroke: var(--rc-grid); stroke-width: 1; }
+.rc-chart__base { stroke: var(--rc-axis); stroke-width: 1; }
+.rc-chart__yt, .rc-chart__xt { fill: var(--rc-text-3); font-size: 12px; font-family: var(--rc-font); font-variant-numeric: tabular-nums; }
+.rc-chart__title { fill: var(--rc-text-2); font-size: 12px; font-weight: 600; font-family: var(--rc-font); }
+.rc-chart__val { fill: var(--rc-text-2); font-size: 11px; font-weight: 700; font-family: var(--rc-font); font-variant-numeric: tabular-nums; }
+.rc-chart__ref { stroke: var(--rc-text-3); stroke-width: 1.5; }
+.rc-chart__reflabel { fill: var(--rc-text-2); font-size: 11px; font-weight: 600; font-family: var(--rc-font); }
+.rc-chart__cross { stroke: var(--rc-text-3); stroke-width: 1; pointer-events: none; }
+.rc-chart__hit { cursor: crosshair; }
+
+/* series colours */
+.rc-s0 { --rc-c: var(--rc-series-1); }
+.rc-s1 { --rc-c: var(--rc-series-2); }
+.rc-s2 { --rc-c: var(--rc-series-3); }
+.rc-s3 { --rc-c: var(--rc-series-4); }
+.rc-s4 { --rc-c: var(--rc-series-5); }
+.rc-s5 { --rc-c: var(--rc-series-6); }
+.rc-s6 { --rc-c: var(--rc-series-7); }
+.rc-s7 { --rc-c: var(--rc-series-8); }
+
+.rc-chart__bar { fill: var(--rc-c); transition: opacity var(--rc-dur); }
+.rc-chart__bar.is-hover { filter: brightness(1.12); }
+.rc-chart__line { stroke: var(--rc-c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.rc-chart__area { fill: var(--rc-c); fill-opacity: 0.12; stroke: none; }
+.rc-chart__dot { fill: var(--rc-c); stroke: var(--rc-surface); stroke-width: 2; }
+
+.rc-chart__legend { list-style: none; margin: 0 0 var(--rc-space-2); padding: 0; display: flex; flex-wrap: wrap; gap: 4px var(--rc-space-4); font-size: var(--rc-text-sm); color: var(--rc-text-2); }
+.rc-chart__legend li { display: inline-flex; align-items: center; gap: 6px; }
+.rc-chart__key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--rc-c); flex: 0 0 auto; }
+.rc-chart__key.is-line { width: 16px; height: 3px; border-radius: 2px; }
+
+.rc-chart__tip {
+  position: absolute; z-index: 5; pointer-events: none; min-width: 96px; max-width: 80%;
+  padding: 8px 10px; border-radius: var(--rc-radius-sm); background: var(--rc-surface); color: var(--rc-text);
+  border: 1px solid var(--rc-border-strong); box-shadow: 0 4px 14px rgb(0 0 0 / 18%); font-size: var(--rc-text-sm);
+}
+.rc-chart__tipx { color: var(--rc-text-2); font-size: var(--rc-text-xs); font-weight: 600; margin-bottom: 2px; }
+.rc-chart__tiprow { display: flex; align-items: center; gap: 6px; }
+.rc-chart__tiprow strong { font-size: var(--rc-text-md); font-variant-numeric: tabular-nums; }
+.rc-chart__tipname { color: var(--rc-text-2); }
+.rc-chart__empty { display: flex; align-items: center; justify-content: center; text-align: center; color: var(--rc-text-3); background: var(--rc-surface-2); border-radius: var(--rc-radius-sm); padding: var(--rc-space-4); }
+.rc-chart__ph { background: var(--rc-surface-2); border-radius: var(--rc-radius-sm); }

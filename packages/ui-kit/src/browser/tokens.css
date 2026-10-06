@@ -1,0 +1,196 @@
+/*
+ * Design tokens (--rc-*). Light by default; dark via [data-theme="dark"] (set by the kit from
+ * coach.env.theme) with a prefers-color-scheme fallback. Text tokens meet 4.5:1 on the surfaces
+ * they are meant for (tested). Override the accent in ui/app.json (theme.accent), not here.
+ */
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --rc-bg: #f9f9f7;
+  --rc-surface: #ffffff;
+  --rc-surface-2: #f1f0ec;
+  --rc-surface-3: #e4e2da;
+  --rc-border: #dad8cf;
+  --rc-border-strong: #84827a;
+  --rc-focus: #1a4fd6;
+
+  /* text */
+  --rc-text: #0b0b0b;
+  --rc-text-2: #403f3a;
+  --rc-text-3: #5a5851;
+
+  /* accent (override via app.json theme.accent) */
+  --rc-accent: #c2410c;
+  --rc-on-accent: #ffffff;
+  --rc-accent-text: #ad3a09;
+  --rc-accent-soft: #fbeae1;
+
+  /* status: always paired with an icon or word, never colour alone */
+  --rc-good: #0a6b2d;
+  --rc-good-soft: #e1f3e7;
+  --rc-warn: #7d4b00;
+  --rc-warn-soft: #fcefd2;
+  --rc-bad: #b3261e;
+  --rc-bad-soft: #fbe4e1;
+  --rc-info: #1c56a3;
+  --rc-info-soft: #e2ecf8;
+
+  /* categorical series (colour-blind-safe order; use in this order) */
+  --rc-series-1: #2a78d6;
+  --rc-series-2: #eb6834;
+  --rc-series-3: #1baf7a;
+  --rc-series-4: #eda100;
+  --rc-series-5: #e87ba4;
+  --rc-series-6: #008300;
+  --rc-series-7: #4a3aa7;
+  --rc-series-8: #e34948;
+
+  /* workout types */
+  --rc-type-easy: var(--rc-series-3);
+  --rc-type-long: var(--rc-series-1);
+  --rc-type-tempo: var(--rc-series-2);
+  --rc-type-intervals: var(--rc-series-8);
+  --rc-type-hills: var(--rc-series-7);
+  --rc-type-race: var(--rc-series-5);
+  --rc-type-strength: var(--rc-series-4);
+  --rc-type-cross: var(--rc-series-6);
+  --rc-type-rest: #8c8a82;
+  --rc-type-other: #8c8a82;
+  --rc-type-run: var(--rc-series-3);
+  --rc-type-walk: var(--rc-series-6);
+  --rc-type-hike: var(--rc-series-7);
+  --rc-type-bike: var(--rc-series-1);
+  --rc-type-swim: var(--rc-series-2);
+
+  /* chart chrome */
+  --rc-grid: #e1e0d9;
+  --rc-axis: #c3c2b7;
+  --rc-heat-1: #f6d6c4;
+  --rc-heat-2: #f0a785;
+  --rc-heat-3: #de6a3c;
+  --rc-heat-4: #b3380f;
+
+  /* type scale (16px base for outdoor readability) */
+  --rc-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --rc-font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --rc-text-xs: 0.75rem;
+  --rc-text-sm: 0.875rem;
+  --rc-text-md: 1rem;
+  --rc-text-lg: 1.125rem;
+  --rc-text-xl: 1.375rem;
+  --rc-text-2xl: 1.75rem;
+  --rc-text-3xl: 2.25rem;
+  --rc-leading: 1.45;
+
+  /* spacing, radii, elevation, motion */
+  --rc-space-1: 4px;
+  --rc-space-2: 8px;
+  --rc-space-3: 12px;
+  --rc-space-4: 16px;
+  --rc-space-5: 20px;
+  --rc-space-6: 24px;
+  --rc-space-8: 32px;
+  --rc-space-10: 40px;
+  --rc-radius-sm: 6px;
+  --rc-radius: 12px;
+  --rc-radius-lg: 18px;
+  --rc-radius-pill: 999px;
+  --rc-shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 1px 1px rgb(0 0 0 / 4%);
+  --rc-dur: 150ms;
+  --rc-tap: 44px;
+
+  /* safe area (filled in from coach.env.safeArea) */
+  --rc-safe-top: 0px;
+  --rc-safe-right: 0px;
+  --rc-safe-bottom: 0px;
+  --rc-safe-left: 0px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    color-scheme: dark;
+    --rc-bg: #111110;
+    --rc-surface: #1b1b1a;
+    --rc-surface-2: #262624;
+    --rc-surface-3: #343431;
+    --rc-border: #3a3a37;
+    --rc-border-strong: #8f8d84;
+    --rc-focus: #8fb4ff;
+    --rc-text: #f5f5f2;
+    --rc-text-2: #d0cec5;
+    --rc-text-3: #aaa89e;
+    --rc-accent: #ff8a5c;
+    --rc-on-accent: #1a0a02;
+    --rc-accent-text: #ff9d78;
+    --rc-accent-soft: #3a2015;
+    --rc-good: #5fd08a;
+    --rc-good-soft: #17301f;
+    --rc-warn: #f0b94a;
+    --rc-warn-soft: #382b10;
+    --rc-bad: #ff8179;
+    --rc-bad-soft: #3b1a18;
+    --rc-info: #86b8f5;
+    --rc-info-soft: #172a42;
+    --rc-series-1: #3987e5;
+    --rc-series-2: #d95926;
+    --rc-series-3: #199e70;
+    --rc-series-4: #c98500;
+    --rc-series-5: #d55181;
+    --rc-series-6: #008300;
+    --rc-series-7: #9085e9;
+    --rc-series-8: #e66767;
+    --rc-type-rest: #8c8a82;
+    --rc-type-other: #8c8a82;
+    --rc-grid: #2c2c2a;
+    --rc-axis: #383835;
+    --rc-heat-1: #5a3322;
+    --rc-heat-2: #8c4a2a;
+    --rc-heat-3: #c8643a;
+    --rc-heat-4: #ff8a5c;
+    --rc-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --rc-bg: #111110;
+  --rc-surface: #1b1b1a;
+  --rc-surface-2: #262624;
+  --rc-surface-3: #343431;
+  --rc-border: #3a3a37;
+  --rc-border-strong: #8f8d84;
+  --rc-focus: #8fb4ff;
+  --rc-text: #f5f5f2;
+  --rc-text-2: #d0cec5;
+  --rc-text-3: #aaa89e;
+  --rc-accent: #ff8a5c;
+  --rc-on-accent: #1a0a02;
+  --rc-accent-text: #ff9d78;
+  --rc-accent-soft: #3a2015;
+  --rc-good: #5fd08a;
+  --rc-good-soft: #17301f;
+  --rc-warn: #f0b94a;
+  --rc-warn-soft: #382b10;
+  --rc-bad: #ff8179;
+  --rc-bad-soft: #3b1a18;
+  --rc-info: #86b8f5;
+  --rc-info-soft: #172a42;
+  --rc-series-1: #3987e5;
+  --rc-series-2: #d95926;
+  --rc-series-3: #199e70;
+  --rc-series-4: #c98500;
+  --rc-series-5: #d55181;
+  --rc-series-6: #008300;
+  --rc-series-7: #9085e9;
+  --rc-series-8: #e66767;
+  --rc-type-rest: #8c8a82;
+  --rc-type-other: #8c8a82;
+  --rc-grid: #2c2c2a;
+  --rc-axis: #383835;
+  --rc-heat-1: #5a3322;
+  --rc-heat-2: #8c4a2a;
+  --rc-heat-3: #c8643a;
+  --rc-heat-4: #ff8a5c;
+  --rc-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+}

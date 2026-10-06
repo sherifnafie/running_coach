@@ -1,0 +1,11 @@
+/* Calendar: only the legend needs custom styling; everything else is kit components. */
+.key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.key li { display: inline-flex; align-items: center; gap: 8px; font-size: var(--rc-text-sm); }
+.key .swatch {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 6px; font-weight: 800; font-size: var(--rc-text-xs);
+  border-left: 4px solid var(--rc-type-c);
+  background: color-mix(in srgb, var(--rc-type-c) 22%, var(--rc-surface));
+  color: var(--rc-text);
+}
+.detail-actions { display: flex; flex-wrap: wrap; gap: var(--rc-space-2); }
