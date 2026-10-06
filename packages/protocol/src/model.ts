@@ -39,7 +39,7 @@ export interface ModelRequest {
   maxOutputTokens: number;
   /** Stable key for provider-side prompt cache routing (e.g. athlete id). */
   cacheKey?: string;
-  metadata?: { athleteId?: string; turnId?: string; step?: number };
+  metadata?: { athleteId?: string; epochId?: string; turnId?: string; step?: number };
 }
 
 export interface Usage {

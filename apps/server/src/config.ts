@@ -81,8 +81,9 @@ function readYamlFile(path: string): Raw {
   let parsed: unknown;
   try {
     parsed = parseYaml(text);
-  } catch (e) {
-    throw new ConfigError(`Invalid YAML in ${path}: ${(e as Error).message}`);
+  } catch {
+    // YAML parser diagnostics quote source lines, which may contain credentials or private headers.
+    throw new ConfigError(`Invalid YAML in ${path}. Check the YAML syntax.`);
   }
   if (parsed === null || parsed === undefined) return {};
   if (!isObj(parsed)) throw new ConfigError(`Config file ${path} must contain a YAML mapping at the top level`);
@@ -234,7 +235,7 @@ export const DEMO_WARNING =
   'Set ANTHROPIC_API_KEY, OPENAI_API_KEY or DEEPSEEK_API_KEY (see docs/self-hosting.md) for the real coach.';
 
 /** Load, merge and validate the server configuration. Pure apart from reading the YAML file. */
-export function loadConfigDetailed(opts: LoadConfigOptions = {}): LoadedConfig {
+function loadConfigDetailedUnchecked(opts: LoadConfigOptions, secrets: string[]): LoadedConfig {
   const env = opts.env ?? process.env;
   const cwd = opts.cwd ?? process.cwd();
   const warnings: string[] = [];
@@ -255,6 +256,7 @@ export function loadConfigDetailed(opts: LoadConfigOptions = {}): LoadedConfig {
   }
 
   applyEnv(raw, env);
+  collectSecrets(raw, secrets);
 
   // Demo mode wires the scripted provider. Decide before validation so the schema sees a consistent object.
   const demoRequested = raw.demo === true;
@@ -327,6 +329,30 @@ export function loadConfigDetailed(opts: LoadConfigOptions = {}): LoadedConfig {
   }
 
   return { config: next, warnings, configPath };
+}
+
+/** Credential values are used by adapters only; configuration errors must not echo them [SEC-1]. */
+export function loadConfigDetailed(opts: LoadConfigOptions = {}): LoadedConfig {
+  const env = opts.env ?? process.env;
+  const secrets = Object.entries(env).filter(([name, value]) => /(?:KEY|TOKEN|SECRET|PASSWORD)/i.test(name) && !!value).map(([, value]) => value!);
+  try { return loadConfigDetailedUnchecked(opts, secrets); }
+  catch (error) {
+    if (!(error instanceof ConfigError)) throw error;
+    let message = error.message;
+    for (const secret of secrets.sort((a, b) => b.length - a.length)) if (secret) message = message.split(secret).join('[redacted]');
+    throw new ConfigError(message);
+  }
+}
+
+function collectSecrets(value: unknown, secrets: string[]): void {
+  if (Array.isArray(value)) { for (const item of value) collectSecrets(item, secrets); return; }
+  if (!isObj(value)) return;
+  for (const [key, item] of Object.entries(value)) {
+    if (['apiKey', 'botToken', 'token'].includes(key) && typeof item === 'string') secrets.push(item);
+    else if (key === 'headers' && isObj(item)) {
+      for (const header of Object.values(item)) if (typeof header === 'string') secrets.push(header);
+    } else collectSecrets(item, secrets);
+  }
 }
 
 /** Load the configuration (see {@link loadConfigDetailed} for warnings). */

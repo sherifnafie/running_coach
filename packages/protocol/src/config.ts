@@ -4,6 +4,7 @@ import { VoiceConfig } from './voice';
 
 export const HARNESS_VERSION = '0.1.0';
 export const UI_KIT_MAJOR = '1';
+const HeaderName = z.string().regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/, 'invalid HTTP header name');
 
 /**
  * Server configuration. Loaded from YAML (opencoach.config.yaml) + environment overrides by
@@ -15,6 +16,10 @@ export const CompatibleProviderConfig = z.object({
   baseUrl: z.string().url(),
   apiKey: z.string().optional(),
   apiKeyEnv: z.string().optional(),
+  /** Deployment-supplied HTTP headers, e.g. a provider-specific User-Agent. Never model input. */
+  headers: z.record(HeaderName, z.string().regex(/^[^\r\n]*$/, 'header values cannot contain newlines')).optional(),
+  /** Header receiving the stable conversation id from request metadata. */
+  sessionHeader: HeaderName.optional(),
   vision: z.boolean().default(false),
   contextTokens: z.number().int().positive().default(128_000),
   maxOutputTokens: z.number().int().positive().default(8192),

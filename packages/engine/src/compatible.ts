@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { randomUUID } from 'node:crypto';
 import {
   ProviderError,
   type AssistantItem,
@@ -41,7 +42,7 @@ export const NO_VISION_PLACEHOLDER = '[image omitted: model has no vision]';
 export interface CompatibleClientLike {
   chat: {
     completions: {
-      create(body: CreateParams, options?: { signal?: AbortSignal }): PromiseLike<AsyncIterable<Chunk>>;
+      create(body: CreateParams, options?: { signal?: AbortSignal; headers?: Record<string, string> }): PromiseLike<AsyncIterable<Chunk>>;
     };
   };
 }
@@ -272,6 +273,22 @@ export function mapCompatibleError(e: unknown): ProviderError | Error {
 export function createCompatibleProvider(cfg: CompatibleProviderConfig & { apiKey?: string }, deps: CompatibleProviderDeps = {}): ModelProvider {
   const apiKey = cfg.apiKey ?? (cfg.apiKeyEnv ? process.env[cfg.apiKeyEnv] : undefined) ?? 'not-needed';
   const client: CompatibleClientLike = deps.client ?? new OpenAI({ apiKey, baseURL: cfg.baseUrl, maxRetries: 0 });
+  const anonymousSessions = new WeakMap<ModelRequest, string>();
+  function requestHeaders(req: ModelRequest): Record<string, string> | undefined {
+    if (!cfg.headers && !cfg.sessionHeader) return undefined;
+    const headers = { ...cfg.headers };
+    if (cfg.sessionHeader) {
+      // Epoch identity survives tool steps, retries and turns; fallbacks also work for direct adapter callers.
+      let session = req.metadata?.epochId ?? req.metadata?.athleteId ?? req.cacheKey ?? req.metadata?.turnId;
+      if (!session) {
+        session = anonymousSessions.get(req) ?? randomUUID();
+        anonymousSessions.set(req, session);
+      }
+      for (const name of Object.keys(headers)) if (name.toLowerCase() === cfg.sessionHeader.toLowerCase()) delete headers[name];
+      headers[cfg.sessionHeader] = session;
+    }
+    return headers;
+  }
   const capabilities: ModelCapabilities = {
     vision: cfg.vision,
     maxContextTokens: cfg.contextTokens,
@@ -289,7 +306,8 @@ export function createCompatibleProvider(cfg: CompatibleProviderConfig & { apiKe
     async *stream(req: ModelRequest, signal?: AbortSignal): AsyncGenerator<ModelStreamEvent> {
       const params = buildCompatibleRequest(req, cfg);
       try {
-        const chunks = await client.chat.completions.create(params, { signal });
+        const headers = requestHeaders(req);
+        const chunks = await client.chat.completions.create(params, { signal, ...(headers ? { headers } : {}) });
         yield* parseCompatibleStream(chunks, { model: req.model, providerId: cfg.id });
       } catch (e) {
         if (signal?.aborted) throw abortError();

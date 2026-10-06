@@ -235,15 +235,19 @@ describe('compatible: stream parsing', () => {
 
 // ------------------------------------------------------------------ errors + provider
 
-function fakeClient(scripts: Chunk[][]): CompatibleClientLike & { bodies: unknown[] } {
+type ClientOptions = NonNullable<Parameters<CompatibleClientLike['chat']['completions']['create']>[1]>;
+function fakeClient(scripts: Chunk[][]): CompatibleClientLike & { bodies: unknown[]; options: ClientOptions[] } {
   const bodies: unknown[] = [];
+  const options: ClientOptions[] = [];
   let n = 0;
   return {
     bodies,
+    options,
     chat: {
       completions: {
-        async create(body) {
+        async create(body, opts) {
           bodies.push(JSON.parse(JSON.stringify(body)));
+          options.push({ signal: opts?.signal, ...(opts?.headers ? { headers: { ...opts.headers } } : {}) });
           return fromArray(scripts[n++] ?? scripts.at(-1)!);
         },
       },
@@ -252,6 +256,48 @@ function fakeClient(scripts: Chunk[][]): CompatibleClientLike & { bodies: unknow
 }
 
 describe('compatible: errors and provider', () => {
+  it('preserves transport headers and keeps epoch sessions stable across steps and turns [RT-7] [SEC-1]', async () => {
+    const client = fakeClient([[chunk({ content: 'ok' }, 'stop')]]);
+    const staticHeaders = { 'User-Agent': 'OpenCoach/test', 'X-Deployment': 'test', 'X-OpenCode-Session': 'static-value' };
+    const provider = createCompatibleProvider(cfg({ id: 'opencode-go', headers: staticHeaders, sessionHeader: 'x-opencode-session' }), { client });
+    const signal = new AbortController().signal;
+    await drain(provider.stream(R('kimi-k2.6', { metadata: { epochId: 'ep_1', athleteId: 'ath_1', turnId: 'turn_1', step: 1 } }), signal));
+    await drain(provider.stream(R('kimi-k2.6', { metadata: { epochId: 'ep_1', athleteId: 'ath_1', turnId: 'turn_2', step: 2 } })));
+    await drain(provider.stream(R('kimi-k2.6', { metadata: { epochId: 'ep_2', athleteId: 'ath_1' } })));
+    expect(client.options.map((o) => o.headers?.['x-opencode-session'])).toEqual(['ep_1', 'ep_1', 'ep_2']);
+    expect(client.options[0]).toEqual({ signal, headers: { 'User-Agent': 'OpenCoach/test', 'X-Deployment': 'test', 'x-opencode-session': 'ep_1' } });
+    expect(staticHeaders['X-OpenCode-Session']).toBe('static-value');
+    expect(client.bodies).not.toContainEqual(expect.objectContaining({ headers: expect.anything() }));
+  });
+
+  it('uses athlete/cache/turn identities and isolates anonymous request sessions [RT-7]', async () => {
+    const client = fakeClient([[chunk({ content: 'ok' }, 'stop')]]);
+    const provider = createCompatibleProvider(cfg({ sessionHeader: 'x-session' }), { client });
+    await drain(provider.stream(R('m', { cacheKey: 'cache', metadata: { athleteId: 'ath', turnId: 'turn' } })));
+    await drain(provider.stream(R('m', { cacheKey: 'cache', metadata: { turnId: 'turn' } })));
+    await drain(provider.stream(R('m', { metadata: { turnId: 'turn' } })));
+    const anonymous = R('m');
+    await drain(provider.stream(anonymous));
+    await drain(provider.stream(anonymous));
+    await drain(provider.stream(R('m')));
+    const sessions = client.options.map((o) => o.headers?.['x-session']);
+    expect(sessions.slice(0, 3)).toEqual(['ath', 'cache', 'turn']);
+    expect(sessions[3]).toBe(sessions[4]);
+    expect(sessions[3]).not.toBe(sessions[5]);
+    expect(sessions[3]).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('keeps cache-scoped conversation headers across a real tool loop [RT-7]', async () => {
+    const client = fakeClient([
+      [chunk({ tool_calls: [{ index: 0, id: 'call_1', function: { name: 'echo', arguments: '{}' } }] }, 'tool_calls')],
+      [chunk({ content: 'done' }, 'stop')],
+    ]);
+    const provider = createCompatibleProvider(cfg({ sessionHeader: 'x-opencode-session' }), { client });
+    const result = await createAgentLoop().runTurn(baseInput({ cacheKey: 'athlete-conversation', route: [resolved(provider)], tools: fakeTools({ echo: () => 'ok' }) }));
+    expect(result.stopReason).toBe('end_turn');
+    expect(client.options.map((o) => o.headers?.['x-opencode-session'])).toEqual(['athlete-conversation', 'athlete-conversation']);
+  });
+
   it('maps errors like the other adapters', () => {
     const gen = (status: number, message: string, headers: Record<string, string> = {}) => OpenAI.APIError.generate(status, { message }, message, new Headers(headers));
     expect(mapCompatibleError(gen(429, 'slow', { 'retry-after': '4' }))).toMatchObject({ kind: 'rate_limit', retryable: true, retryAfterMs: 4000 });

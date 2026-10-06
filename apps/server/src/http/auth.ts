@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { newId, randomToken, type Clock, type SessionRecord, type Store } from '@opencoach/protocol';
 
 export const SESSION_COOKIE = 'oc_session';
+export const CSRF_COOKIE = 'oc_csrf';
 /** 90-day sliding session lifetime (SPEC §13 / task contract). */
 export const SESSION_TTL_MS = 90 * 24 * 3600 * 1000;
 /** A session is re-issued (same token, new expiry) once less than this much lifetime remains. */
@@ -18,6 +19,11 @@ export interface AuthContext {
 
 export function sha256Hex(s: string): string {
   return createHash('sha256').update(s).digest('hex');
+}
+
+/** Browser-readable proof bound to the httpOnly session; it cannot authenticate without that session. */
+export function csrfTokenForSession(token: string): string {
+  return sha256Hex(`oc-csrf:${token}`);
 }
 
 /** Constant-time string equality (hashes both sides first so lengths never leak). */
