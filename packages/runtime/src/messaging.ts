@@ -54,13 +54,24 @@ export function isProactiveTurn(cls: TriggerClass, triggers: AnyEvent[]): boolea
 }
 
 export function createMessagingPort(core: Core, state: TurnMessagingState, callIdRef: { current: string }): MessagingPort {
-  return {
+  const port: MessagingPort = {
     noReply(reason: string) {
       state.replied = true;
       state.noReplyReason = reason;
     },
     async send(input: ToolInput<'send_message'>): Promise<SendMessageResult> {
       const callId = callIdRef.current;
+      try {
+        return await sendInner(input, callId);
+      } finally {
+        // resolved (sent, held or rejected): no longer a provisional bubble
+        state.streamed.delete(callId);
+      }
+    },
+  };
+  return port;
+
+  async function sendInner(input: ToolInput<'send_message'>, callId: string): Promise<SendMessageResult> {
       const idemKey = `msg:${state.turnId}:${callId}`;
       const prior = (await core.store.getIdempotent(idemKey)) as SendMessageResult | undefined;
       if (prior) return prior;
@@ -209,8 +220,7 @@ export function createMessagingPort(core: Core, state: TurnMessagingState, callI
       }
       await core.store.putIdempotent(idemKey, result, new Date(now.getTime() + 7 * 86_400_000).toISOString());
       return result;
-    },
-  };
+  }
 }
 
 /** Out-of-band delivery (push etc.) via the gateway's hook. Never throws. */

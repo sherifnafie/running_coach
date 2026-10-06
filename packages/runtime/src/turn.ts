@@ -284,7 +284,6 @@ export class TurnRunner {
         case 'fallback':
           // the engine discards the failed attempt: retract its provisional bubbles
           for (const id of [...msgState.streamed]) {
-            if (!streamText.has(id) && !msgState.sentTexts.length) continue;
             msgState.streamed.delete(id);
             streamText.delete(id);
             core.bus.publish(athleteId, { t: 'message.cancel', streamId: id, reason: 'retrying' });
@@ -380,10 +379,7 @@ export class TurnRunner {
     }
 
     // provisional bubbles that never resolved
-    for (const id of msgState.streamed) {
-      const sent = await store.getIdempotent(`msg:${turnId}:${id}`);
-      if (!sent) core.bus.publish(athleteId, { t: 'message.cancel', streamId: id, reason: 'not sent' });
-    }
+    for (const id of msgState.streamed) core.bus.publish(athleteId, { t: 'message.cancel', streamId: id, reason: 'not sent' });
 
     if (replyRequired && !msgState.replied && msgState.allowMessaging && result.stopReason !== 'aborted') {
       await this.replyFallback(athleteId, msgState.triggers, result.error ?? `turn ended (${result.stopReason}) without a reply`);
