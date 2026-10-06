@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>OpenCoach</title>
+  <style>
+    :root { color-scheme: light dark; --accent: #e4572e; }
+    body { margin: 0; font: 16px/1.5 system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; padding: 16px; box-sizing: border-box; }
+    main { max-width: 420px; width: 100%; }
+    h1 { font-size: 1.6rem; margin: 0 0 .5rem; }
+    p { opacity: .8; }
+    input, button { width: 100%; box-sizing: border-box; font: inherit; padding: 14px; border-radius: 12px; margin-top: 12px; }
+    input { border: 1px solid #8884; background: transparent; color: inherit; }
+    button { border: 0; background: var(--accent); color: #fff; font-weight: 600; min-height: 48px; }
+    .err { color: #c62828; min-height: 1.5em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Connect to your coach</h1>
+    <p>Enter the address of your OpenCoach server (for example your Tailscale or Cloudflare Tunnel URL).</p>
+    <input id="url" type="url" inputmode="url" placeholder="https://coach.example.ts.net" autocomplete="url" />
+    <button id="go">Connect</button>
+    <p class="err" id="err"></p>
+    <p><small>This screen only appears when the app was built without OPENCOACH_SERVER_URL. Native features (Health Connect sync, native push) need the URL baked in at build time.</small></p>
+  </main>
+  <script>
+    const input = document.getElementById('url');
+    const err = document.getElementById('err');
+    try { input.value = localStorage.getItem('opencoach.server') || ''; } catch {}
+    document.getElementById('go').addEventListener('click', async () => {
+      let u;
+      try { u = new URL(input.value.trim()); } catch { err.textContent = 'That is not a valid URL.'; return; }
+      if (u.protocol !== 'https:' && u.hostname !== 'localhost') { err.textContent = 'Use an https:// address.'; return; }
+      try { localStorage.setItem('opencoach.server', u.origin); } catch {}
+      location.href = u.origin;
+    });
+  </script>
+</body>
+</html>
