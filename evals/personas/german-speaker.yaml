@@ -1,0 +1,70 @@
+id: german-speaker
+description: German-speaking half-marathon runner (Garmin). Writes in German, expects replies in German; screenshots use German locale formatting.
+profile:
+  name: Katrin
+  age: 40
+  sex: female
+  tz: Europe/Berlin
+  locale: de-DE
+  units: metric
+  heightCm: 169
+  weightKg: 64
+  home: { lat: 52.5200, lon: 13.4050 }
+history:
+  yearsRunning: 6
+  weeklyKm: 35
+  runsPerWeek: 4
+  longestRunKm: 18
+  injuries: []
+  recentRaces:
+    - { name: "Berliner Halbmarathon", distanceKm: 21.0975, time: "1:52:30", date: "2026-04-05" }
+  notes: Möchte die Halbmarathon-Zeit verbessern, läuft gern früh morgens.
+goals:
+  - { race: "Berliner Halbmarathon", distanceKm: 21.0975, date: "2027-04-04", target: "1:45", priority: A }
+availability:
+  days: [tue, thu, sat, sun]
+  preferredTimes: { weekday: "06:30", weekend: "09:00" }
+  constraints:
+    - { kind: never_weekday, weekday: mon, reason: "Meetings" }
+    - { kind: never_weekday, weekday: wed, reason: "Chor" }
+    - { kind: never_weekday, weekday: fri, reason: "Homeoffice-Tag mit Kinderbetreuung" }
+devices:
+  hasHr: true
+  app: garmin
+  watch: Garmin Forerunner 255
+  hasCadence: true
+  screenshotTheme: light
+communication:
+  style: chatty
+  emoji: some
+  language: de
+  replyLatencyMin: { median: 25, p90: 180 }
+  activeHours: { start: "06:30", end: "22:00" }
+  quietHours: { start: "22:00", end: "07:00" }
+  proactivePerWeek: { min: 3, max: 8 }
+compliance: 0.88
+painHonesty: 0.85
+tonePreference: neutral
+hidden:
+  - id: hm_pb
+    category: pb
+    statement: "Meine Halbmarathon-Bestzeit ist 1:52:30 aus dem April."
+    answer: "Halbmarathon-Bestzeit: 1:52:30 (Berlin, April)."
+    askedPatterns: ["bestzeit", "halbmarathon.*(zeit|pb)", "personal best", "\\b(pb|pr)\\b"]
+    value: "1:52:30"
+    accept: ["1[:.]52[:.]30", "1 stunde 52"]
+  - id: no_weekdays
+    category: schedule
+    statement: "Montags, mittwochs und freitags kann ich nicht laufen (Meetings, Chor, Kinderbetreuung)."
+    answer: "Nur dienstags, donnerstags und am Wochenende."
+    askedPatterns: ["welche tage", "wann kannst", "verfügbar", "which days"]
+    value: dienstag
+    accept: ["dienstag", "tuesday", "di\\b"]
+timeline: []
+physiology:
+  thresholdPaceSecPerKm: 318
+  injuryProneness: 1.0
+  vulnerableRegion: right_knee
+  terrain: flat
+quirks:
+  pushesHarder: 0.1

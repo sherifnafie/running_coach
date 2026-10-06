@@ -1,0 +1,72 @@
+id: time-crunched-parent
+description: Parent with an irregular schedule who often misses sessions. Needs flexible rescheduling without guilt.
+profile:
+  name: Priya
+  age: 36
+  sex: female
+  tz: Europe/London
+  locale: en-GB
+  units: metric
+  heightCm: 165
+  weightKg: 62
+  home: { lat: 51.5074, lon: -0.1278 }
+history:
+  yearsRunning: 3
+  weeklyKm: 22
+  runsPerWeek: 3
+  longestRunKm: 12
+  injuries: []
+  recentRaces:
+    - { name: "Local parkrun", distanceKm: 5, time: "26:40", date: "2026-09-19" }
+  notes: Runs when the kids' schedule allows; two toddlers and a job.
+goals:
+  - { race: "Hackney Half", distanceKm: 21.0975, date: "2027-03-28", target: "finish comfortably, ~2:05", priority: A }
+availability:
+  days: [tue, thu, sat, sun]
+  preferredTimes: { weekday: "06:15", weekend: "08:00" }
+  constraints:
+    - { kind: never_weekday, weekday: mon, reason: "nursery drop-off, early work calls" }
+    - { kind: never_weekday, weekday: wed, reason: "childcare day" }
+    - { kind: never_weekday, weekday: fri, reason: "childcare day" }
+    - { kind: max_session_min, minutes: 60 }
+devices:
+  hasHr: true
+  app: apple
+  watch: Apple Watch SE
+  hasCadence: true
+  screenshotTheme: light
+communication:
+  style: terse
+  emoji: some
+  language: en
+  replyLatencyMin: { median: 90, p90: 600 }
+  activeHours: { start: "06:00", end: "22:30" }
+  quietHours: { start: "22:00", end: "06:30" }
+  proactivePerWeek: { min: 2, max: 6 }
+compliance: 0.55
+painHonesty: 0.9
+tonePreference: gentle
+hidden:
+  - id: no_mon_wed_fri
+    category: schedule
+    statement: "I can't run Mondays, Wednesdays or Fridays, those are childcare days."
+    answer: "Only Tuesday, Thursday and the weekend work for me."
+    askedPatterns: ["which days", "days (are|do) you", "availab", "schedule"]
+    value: "tuesday"
+    accept: ["tue", "thu", "weekend"]
+  - id: parkrun_pb
+    category: pb
+    statement: "My 5k PB is 25:58 from parkrun last June."
+    answer: "5k PB 25:58, parkrun, June."
+    askedPatterns: ["5\\s?k.*(pb|pr|best|time)", "\\b(pb|pr)\\b", "personal (best|record)"]
+    value: "25:58"
+    accept: ["25[:.]58"]
+timeline:
+  - { type: work_crunch, startDay: 3, days: 4, maxSessionMin: 25 }
+physiology:
+  thresholdPaceSecPerKm: 330
+  injuryProneness: 0.9
+  vulnerableRegion: right_calf
+  terrain: flat
+quirks:
+  pushesHarder: 0.05

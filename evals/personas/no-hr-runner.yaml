@@ -1,0 +1,67 @@
+id: no-hr-runner
+description: Recreational runner with no watch and no HR data, no app screenshots. Reports by text (distance, time, effort). Needs coaching by RPE and talk test.
+profile:
+  name: Tom
+  age: 52
+  sex: male
+  tz: Europe/London
+  locale: en-GB
+  units: metric
+  heightCm: 177
+  weightKg: 82
+  home: { lat: 51.4545, lon: -2.5879 }
+history:
+  yearsRunning: 7
+  weeklyKm: 25
+  runsPerWeek: 3
+  longestRunKm: 12
+  injuries:
+    - { location: right_calf, year: 2025, status: past, notes: "Calf strain" }
+  recentRaces:
+    - { name: "Bristol 10K", distanceKm: 10, time: "55:20", date: "2026-05-17" }
+  notes: Runs by feel on a measured loop; times himself with a cheap stopwatch.
+goals:
+  - { race: "Bath Half Marathon", distanceKm: 21.0975, date: "2027-03-14", target: "finish, ~2:10", priority: A }
+availability:
+  days: [mon, wed, fri, sun]
+  preferredTimes: { weekday: "07:00", weekend: "09:00" }
+  constraints: []
+devices:
+  hasHr: false
+  app: none
+  hasCadence: false
+  screenshotTheme: light
+communication:
+  style: terse
+  emoji: none
+  language: en
+  replyLatencyMin: { median: 45, p90: 360 }
+  activeHours: { start: "07:00", end: "22:00" }
+  quietHours: { start: "22:00", end: "07:00" }
+  proactivePerWeek: { min: 2, max: 6 }
+compliance: 0.8
+painHonesty: 0.75
+tonePreference: neutral
+hidden:
+  - id: calf_side
+    category: injury
+    statement: "It was my right calf I strained last year."
+    answer: "Right calf, a strain last year."
+    askedPatterns: ["calf", "injur", "history", "which (side|leg)"]
+    value: right
+    accept: ["right"]
+  - id: no_hr
+    category: other
+    statement: "I don't own a watch or heart rate monitor, so please don't plan by heart rate."
+    answer: "No watch or HR strap, I just use a stopwatch."
+    askedPatterns: ["heart rate", "watch", "device", "data"]
+    value: stopwatch
+    accept: ["stopwatch", "no watch"]
+timeline: []
+physiology:
+  thresholdPaceSecPerKm: 345
+  injuryProneness: 1.1
+  vulnerableRegion: right_calf
+  terrain: rolling
+quirks:
+  pushesHarder: 0.1

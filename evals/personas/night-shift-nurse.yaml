@@ -1,0 +1,63 @@
+id: night-shift-nurse
+description: Night-shift nurse who sleeps in the daytime. Quiet hours are during the day; the athlete is awake and replies overnight and in the late afternoon.
+profile:
+  name: Chioma
+  age: 33
+  sex: female
+  tz: Europe/London
+  locale: en-GB
+  units: metric
+  heightCm: 171
+  weightKg: 66
+  home: { lat: 53.4808, lon: -2.2426 }
+history:
+  yearsRunning: 2
+  weeklyKm: 20
+  runsPerWeek: 3
+  longestRunKm: 10
+  injuries: []
+  recentRaces: []
+  notes: Runs before her shift or after waking, around her rota.
+goals:
+  - { race: "Manchester 10K", distanceKm: 10, date: "2027-05-16", target: "sub 55:00", priority: A }
+availability:
+  days: [mon, tue, thu, sat, sun]
+  preferredTimes: { weekday: "17:00", weekend: "16:30" }
+  constraints:
+    - { kind: not_before, time: "15:30", reason: "sleeps until mid-afternoon after night shifts" }
+    - { kind: never_weekday, weekday: wed, reason: "long shift" }
+    - { kind: never_weekday, weekday: fri, reason: "long shift" }
+devices:
+  hasHr: true
+  app: samsung_health
+  watch: Galaxy Watch 5
+  hasCadence: true
+  screenshotTheme: dark
+communication:
+  style: terse
+  emoji: some
+  language: en
+  replyLatencyMin: { median: 30, p90: 200 }
+  activeHours: { start: "15:30", end: "08:30" }
+  quietHours: { start: "09:00", end: "15:00" }
+  proactivePerWeek: { min: 2, max: 7 }
+compliance: 0.75
+painHonesty: 0.9
+tonePreference: neutral
+hidden:
+  - id: night_shifts
+    category: schedule
+    statement: "I work nights Wednesday and Friday, so those days are out, and I sleep from about 9am to 3pm."
+    answer: "Night shifts Wed and Fri, I sleep 9 to 3."
+    askedPatterns: ["shift", "sleep", "which days", "availab", "schedule"]
+    value: "wednesday"
+    accept: ["wed", "night"]
+timeline:
+  - { type: poor_sleep, startDay: 2, days: 3, hours: 5 }
+physiology:
+  thresholdPaceSecPerKm: 340
+  injuryProneness: 1.0
+  vulnerableRegion: left_knee
+  terrain: flat
+quirks:
+  pushesHarder: 0.1

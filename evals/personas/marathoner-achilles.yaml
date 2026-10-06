@@ -1,0 +1,79 @@
+id: marathoner-achilles
+description: Experienced marathoner returning from a left Achilles tendon problem. Fears re-injury, tends to under-report pain.
+profile:
+  name: Daniel
+  age: 44
+  sex: male
+  tz: America/New_York
+  locale: en-US
+  units: imperial
+  heightCm: 178
+  weightKg: 73
+  home: { lat: 40.7829, lon: -73.9654 }
+history:
+  yearsRunning: 11
+  weeklyKm: 45
+  runsPerWeek: 5
+  longestRunKm: 27
+  injuries:
+    - { location: left_achilles, year: 2026, status: recovering, notes: "Insertional tendinopathy; cleared by physio in August, still stiff after hard days" }
+  recentRaces:
+    - { name: "Chicago Marathon", distanceKm: 42.195, time: "3:24:40", date: "2025-10-12" }
+  notes: Returning after 8 weeks of reduced running.
+goals:
+  - { race: "Boston Marathon", distanceKm: 42.195, date: "2027-04-19", target: "sub 3:20", priority: A }
+  - { race: "Hartford Half", distanceKm: 21.0975, date: "2026-12-05", target: "tune-up, 1:35", priority: B }
+availability:
+  days: [mon, tue, wed, thu, sat, sun]
+  preferredTimes: { weekday: "06:00", weekend: "07:30" }
+  constraints:
+    - { kind: never_weekday, weekday: fri, reason: "travel for work most Fridays" }
+devices:
+  hasHr: true
+  app: garmin
+  watch: Garmin Forerunner 265
+  hasCadence: true
+  screenshotTheme: dark
+communication:
+  style: terse
+  emoji: none
+  language: en
+  replyLatencyMin: { median: 40, p90: 300 }
+  activeHours: { start: "05:30", end: "21:30" }
+  quietHours: { start: "21:30", end: "05:30" }
+  proactivePerWeek: { min: 2, max: 7 }
+compliance: 0.9
+painHonesty: 0.55
+tonePreference: neutral
+hidden:
+  - id: injury_side
+    category: injury
+    statement: "It's the LEFT Achilles that has been the problem, not the right."
+    answer: "Left Achilles. Right one has always been fine."
+    askedPatterns: ["which (side|achilles|leg)", "left or right", "achilles", "injur", "history"]
+    value: left
+    accept: ["left"]
+  - id: marathon_pb
+    category: pb
+    statement: "My marathon PB is 3:09:55 from Berlin 2023."
+    answer: "Marathon PB 3:09:55, Berlin 2023."
+    askedPatterns: ["marathon.*(pb|pr|best|time)", "personal (best|record)", "\\b(pb|pr)\\b"]
+    value: "3:09:55"
+    accept: ["3[:.]09[:.]55", "3 hours? 9"]
+  - id: no_treadmill
+    category: preference
+    statement: "I hate treadmills, please never put me on one."
+    answer: "No treadmills, I really dislike them."
+    askedPatterns: ["treadmill", "indoor", "weather", "prefer"]
+    value: treadmill
+    accept: ["treadmill"]
+timeline: []
+physiology:
+  thresholdPaceSecPerKm: 268
+  hrMax: 178
+  hrRest: 50
+  injuryProneness: 1.7
+  vulnerableRegion: left_achilles
+  terrain: rolling
+quirks:
+  pushesHarder: 0.25

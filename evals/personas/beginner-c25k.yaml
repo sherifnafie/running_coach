@@ -1,0 +1,66 @@
+id: beginner-c25k
+description: Couch-to-5K beginner, anxious about injury, phone app only (no watch, no HR). Needs encouragement and RPE-based guidance.
+profile:
+  name: Maya
+  age: 34
+  sex: female
+  tz: Europe/Amsterdam
+  locale: en
+  units: metric
+  heightCm: 168
+  weightKg: 71
+  home: { lat: 52.3676, lon: 4.9041 }
+history:
+  yearsRunning: 0
+  weeklyKm: 0
+  runsPerWeek: 0
+  longestRunKm: 1.5
+  injuries: []
+  recentRaces: []
+  notes: Walks to work daily. Tried running twice, stopped after a week because of shin soreness.
+goals:
+  - { race: "Park 5K fun run", distanceKm: 5, date: "2026-12-06", target: "finish without stopping", priority: A }
+availability:
+  days: [mon, wed, sat]
+  preferredTimes: { weekday: "18:30", weekend: "09:30" }
+  constraints:
+    - { kind: max_session_min, minutes: 45, reason: "short on time" }
+devices:
+  hasHr: false
+  app: strava
+  hasCadence: false
+  screenshotTheme: light
+communication:
+  style: chatty
+  emoji: lots
+  language: en
+  replyLatencyMin: { median: 25, p90: 240 }
+  activeHours: { start: "07:30", end: "22:00" }
+  quietHours: { start: "22:00", end: "07:00" }
+  proactivePerWeek: { min: 3, max: 8 }
+compliance: 0.85
+painHonesty: 0.9
+tonePreference: gentle
+hidden:
+  - id: shin_history
+    category: injury
+    statement: "Just so you know, I stopped last time because of shin pain (both legs)."
+    answer: "Last time I quit because my shins hurt, both legs, after about a week."
+    askedPatterns: ["shin", "injur(y|ies)", "tried running before", "why (did you )?stop"]
+    value: shin
+    accept: ["shin"]
+  - id: no_sundays
+    category: schedule
+    statement: "I can never run on Sundays, it's family day."
+    answer: "Sundays are family day, so no running then."
+    askedPatterns: ["sunday", "which days", "days (are|do) you"]
+    value: sunday
+    accept: ["sunday"]
+timeline: []
+physiology:
+  thresholdPaceSecPerKm: 480
+  injuryProneness: 1.3
+  vulnerableRegion: left_shin
+  terrain: flat
+quirks:
+  pushesHarder: 0.05
