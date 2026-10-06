@@ -260,8 +260,6 @@ export class TurnRunner {
     this.active.set(turnId, abort);
     const streamText = new Map<string, string>();
     let lastPromptTokens = 0;
-    let persisted = 0;
-    const pendingPersist: ConvItem[] = [];
     const usageKind = cls === 'consolidation' ? 'consolidation' : 'turn';
     const onEvent = (e: TurnStreamEvent) => {
       switch (e.type) {
@@ -292,11 +290,6 @@ export class TurnRunner {
             .recordUsage({ athleteId, turnId, at: core.clock.now().toISOString(), provider: e.provider, model: e.model, tier, kind: usageKind, usage: e.usage, costUsd: e.costUsd })
             .catch(() => {});
           break;
-        case 'item':
-          pendingPersist.push(e.item);
-          persisted++;
-          void persist([e.item]).catch((err) => core.log.error('persist item failed', { error: (err as Error).message }));
-          break;
         default:
           break;
       }
@@ -326,7 +319,7 @@ export class TurnRunner {
             ? [{ kind: 'harness', text: `You have 3 steps left in this turn.${replyRequired && !msgState.replied ? ' Make sure the athlete gets your reply now.' : ' Wrap up.'}` }]
             : undefined,
       });
-      if (result.newItems.length > persisted) await persist(result.newItems.slice(persisted));
+      await persist(result.newItems);
       totalCost += result.costUsd;
       totalUsage = addUsage(totalUsage, result.usage);
       steps += result.steps;
@@ -339,7 +332,6 @@ export class TurnRunner {
           text: "You haven't replied to the athlete yet and they are waiting. Reply now with send_message, or call no_reply with a short reason if no reply is needed.",
         };
         await persist([reminder]);
-        persisted = 0;
         const r2 = await core.deps.loop.runTurn({
           turnId,
           route,
@@ -352,7 +344,7 @@ export class TurnRunner {
           signal: abort.signal,
           onEvent,
         });
-        if (r2.newItems.length > persisted) await persist(r2.newItems.slice(persisted));
+        await persist(r2.newItems);
         totalCost += r2.costUsd;
         totalUsage = addUsage(totalUsage, r2.usage);
         steps += r2.steps;

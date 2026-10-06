@@ -114,7 +114,7 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     });
     await core.mcp.start();
     await this.recover();
-    core.scheduler.start();
+    if (!this.deps.manualScheduler) core.scheduler.start();
     this.started = true;
     core.log.info('coach runtime started', { systemDir: core.systemDir, sandbox: this.deps.sandbox.kind, isolated: this.deps.sandbox.isolated });
   }
