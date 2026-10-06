@@ -1,0 +1,60 @@
+/* rc-form, rc-body-map */
+rc-form { display: block; }
+.rc-form { display: flex; flex-direction: column; gap: var(--rc-space-5); }
+.rc-field { display: flex; flex-direction: column; gap: var(--rc-space-2); min-width: 0; }
+.rc-field__label { font-weight: 700; }
+.rc-field__hint { color: var(--rc-text-2); font-size: var(--rc-text-sm); }
+.rc-form__actions { margin-top: var(--rc-space-1); }
+
+.rc-input {
+  appearance: none; width: 100%; min-height: var(--rc-tap); padding: 10px 12px;
+  border: 1px solid var(--rc-border-strong); border-radius: var(--rc-radius-sm); background: var(--rc-surface); color: var(--rc-text);
+}
+textarea.rc-input { resize: vertical; min-height: 88px; }
+.rc-input--sm { width: auto; min-width: 96px; }
+.rc-input-row { display: flex; align-items: center; gap: var(--rc-space-2); }
+.rc-input-unit { color: var(--rc-text-2); font-weight: 600; }
+
+/* scale */
+.rc-scale { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; }
+.rc-scale__opt {
+  appearance: none; min-height: var(--rc-tap); border: 1px solid var(--rc-border-strong); border-radius: var(--rc-radius-sm);
+  background: var(--rc-surface); color: var(--rc-text); font-weight: 700; font-size: var(--rc-text-md); cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.rc-scale__opt[aria-checked='true'] { background: var(--rc-accent); border-color: var(--rc-accent); color: var(--rc-on-accent); }
+
+/* choice chips (native radio/checkbox inside a label) */
+.rc-choices { display: flex; flex-wrap: wrap; gap: var(--rc-space-2); }
+.rc-pick {
+  position: relative; display: inline-flex; align-items: center; min-height: var(--rc-tap); padding: 8px 16px;
+  border: 1px solid var(--rc-border-strong); border-radius: var(--rc-radius-pill); background: var(--rc-surface); color: var(--rc-text);
+  font-weight: 600; cursor: pointer;
+}
+.rc-pick input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.rc-pick:has(input:checked) { background: var(--rc-accent); border-color: var(--rc-accent); color: var(--rc-on-accent); }
+.rc-pick:has(input:focus-visible) { outline: 3px solid var(--rc-focus); outline-offset: 2px; }
+.rc-pick:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
+
+/* severity rows */
+.rc-sev { display: flex; flex-direction: column; gap: var(--rc-space-2); }
+.rc-sev__row { display: flex; align-items: center; justify-content: space-between; gap: var(--rc-space-3); flex-wrap: wrap; }
+
+/* body map */
+rc-body-map { display: block; }
+.rc-bm { display: flex; flex-direction: column; gap: var(--rc-space-3); }
+.rc-bm__views { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--rc-space-4); }
+.rc-bm__fig { margin: 0; flex: 1 1 140px; max-width: 220px; text-align: center; }
+.rc-bm__fig figcaption { color: var(--rc-text-2); font-size: var(--rc-text-sm); font-weight: 600; }
+.rc-bm__svg { width: 100%; height: auto; max-height: 420px; touch-action: manipulation; }
+.rc-bm__r { fill: var(--rc-surface-2); stroke: var(--rc-border-strong); stroke-width: 1; cursor: pointer; transition: fill var(--rc-dur); }
+.rc-bm__r:hover { fill: var(--rc-surface-3); }
+.rc-bm.is-readonly .rc-bm__r { cursor: default; }
+.rc-bm__r.is-heat-1 { fill: var(--rc-heat-1); }
+.rc-bm__r.is-heat-2 { fill: var(--rc-heat-2); }
+.rc-bm__r.is-heat-3 { fill: var(--rc-heat-3); }
+.rc-bm__r.is-heat-4 { fill: var(--rc-heat-4); }
+.rc-bm__r.is-selected { fill: var(--rc-accent); stroke: var(--rc-text); stroke-width: 2; }
+.rc-bm__list { border: 1px solid var(--rc-border); border-radius: var(--rc-radius-sm); padding: var(--rc-space-2) var(--rc-space-3); background: var(--rc-surface); }
+.rc-bm__list summary { cursor: pointer; font-weight: 650; min-height: var(--rc-tap); display: flex; align-items: center; }
+.rc-bm__group { border: 0; margin: var(--rc-space-2) 0 var(--rc-space-3); padding: 0; display: flex; flex-wrap: wrap; gap: var(--rc-space-2); }
+.rc-bm__group legend { width: 100%; padding: 0; margin-bottom: var(--rc-space-1); color: var(--rc-text-2); font-size: var(--rc-text-sm); font-weight: 700; }

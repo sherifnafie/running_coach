@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Plan</title>
+  <link rel="stylesheet" href="/kit/1/kit.css">
+  <link rel="stylesheet" href="view.css">
+  <script type="module" src="/kit/1/kit.js"></script>
+  <script type="module" src="view.js"></script>
+</head>
+<body>
+<rc-page>
+  <rc-header heading="Plan" subheading="Read-only. Ask your coach to change anything."></rc-header>
+
+  <!-- Day zero: nothing to show yet. -->
+  <rc-empty id="onboarding" hidden icon="plan" heading="Your coach will fill this in">
+    After your first chat you'll see your training block, weekly volume and key sessions here.
+    <rc-button id="start-chat" variant="primary" icon="chat">Start the conversation</rc-button>
+  </rc-empty>
+
+  <div id="content" class="rc-stack" hidden>
+    <!-- Current block + where we are in it -->
+    <rc-card id="block-card" hidden>
+      <div class="block-head">
+        <div class="rc-grow">
+          <h2 id="block-name" class="rc-card__title"></h2>
+          <p id="block-dates" class="rc-muted"></p>
+          <p id="block-focus"></p>
+        </div>
+        <rc-progress-ring id="block-ring" size="88" label="weeks"></rc-progress-ring>
+      </div>
+      <!-- Phases timeline: a proportional bar plus an accessible list -->
+      <div id="phase-bar" class="phase-bar" aria-hidden="true"></div>
+      <rc-list id="phases"></rc-list>
+    </rc-card>
+
+    <rc-card heading="Planned weekly volume">
+      <rc-chart id="volume" type="bar" y-format="distance" height="180" show-values
+        label="Planned distance per week" empty="No planned runs in this period yet."></rc-chart>
+      <div class="table-wrap"><table id="weeks" class="plan-table"></table></div>
+    </rc-card>
+
+    <rc-card id="key-card" heading="Key sessions" hidden>
+      <rc-list id="key-sessions" selectable></rc-list>
+    </rc-card>
+
+    <rc-card id="race-card" heading="Goal race" hidden>
+      <div id="race"></div>
+    </rc-card>
+
+    <!-- The coach's own words: rendered from a workspace file (declared in view.json reads) -->
+    <rc-card heading="Plan notes">
+      <rc-markdown file="plan/current.md" empty="No notes yet."></rc-markdown>
+    </rc-card>
+
+    <rc-button id="discuss" variant="primary" icon="chat" block>Discuss this plan</rc-button>
+  </div>
+</rc-page>
+</body>
+</html>

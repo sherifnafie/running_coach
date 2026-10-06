@@ -1,0 +1,129 @@
+/* rc-stat, rc-trend, rc-progress-ring, rc-list, rc-workout, rc-week-strip */
+
+/* ---- stat */
+rc-stat { display: block; min-width: 0; }
+.rc-stat__label { font-size: var(--rc-text-sm); color: var(--rc-text-2); font-weight: 600; }
+.rc-stat__value { display: flex; align-items: baseline; gap: 6px; margin-top: 2px; }
+.rc-stat__num { font-size: var(--rc-text-3xl); font-weight: 750; line-height: 1.05; letter-spacing: -0.02em; }
+.rc-stat__unit { font-size: var(--rc-text-md); color: var(--rc-text-2); font-weight: 600; }
+.rc-stat__delta { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: var(--rc-text-sm); font-weight: 650; }
+.rc-stat__delta--good { color: var(--rc-good); }
+.rc-stat__delta--bad { color: var(--rc-bad); }
+.rc-stat__delta--flat { color: var(--rc-text-2); }
+.rc-stat__arrow { font-size: 0.7em; }
+.rc-stat__delta-label { color: var(--rc-text-3); font-weight: 500; }
+.rc-stat__hint { margin-top: 2px; color: var(--rc-text-3); font-size: var(--rc-text-sm); }
+rc-card > rc-stat, .rc-card > rc-stat { margin-top: 0; }
+
+/* ---- trend (sparkline) */
+rc-trend { display: block; min-width: 0; }
+.rc-trend__wrap { display: flex; align-items: center; gap: var(--rc-space-2); }
+.rc-trend__svg { display: block; overflow: visible; flex: 1 1 auto; }
+.rc-trend__line { stroke: var(--rc-series-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.rc-trend__dot { fill: var(--rc-series-1); }
+.rc-trend__ring { fill: var(--rc-surface); }
+.rc-trend--accent .rc-trend__line { stroke: var(--rc-accent-text); }
+.rc-trend--accent .rc-trend__dot { fill: var(--rc-accent-text); }
+.rc-trend--good .rc-trend__line { stroke: var(--rc-good); }
+.rc-trend--good .rc-trend__dot { fill: var(--rc-good); }
+.rc-trend__last { font-weight: 700; font-size: var(--rc-text-sm); }
+.rc-trend__none { color: var(--rc-text-3); font-size: var(--rc-text-sm); }
+
+/* ---- progress ring */
+rc-progress-ring { display: inline-block; }
+.rc-ring { position: relative; display: inline-block; }
+.rc-ring__svg { display: block; }
+.rc-ring__track { stroke: var(--rc-surface-3); }
+.rc-ring__bar { stroke: var(--rc-accent); }
+.rc-ring--good .rc-ring__bar { stroke: var(--rc-good); }
+.rc-ring--info .rc-ring__bar { stroke: var(--rc-series-1); }
+.rc-ring__text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.1; }
+.rc-ring__value { font-size: var(--rc-text-xl); font-weight: 750; }
+.rc-ring__label { font-size: var(--rc-text-xs); color: var(--rc-text-2); font-weight: 600; margin-top: 2px; max-width: 80%; }
+
+/* ---- list */
+rc-list { display: block; }
+.rc-list__ul { list-style: none; margin: 0; padding: 0; }
+.rc-list__item + .rc-list__item { border-top: 1px solid var(--rc-border); }
+.rc-list__row {
+  display: flex; align-items: center; gap: var(--rc-space-3); width: 100%; min-height: var(--rc-tap);
+  padding: var(--rc-space-3) 0; text-align: left; background: none; border: 0; color: inherit;
+}
+button.rc-list__row { cursor: pointer; padding-inline: var(--rc-space-2); margin-inline: calc(var(--rc-space-2) * -1); width: calc(100% + var(--rc-space-4)); border-radius: var(--rc-radius-sm); }
+button.rc-list__row:hover { background: var(--rc-surface-2); }
+.rc-list__icon { color: var(--rc-text-2); display: inline-flex; }
+.rc-list__text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.rc-list__title { font-weight: 650; }
+.rc-list__sub { color: var(--rc-text-2); font-size: var(--rc-text-sm); }
+.rc-list__meta { color: var(--rc-text-2); font-size: var(--rc-text-sm); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rc-list__empty { color: var(--rc-text-3); padding: var(--rc-space-3) 0; }
+rc-list.rc-list--static > * { display: block; padding: var(--rc-space-3) 0; }
+rc-list.rc-list--static > * + * { border-top: 1px solid var(--rc-border); }
+
+/* ---- workout */
+rc-workout { display: block; }
+.rc-workout__steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rc-step {
+  --rc-step-c: var(--rc-series-1);
+  display: grid; grid-template-columns: 6px 1fr auto; grid-template-areas: 'bar kind dur' 'bar target target' 'bar note note';
+  column-gap: var(--rc-space-3); row-gap: 2px; align-items: center;
+  padding: 10px var(--rc-space-3) 10px 0; background: var(--rc-surface-2); border-radius: var(--rc-radius-sm); overflow: hidden;
+}
+.rc-step__bar { grid-area: bar; align-self: stretch; background: var(--rc-step-c); }
+.rc-step__kind { grid-area: kind; font-weight: 700; }
+.rc-step__dur { grid-area: dur; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc-step__target { grid-area: target; color: var(--rc-text-2); font-size: var(--rc-text-sm); font-variant-numeric: tabular-nums; }
+.rc-step__note { grid-area: note; color: var(--rc-text-2); font-size: var(--rc-text-sm); }
+.rc-step--warmup, .rc-step--cooldown { --rc-step-c: var(--rc-series-3); }
+.rc-step--work { --rc-step-c: var(--rc-series-2); }
+.rc-step--recovery, .rc-step--rest { --rc-step-c: var(--rc-series-1); }
+.rc-step--steady { --rc-step-c: var(--rc-series-6); }
+.rc-step--strides, .rc-step--drill { --rc-step-c: var(--rc-series-7); }
+.rc-repeat { border: 1px solid var(--rc-border-strong); border-radius: var(--rc-radius-sm); padding: var(--rc-space-2); }
+.rc-repeat__head { display: flex; gap: 6px; align-items: baseline; margin-bottom: 6px; font-weight: 700; color: var(--rc-text-2); }
+.rc-repeat__times { font-size: var(--rc-text-lg); color: var(--rc-text); }
+.rc-workout__notes { margin-top: var(--rc-space-3); color: var(--rc-text-2); font-size: var(--rc-text-sm); }
+.rc-workout__summary { color: var(--rc-text-2); }
+.rc-workout__empty { color: var(--rc-text-3); }
+
+/* ---- week strip */
+rc-week-strip { display: block; }
+.rc-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.rc-day {
+  appearance: none; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-height: 68px; padding: 6px 2px; border: 1px solid transparent; border-radius: var(--rc-radius);
+  background: var(--rc-surface); color: var(--rc-text); cursor: pointer;
+}
+.rc-day__dow { font-size: var(--rc-text-xs); color: var(--rc-text-2); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.rc-day__num { font-size: var(--rc-text-lg); font-weight: 700; line-height: 1.1; }
+.rc-day__dots { display: flex; gap: 3px; min-height: 14px; align-items: center; }
+.rc-day.is-today { border-color: var(--rc-accent); }
+.rc-day.is-today .rc-day__num { color: var(--rc-accent-text); }
+.rc-day.is-selected { background: var(--rc-accent); color: var(--rc-on-accent); border-color: var(--rc-accent); }
+.rc-day.is-selected .rc-day__dow, .rc-day.is-selected .rc-day__num { color: var(--rc-on-accent); }
+.rc-dot {
+  --rc-type-c: var(--rc-type-other);
+  width: 12px; height: 12px; border-radius: 50%; background: var(--rc-type-c);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1; color: #fff; font-weight: 800;
+  box-shadow: 0 0 0 1.5px var(--rc-surface);
+}
+.rc-dot.is-planned, .rc-dot.is-moved { background: var(--rc-surface); border: 2px solid var(--rc-type-c); box-shadow: none; }
+.rc-dot.is-skipped { opacity: 0.45; }
+.rc-day.is-selected .rc-dot { box-shadow: 0 0 0 1.5px var(--rc-accent); }
+
+/* type colour hooks (set --rc-type-c) */
+.rc-type-easy { --rc-type-c: var(--rc-type-easy); }
+.rc-type-long { --rc-type-c: var(--rc-type-long); }
+.rc-type-tempo { --rc-type-c: var(--rc-type-tempo); }
+.rc-type-intervals { --rc-type-c: var(--rc-type-intervals); }
+.rc-type-hills { --rc-type-c: var(--rc-type-hills); }
+.rc-type-race { --rc-type-c: var(--rc-type-race); }
+.rc-type-strength { --rc-type-c: var(--rc-type-strength); }
+.rc-type-cross { --rc-type-c: var(--rc-type-cross); }
+.rc-type-rest { --rc-type-c: var(--rc-type-rest); }
+.rc-type-other { --rc-type-c: var(--rc-type-other); }
+.rc-type-run { --rc-type-c: var(--rc-type-run); }
+.rc-type-walk { --rc-type-c: var(--rc-type-walk); }
+.rc-type-hike { --rc-type-c: var(--rc-type-hike); }
+.rc-type-bike { --rc-type-c: var(--rc-type-bike); }
+.rc-type-swim { --rc-type-c: var(--rc-type-swim); }

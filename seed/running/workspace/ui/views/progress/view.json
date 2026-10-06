@@ -1,0 +1,12 @@
+{
+  "id": "progress",
+  "title": "Progress",
+  "icon": "progress",
+  "placement": { "nav": 3 },
+  "entry": "index.html",
+  "kit": "1",
+  "reads": ["db:activities", "db:planned_workouts", "db:races"],
+  "writes": [],
+  "actions": [],
+  "refresh": "on-change"
+}

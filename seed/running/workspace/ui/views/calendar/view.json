@@ -1,0 +1,15 @@
+{
+  "id": "calendar",
+  "title": "Calendar",
+  "icon": "calendar",
+  "placement": { "nav": 1 },
+  "entry": "index.html",
+  "kit": "1",
+  "reads": ["db:planned_workouts", "db:activities", "db:races"],
+  "writes": [
+    { "db": "planned_workouts", "ops": ["update"], "columns": ["date", "status"] }
+  ],
+  "actions": ["workout_moved"],
+  "params": { "date": "date", "mode": "string" },
+  "refresh": "on-change"
+}

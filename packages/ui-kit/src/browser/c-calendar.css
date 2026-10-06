@@ -1,0 +1,94 @@
+/* rc-calendar */
+rc-calendar { display: block; container-type: inline-size; }
+.rc-cal { display: flex; flex-direction: column; gap: var(--rc-space-3); }
+.rc-cal__bar { display: flex; align-items: center; gap: var(--rc-space-1); }
+.rc-cal__title { flex: 1 1 auto; font-size: var(--rc-text-xl); text-align: left; }
+.rc-cal__nav {
+  appearance: none; border: 0; background: var(--rc-surface-2); color: var(--rc-text);
+  width: var(--rc-tap); height: var(--rc-tap); border-radius: var(--rc-radius-pill);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.rc-cal__today {
+  appearance: none; border: 1px solid var(--rc-border-strong); background: var(--rc-surface); color: var(--rc-text);
+  min-height: var(--rc-tap); padding: 0 16px; border-radius: var(--rc-radius-pill); font-weight: 650; cursor: pointer; margin-left: var(--rc-space-1);
+}
+.rc-cal__banner {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--rc-space-3);
+  padding: var(--rc-space-2) var(--rc-space-3); border-radius: var(--rc-radius-sm);
+  background: var(--rc-info-soft); color: var(--rc-info); font-weight: 650;
+}
+.rc-cal__cancel { appearance: none; border: 0; background: transparent; color: inherit; font-weight: 700; min-height: var(--rc-tap); padding: 0 8px; text-decoration: underline; cursor: pointer; }
+
+.rc-cal__dow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; font-size: var(--rc-text-xs); font-weight: 700; color: var(--rc-text-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.rc-cal__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; background: var(--rc-border); border: 1px solid var(--rc-border); border-radius: var(--rc-radius); overflow: hidden; }
+.rc-cal__cell { background: var(--rc-surface); min-height: 84px; padding: 2px 2px 4px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rc-cal__cell.is-outside { background: var(--rc-surface-2); }
+.rc-cal__cell.is-outside .rc-cal__day { color: var(--rc-text-3); }
+.rc-cal__cell.is-selected { box-shadow: inset 0 0 0 2px var(--rc-accent); }
+.rc-cal__cell.is-drop { background: var(--rc-accent-soft); box-shadow: inset 0 0 0 2px var(--rc-accent); }
+.rc-cal__day {
+  appearance: none; border: 0; background: transparent; color: var(--rc-text); cursor: pointer;
+  align-self: flex-start; min-width: 32px; height: 32px; padding: 0 6px; border-radius: var(--rc-radius-pill);
+  font-size: var(--rc-text-sm); font-weight: 650; display: inline-flex; align-items: center; justify-content: center;
+}
+.rc-cal__cell.is-today .rc-cal__day { background: var(--rc-accent); color: var(--rc-on-accent); }
+.is-moving .rc-cal__cell { cursor: pointer; }
+.is-moving .rc-cal__cell:hover { background: var(--rc-accent-soft); }
+
+/* items */
+.rc-cal__item {
+  --rc-type-c: var(--rc-type-other);
+  appearance: none; display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; min-height: 24px; text-align: left;
+  padding: 1px 4px; border: 1px solid color-mix(in srgb, var(--rc-type-c) 55%, var(--rc-surface)); border-left: 4px solid var(--rc-type-c);
+  border-radius: 6px; background: color-mix(in srgb, var(--rc-type-c) 9%, var(--rc-surface)); color: var(--rc-text);
+  font-size: var(--rc-text-xs); font-weight: 650; line-height: 1.15; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: pan-y;
+}
+.rc-cal__item.is-done, .rc-cal__item.is-partial { background: color-mix(in srgb, var(--rc-type-c) 30%, var(--rc-surface)); }
+.rc-cal__item.is-skipped { opacity: 0.7; }
+.rc-cal__item.is-skipped .rc-cal__itemtitle { text-decoration: line-through; }
+.rc-cal__item.is-selected { outline: 2px solid var(--rc-text); outline-offset: 1px; }
+.rc-cal__item.is-movable { cursor: grab; }
+.rc-cal__glyph { flex: 0 0 auto; font-weight: 800; min-width: 1ch; }
+.rc-cal__itemtitle { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-cal__itemmeta { flex: 0 0 auto; color: var(--rc-text-2); font-weight: 600; }
+.rc-cal__mark { flex: 0 0 auto; font-weight: 800; }
+.rc-cal__more { appearance: none; border: 0; background: transparent; color: var(--rc-text-2); font-size: var(--rc-text-xs); font-weight: 700; text-align: left; padding: 0 4px; min-height: 20px; cursor: pointer; }
+
+/* compact month cells: glyph chips only, until the calendar is wide enough for titles */
+.rc-cal--month .rc-cal__item:not(.is-full) .rc-cal__itemtitle,
+.rc-cal--month .rc-cal__item:not(.is-full) .rc-cal__itemmeta { display: none; }
+.rc-cal--month .rc-cal__item:not(.is-full) { justify-content: center; padding: 1px 2px; }
+@container (min-width: 560px) {
+  .rc-cal--month .rc-cal__item:not(.is-full) .rc-cal__itemtitle { display: block; }
+  .rc-cal__cell { min-height: 104px; }
+}
+
+/* full-size items (agenda, week list) */
+.rc-cal__item.is-full { min-height: var(--rc-tap); padding: 6px 10px; font-size: var(--rc-text-md); gap: 8px; border-radius: var(--rc-radius-sm); }
+.rc-cal__item.is-full .rc-cal__itemmeta { font-size: var(--rc-text-sm); }
+
+/* week mode */
+.rc-cal__weeklist { display: flex; flex-direction: column; gap: 2px; background: var(--rc-border); border: 1px solid var(--rc-border); border-radius: var(--rc-radius); overflow: hidden; }
+.rc-cal__wrow { flex-direction: row; align-items: stretch; gap: var(--rc-space-3); min-height: 64px; padding: var(--rc-space-2); }
+.rc-cal__wday {
+  appearance: none; border: 0; background: transparent; color: var(--rc-text); cursor: pointer; flex: 0 0 52px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: var(--rc-radius-sm); min-height: var(--rc-tap);
+}
+.rc-cal__wdow { font-size: var(--rc-text-xs); font-weight: 700; color: var(--rc-text-2); text-transform: uppercase; }
+.rc-cal__wnum { font-size: var(--rc-text-xl); font-weight: 750; line-height: 1.1; }
+.rc-cal__cell.is-today .rc-cal__wday { background: var(--rc-accent); color: var(--rc-on-accent); }
+.rc-cal__cell.is-today .rc-cal__wdow { color: var(--rc-on-accent); }
+.rc-cal__witems { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.rc-cal__rest { color: var(--rc-text-3); font-size: var(--rc-text-sm); }
+
+/* agenda + selection bar */
+.rc-cal__agenda { display: flex; flex-direction: column; gap: var(--rc-space-2); }
+.rc-cal__agendatitle { font-size: var(--rc-text-md); color: var(--rc-text-2); }
+.rc-cal__sel { display: flex; align-items: center; justify-content: space-between; gap: var(--rc-space-3); flex-wrap: wrap; padding: var(--rc-space-3); background: var(--rc-surface); border: 1px solid var(--rc-border); border-radius: var(--rc-radius); }
+.rc-cal__seltext { min-width: 0; }
+.rc-cal__empty { color: var(--rc-text-3); text-align: center; }
+
+/* drag ghost */
+.rc-cal__ghost { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; opacity: 0.92; box-shadow: 0 6px 18px rgb(0 0 0 / 28%); cursor: grabbing; }
+rc-calendar.is-dragging { cursor: grabbing; }
+rc-calendar.is-dragging .rc-cal__item { touch-action: none; }

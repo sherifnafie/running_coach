@@ -1,0 +1,15 @@
+{
+  "id": "today",
+  "title": "Today",
+  "icon": "today",
+  "placement": { "nav": 0 },
+  "entry": "index.html",
+  "kit": "1",
+  "reads": ["db:planned_workouts", "db:activities", "db:checkins"],
+  "writes": [
+    { "db": "planned_workouts", "ops": ["update"], "columns": ["status", "updated_at"] },
+    { "db": "checkins", "ops": ["insert"] }
+  ],
+  "actions": ["workout_done", "workout_skipped", "workout_reset", "checkin_saved"],
+  "refresh": "on-change"
+}
