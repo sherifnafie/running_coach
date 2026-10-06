@@ -100,7 +100,7 @@ export function addHours(instant: Date | string, hours: number): Date {
 }
 
 export function isValidZone(tz: string): boolean {
-  return DateTime.local().setZone(tz).isValid;
+  return DateTime.fromMillis(0, { zone: tz }).isValid;
 }
 
 /** Parse "YYYY-MM-DD HH:mm" (local, in tz) or any ISO string with offset/Z. */

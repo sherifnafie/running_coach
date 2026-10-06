@@ -1,0 +1,21 @@
+id: gpx-source-provenance
+suite: extraction
+persona: no-hr-runner
+personaOverrides:
+  compliance: 1
+timeline:
+  - type: session
+    at: 2026-10-07T10:00:00Z
+    artifact: gpx
+    session:
+      type: easy
+      durationMin: 30
+      rpe: 3
+assertions:
+  - id: observable-fields
+    requirement: ING-1
+    kind: extraction
+    artifactIndex: 0
+  - id: source-provenance
+    requirement: ING-1
+    kind: integrity

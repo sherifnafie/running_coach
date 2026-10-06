@@ -2,6 +2,11 @@
   "name": "@opencoach/evals-sim",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "eval": "tsx src/cli.ts",
+    "eval:selftest": "tsx src/cli.ts --selftest",
+    "test": "vitest run --root ../.. packages/evals-sim"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -15,6 +20,7 @@
     "@opencoach/sandbox": "workspace:*",
     "@opencoach/store": "workspace:*",
     "@opencoach/tools": "workspace:*",
+    "@opencoach/ui-kit": "workspace:*",
     "@opencoach/workspace": "workspace:*",
     "luxon": "^3.7.2",
     "playwright-core": "^1.63.0",
