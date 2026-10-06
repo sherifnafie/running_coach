@@ -9,6 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@opencoach/protocol": "workspace:*",
     "@opencoach/store": "workspace:*",
     "@opencoach/tools": "workspace:*",
@@ -20,9 +21,9 @@
     "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@types/luxon": "^3.7.6",
-    "@types/picomatch": "^4.0.3",
     "@opencoach/engine": "workspace:*",
-    "@opencoach/sandbox": "workspace:*"
+    "@opencoach/sandbox": "workspace:*",
+    "@types/luxon": "^3.7.6",
+    "@types/picomatch": "^4.0.3"
   }
 }

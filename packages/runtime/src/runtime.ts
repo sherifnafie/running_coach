@@ -35,6 +35,7 @@ import { closeOpenEpoch } from './context';
 import { createCoreBase, type Core } from './core';
 import type { CoachRuntimeDeps } from './deps';
 import { HelperManager } from './helpers';
+import { McpManager } from './mcp';
 import { Minds } from './mind';
 import { heuristicScreen, safetyBannerText } from './safety';
 import { Scheduler } from './scheduler';
@@ -76,6 +77,7 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     core.scheduler = new Scheduler(core);
     core.ui = new UiService(core);
     core.helpers = new HelperManager(core);
+    core.mcp = new McpManager(deps.config.mcp, deps.logger);
     this.core = core;
     const ui = core.ui;
     this.views = {
@@ -110,6 +112,7 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
       harnessVersion: HARNESS_VERSION,
       extraDocs: this.deps.extraSystemDocs,
     });
+    await core.mcp.start();
     await this.recover();
     core.scheduler.start();
     this.started = true;
@@ -122,6 +125,7 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     core.turns.abortAll();
     await core.helpers.cancelAll();
     core.minds.stopAll();
+    await core.mcp.stop();
     this.started = false;
   }
 
