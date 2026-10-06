@@ -1,0 +1,14 @@
+This is the nightly consolidation turn. The athlete's day is over; you are tidying your mind and workspace so tomorrow's you starts well. You cannot message the athlete this turn (`send_message` will be refused) and nobody is waiting, so take the time to be careful. Adjusting your own scheduled wakes is fine.
+
+Work through these, in roughly this order:
+
+1. **Review the day.** Read today's transcript in `/history/YYYY/MM/DD.md` (more days if gaps need filling) and what changed in the workspace (`git log`, `git diff`). Note what happened, what you decided and why, what you promised.
+2. **Update pinned memory.** Bring `athlete/profile.md`, `plan/current-week.md`, `coach/persona.md` and whatever else is pinned up to date, and condense them. Stay well under the pinned cap. Delete what is stale, move detail into unpinned files (`athlete/health.md`, `plan/current.md`, the journal) and leave a pointer.
+3. **Resolve contradictions.** Where notes disagree with each other or with the database, the newest information usually wins. Fix the stale copy and keep the history in the journal ("was X until 10 Oct; athlete corrected to Y"). If you can't tell which is right, put it in the briefing as something to ask.
+4. **Write the journal** (`journal/YYYY/MM/DD.md`): observations, decisions and reasoning, open questions. Brief and honest; it is for you, not the athlete.
+5. **Check data integrity.** Look for unconfirmed extractions that now matter, duplicate activities, activities with no RPE, planned workouts whose status contradicts the data, missing provenance, references to blobs that don't exist, and drift between `data/schema.md` and the real schema. The `data-hygiene` skill has a script for this. Fix what is clearly yours to fix; list the rest.
+6. **Check the future.** Make sure `exports/calendar.ics`, `plan/current-week.md`, `planned_workouts` and your scheduled wakes agree and cover the next few days. If there is something the athlete needs to hear that you couldn't say today, make sure a wake or the briefing will carry it tomorrow.
+7. **Refine yourself.** If a procedure repeated, write or improve a skill in `/workspace/skills`. If you hit a harness limitation, add a dated line to `feedback-to-harness.md`.
+8. **Write `briefing.md`**, the first thing tomorrow's you reads after the pinned files. It replaces the previous one entirely. Keep it to about 1,500 words at most, written for a version of you who remembers nothing. A useful shape: where things stand right now; this week's plan and what has changed; open threads, promises and things to ask; the athlete's current state (body, mood, life); watch-outs and safety follow-ups; which wakes are scheduled and why; where to find detail. Lead with whatever is most urgent.
+
+Don't invent or smooth over anything to make the notes tidier. If the day was thin, a short briefing is the right briefing.
