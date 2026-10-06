@@ -10,14 +10,28 @@
     "start": "tsx src/main.ts"
   },
   "dependencies": {
-    "@opencoach/protocol": "workspace:*",
-    "@opencoach/store": "workspace:*",
-    "@opencoach/sandbox": "workspace:*",
-    "@opencoach/workspace": "workspace:*",
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/multipart": "^10.1.2",
+    "@fastify/websocket": "^11.3.3",
     "@opencoach/engine": "workspace:*",
-    "@opencoach/tools": "workspace:*",
+    "@opencoach/protocol": "workspace:*",
     "@opencoach/runtime": "workspace:*",
+    "@opencoach/sandbox": "workspace:*",
+    "@opencoach/store": "workspace:*",
+    "@opencoach/tools": "workspace:*",
+    "@opencoach/ui-kit": "workspace:*",
     "@opencoach/voice": "workspace:*",
-    "@opencoach/ui-kit": "workspace:*"
+    "@opencoach/workspace": "workspace:*",
+    "@simplewebauthn/server": "^14.0.3",
+    "fastify": "^5.12.5",
+    "tsx": "^4.23.15",
+    "web-push": "^3.6.7",
+    "yaml": "^2.9.1",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@types/web-push": "^3.6.4",
+    "@types/ws": "^8.18.2",
+    "ws": "^8.22.0"
   }
 }
