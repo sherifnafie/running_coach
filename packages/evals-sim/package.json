@@ -9,12 +9,20 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@opencoach/engine": "workspace:*",
     "@opencoach/protocol": "workspace:*",
     "@opencoach/runtime": "workspace:*",
-    "@opencoach/engine": "workspace:*",
-    "@opencoach/store": "workspace:*",
     "@opencoach/sandbox": "workspace:*",
+    "@opencoach/store": "workspace:*",
+    "@opencoach/tools": "workspace:*",
     "@opencoach/workspace": "workspace:*",
-    "@opencoach/tools": "workspace:*"
+    "luxon": "^3.7.2",
+    "playwright-core": "^1.63.0",
+    "rrule": "^2.8.1",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.7.6"
   }
 }
