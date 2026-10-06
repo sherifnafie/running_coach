@@ -11,3 +11,4 @@ test-results/
 .env.*
 !.env.example
 evals/runs/
+.claude/worktrees/
