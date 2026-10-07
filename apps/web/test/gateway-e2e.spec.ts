@@ -72,6 +72,8 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     } });
     config.imageGeneration = ImageGenerationConfig.parse({ provider: 'google', model: 'fixture-image', apiKeyEnv: 'FIXTURE_IMAGE_KEY', costPerImageUsd: 0.01 });
     const imageProvider = createImageProvider(config.imageGeneration, { env: { FIXTURE_IMAGE_KEY: 'fixture-only' }, fetch: async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAD0lEQVR4nGNgWBUKQhAKABqeA/24RcKwAAAAAElFTkSuQmCC' } }] } }] })) });
+    // Per-client auth limits key on the forwarded address, so separate browsers below can look like separate people.
+    config.trustProxy = 'loopback';
     config.limits.debounceIdleMs = 10;
     config.limits.debounceMaxMs = 30;
     config.defaultSettings = { notifications: { quietHours: null } };
@@ -534,4 +536,43 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     expect(existsSync(athletePaths(server.config.dataDir, athleteId).workspace)).toBe(false);
     expect(browserErrors).toEqual([]);
   }, 60_000);
+  it('[SEC-4] lets an invited person join from the sign-in screen, by code or by invite link', async () => {
+    const join = async (url: string, name: string, ip: string, code?: string) => {
+      const invited = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-GB', timezoneId: 'Europe/Amsterdam', extraHTTPHeaders: { 'X-Forwarded-For': ip } });
+      const p = await invited.newPage();
+      try {
+        p.on('pageerror', (e) => console.error('invite page error', e.message));
+        await p.goto(url);
+        if (code) {
+          await p.getByRole('button', { name: 'I have an invite code' }).click();
+          await p.locator('input[name="setup-code"]').fill(code);
+        } else {
+          expect(await p.locator('input[name="setup-code"]').inputValue()).not.toBe('');
+        }
+        await p.getByText('Join with your invite').waitFor();
+        await p.locator('input[name="name"]').fill(name);
+        for (const n of ['consent-health', 'consent-ai', 'consent-age']) await p.locator(`input[name="${n}"]`).check();
+        await p.getByRole('button', { name: 'Create my coach' }).click();
+        const outcome = await Promise.race([
+          p.getByRole('button', { name: 'Skip the rest' }).waitFor().then(() => 'ok'),
+          p.getByRole('alert').waitFor().then(async () => `error: ${await p.getByRole('alert').innerText()}`),
+        ]);
+        expect(outcome).toBe('ok');
+        await p.getByRole('button', { name: 'Skip the rest' }).click();
+        await p.getByRole('textbox', { name: 'Message', exact: true }).waitFor();
+        expect(new URL(p.url()).search).toBe('');
+      } finally {
+        await invited.close();
+      }
+    };
+    if (!(await server.store.hasAnyAthlete())) await server.runtime.createAthlete({ displayName: 'Admin', tz: 'UTC', locale: 'en', isAdmin: true });
+    const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
+    await server.store.createPairingCode({ code: 'INVT-CODE', purpose: 'invite', expiresAt });
+    await server.store.createPairingCode({ code: 'INVT-LINK', purpose: 'invite', expiresAt });
+    await join(appUrl, 'Mom', '203.0.113.10', 'INVT-CODE');
+    await join(`${appUrl}/?invite=INVT-LINK`, 'Sis', '203.0.113.11');
+    const names = (await server.store.listAthletes()).map((a) => a.displayName);
+    expect(names).toEqual(expect.arrayContaining(['Mom', 'Sis']));
+    expect((await server.store.listAthletes()).filter((a) => a.isAdmin)).toHaveLength(1);
+  }, 120_000);
 });

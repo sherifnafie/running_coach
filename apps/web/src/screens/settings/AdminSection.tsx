@@ -209,6 +209,8 @@ function People() {
   return <>{people.map((a) => <Person key={a.id} athlete={a} />)}</>;
 }
 
+const inviteLink = (code: string) => `${location.origin}/?invite=${encodeURIComponent(code)}`;
+
 function Invite() {
   const t = useI18n();
   const [code, setCode] = useState<string | undefined>();
@@ -234,11 +236,19 @@ function Invite() {
       >
         {t("Create invite code")}</button>
       {code && (
-        <p role="status" className="code-box">
-          <code>{code}</code>{' '}
-          <button type="button" className="btn link small" onClick={() => void navigator.clipboard?.writeText(code)}>
-            {t("Copy")}</button>
-        </p>
+        <>
+          <p role="status" className="code-box">
+            <code>{code}</code>{' '}
+            <button type="button" className="btn link small" onClick={() => void navigator.clipboard?.writeText(code)}>
+              {t("Copy")}</button>
+          </p>
+          <p className="hint">{t("Send them this link. It opens the sign-up form with the code filled in, works once, and expires in 24 hours.")}</p>
+          <p className="code-box">
+            <code>{inviteLink(code)}</code>{' '}
+            <button type="button" className="btn link small" onClick={() => void navigator.clipboard?.writeText(inviteLink(code))}>
+              {t("Copy link")}</button>
+          </p>
+        </>
       )}
       {error && <p className="form-error">{error}</p>}
     </div>
