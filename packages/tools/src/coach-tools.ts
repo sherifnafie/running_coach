@@ -3,6 +3,9 @@ import { fail, formatLocal, guard, imagePart, ok, truncateMiddle, untrusted } fr
 
 // ------------------------------------------------------------------ messaging
 
+/** Tool-call syntax from model chat templates (XML-style parameters, invoke blocks, DeepSeek/Qwen special tokens). */
+const TOOL_MARKUP = /<\/?(?:parameter|invoke|function_calls|tool_call)\b|<[|｜][^>]{0,40}(?:tool|DSML)/i;
+
 export const sendMessageTool: ToolDef<'send_message'> = {
   name: 'send_message',
   description:
@@ -16,6 +19,10 @@ export const sendMessageTool: ToolDef<'send_message'> = {
   availableTo: ['coach'],
   execute: (input, ctx) =>
     guard(async () => {
+      // Leaked tool-call syntax must never reach the athlete; the model can resend cleanly.
+      if (TOOL_MARKUP.test(input.text)) {
+        return fail('INVALID_INPUT', 'The text contains tool-call markup (such as <parameter name=…>). Nothing was sent. Resend with only the message in text, and pass ui, attachments or reply_to as their own arguments.');
+      }
       const r = await ctx.messaging.send(input);
       if (!r.ok) return fail(r.code, r.message);
       if (r.delivery === 'held') {

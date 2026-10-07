@@ -423,3 +423,29 @@ describe('runtime: epochs, consolidation and voice bridge', () => {
     await mkdir(join(h.dataDir, 'x'), { recursive: true });
   });
 });
+
+describe('[MSG-3] tool-call markup never reaches the athlete', () => {
+  it('rejects a send_message whose text still carries tool syntax, and the clean resend is delivered', async () => {
+    const h = await makeHarness();
+    try {
+      const { id } = await h.runtime.createAthlete({ displayName: 'Qi', tz: 'Europe/Amsterdam', locale: 'en', isAdmin: false });
+      let attempt = 0;
+      h.setHandler((req) => {
+        const last = req.items.at(-1);
+        if (last?.kind === 'tool_results') {
+          const r = last.results.find((x) => x.name === 'send_message');
+          if (r?.isError && attempt === 1) { attempt++; return send('Clean welcome'); }
+          return { text: 'done' };
+        }
+        attempt++;
+        return send('Welcome!</text>\n<invoke name="send_message"><parameter name="notify">silent</parameter></invoke>');
+      });
+      await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'hi' } });
+      await h.settle(id);
+      const texts = (await h.events(id, ['coach.message'])).map((e) => (e.payload as { text: string }).text);
+      expect(texts).toEqual(['Clean welcome']);
+    } finally {
+      await h.close();
+    }
+  });
+});
