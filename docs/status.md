@@ -30,6 +30,9 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
   - Prompt cache hits with pinned hosts (5632 of 5643 input tokens cached).
   - A workout screenshot read correctly by all five catalog models under `data_collection: deny`.
   - The live instance runs from `~/opencoach-prod` through Tailscale Funnel, and both origins were reachable from the public internet.
+- **Verified live (2026-10-07, later):**
+  - Claude Haiku 5.5 through OpenRouter, now the default: tools, reasoning replay across tool loops, request-level 1h prompt caching, screenshot reading, and three `disciplines` eval scenarios.
+  - The OpenAI key on prod: TTS and STT round trip with gpt-4o-mini-tts and gpt-4o-transcribe. The realtime, whisper and live-transcribe models are available to the key.
 - **Not verified:**
   - Coaching quality: no real-model eval cohort and no human calibration.
   - Full provider conformance [MOD-2]; vision and screenshot extraction with a real model.
@@ -52,7 +55,6 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 - **Leaked tool syntax (fixed 2026-10-07):** DeepSeek V4.1 Flash through OpenRouter once wrote `</text><parameter name="ui">…` inside a `send_message` text, and the athlete saw it raw. The adapter now splits such tails back into arguments (`repairLeakedParameters`), and `send_message` rejects any remaining tool markup so the model resends. Watch for other shapes of the same failure.
 
 - **Bring-your-own OpenAI key for voice** is not implemented. Voice uses the server key. The credential store already supports `openai`; the voice services need per-athlete scoping.
-- **Claude through OpenRouter** is left out of the catalog until the adapter sends `cache_control` breakpoints; without them every call pays full input price.
 - **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting, "Small home instance"). Store them relative to the data directory.
 
 These are smaller findings from the code review on 2026-10-07 that haven't been fixed yet:

@@ -40,6 +40,7 @@ const UNKNOWN_MODEL_CONTEXT = 128_000;
 interface OpenRouterBodyExt {
   reasoning?: { effort: string };
   provider?: Record<string, unknown>;
+  cache_control?: { type: 'ephemeral'; ttl?: '1h' };
 }
 
 export function routingBody(routing: OpenRouterRouting | undefined): Record<string, unknown> | undefined {
@@ -93,6 +94,7 @@ export function createOpenRouterProvider(opts: OpenRouterProviderOptions, deps: 
       const entry = catalog.get(req.model);
       const provider = routingBody({ ...opts.routing, ...entry?.routing });
       if (provider) body.provider = provider;
+      if (entry?.promptCache) body.cache_control = entry.promptCache === '1h' ? { type: 'ephemeral', ttl: '1h' } : { type: 'ephemeral' };
       try {
         const chunks = await client.chat.completions.create(body, { signal, headers });
         yield* parseCompatibleStream(chunks, { model: req.model, providerId: id });

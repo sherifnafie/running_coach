@@ -10,7 +10,8 @@ import { DEFAULT_OPENROUTER_MODEL } from '@opencoach/engine';
  *   YAML (OPENCOACH_CONFIG or ./opencoach.config.yaml, optional)  +  environment overrides  →  ServerConfig.parse
  *
  * Environment variables win over YAML. Secrets (API keys) are expected to come from the environment.
- * When `models` is absent and an OpenRouter key is available, every tier uses the default catalog model; with no
+ * When `models` is absent and an OpenRouter key is available, every tier uses the default catalog model (the coach's
+ * reasoning effort follows the trigger class; deep work runs at high effort); with no
  * key the server falls back to the scripted demo coach and says so loudly.
  */
 
@@ -186,7 +187,8 @@ export function defaultModels(config: ServerConfig): ModelsConfig | undefined {
   const model = openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL;
   return {
     tiers: {
-      coach: { provider: 'openrouter', model, effort: 'low' },
+      // No coach effort: it follows the trigger class (medium for replies, low for scheduled check-ins).
+      coach: { provider: 'openrouter', model },
       deep: { provider: 'openrouter', model, effort: 'high' },
       fast: { provider: 'openrouter', model, effort: 'low' },
     },

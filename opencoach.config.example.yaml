@@ -13,7 +13,7 @@ sandbox:
 # OPENROUTER_API_KEY alone selects the default catalog model for every tier.
 # providers:
 #   openrouter:
-#     defaultModel: deepseek/deepseek-v4.1-flash
+#     defaultModel: anthropic/claude-haiku-5.5
 #     routing: { dataCollection: deny, requireParameters: true }
 # Override models.tiers to use another model or an OpenAI-compatible endpoint.
 # providers:

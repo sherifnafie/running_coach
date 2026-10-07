@@ -9,7 +9,7 @@ on:
         default: gates
       model:
         description: Coach model, provider:model
-        default: openrouter:deepseek/deepseek-v4.1-flash
+        default: openrouter:anthropic/claude-haiku-5.5
       judge:
         description: Judge model, provider:model (different family recommended)
         default: openrouter:openai/gpt-6.1-sol

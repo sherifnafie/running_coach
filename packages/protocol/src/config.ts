@@ -66,6 +66,11 @@ export const ModelCatalogEntry = z.object({
   pricing: Pricing.optional(),
   /** Per-model routing, merged over the provider-wide preferences. */
   routing: OpenRouterRouting.optional(),
+  /**
+   * Request-level prompt caching for models that need it switched on (Anthropic): the breakpoint follows the end of
+   * the conversation. `1h` keeps the prefix warm between messages minutes apart (writes cost 2x instead of 1.25x).
+   */
+  promptCache: z.enum(['5m', '1h']).optional(),
 });
 export type ModelCatalogEntry = z.infer<typeof ModelCatalogEntry>;
 export type ModelCatalogEntryInput = z.input<typeof ModelCatalogEntry>;

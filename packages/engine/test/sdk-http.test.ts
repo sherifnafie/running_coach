@@ -128,6 +128,17 @@ describe('OpenRouter adapter on the real SDK (fake fetch) [MOD-4]', () => {
     expect(provider.capabilities('someone/unknown-model')).toMatchObject({ vision: false, maxContextTokens: 128_000, efforts: [] });
   });
 
+  it('switches on request-level prompt caching only for catalog models that need it', async () => {
+    const r = recorder(() => sse([chunk({ content: 'ok' }, 'stop')], 'data: [DONE]\n\n'));
+    const client = new OpenAI({ apiKey: 'k', baseURL: 'https://openrouter.ai/api/v1', fetch: r.fetch, maxRetries: 0 });
+    const provider = createOpenRouterProvider({ apiKey: 'k', models }, { client });
+    await drain(provider.stream(req({ model: 'anthropic/claude-haiku-5.5', effort: 'medium' })));
+    await drain(provider.stream(req({ model: 'deepseek/deepseek-v4.1-flash' })));
+    expect(r.seen[0]?.body).toMatchObject({ cache_control: { type: 'ephemeral', ttl: '1h' }, reasoning: { effort: 'medium' } });
+    expect(r.seen[1]?.body).not.toHaveProperty('cache_control');
+    expect(provider.capabilities('anthropic/claude-haiku-5.5')).toMatchObject({ vision: true, maxContextTokens: 1_000_000 });
+  });
+
   it('replays reasoning_details unchanged within a tool loop, only to the model that produced them', async () => {
     const r = recorder(() => sse([chunk({ content: 'done' }, 'stop')], 'data: [DONE]\n\n'));
     const client = new OpenAI({ apiKey: 'k', baseURL: 'https://openrouter.ai/api/v1', fetch: r.fetch, maxRetries: 0 });
