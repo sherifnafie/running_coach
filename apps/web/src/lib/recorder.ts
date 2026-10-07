@@ -32,11 +32,11 @@ export class MicPermissionError extends Error {
 
 /** Friendly message for getUserMedia failures. */
 export function describeMicError(e: unknown): string {
+  if (e instanceof MicPermissionError) return e.message;
   const name = e instanceof DOMException || e instanceof Error ? e.name : '';
   switch (name) {
     case 'NotAllowedError':
     case 'SecurityError':
-    case 'MicPermissionError':
       return 'Microphone access is blocked. Allow the microphone for this site in your browser settings and try again.';
     case 'NotFoundError':
     case 'OverconstrainedError':
@@ -65,15 +65,23 @@ export interface ActiveRecorder {
 }
 
 export async function getMicStream(): Promise<MediaStream> {
+  if (window.isSecureContext === false) throw new MicPermissionError('Microphone recording needs a secure connection. Open this app over HTTPS (localhost also works).');
   if (!navigator.mediaDevices?.getUserMedia) throw new MicPermissionError('Microphone is not available in this browser.');
   return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
 }
 
 /** Start recording from `stream` (or a fresh mic stream). */
 export async function startRecording(existing?: MediaStream): Promise<ActiveRecorder> {
+  if (typeof MediaRecorder === 'undefined') throw new MicPermissionError('Voice recording is not supported in this browser. Try a current version of Safari, Chrome or Firefox.');
   const stream = existing ?? (await getMicStream());
   const mime = pickRecorderMime();
-  const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  let rec: MediaRecorder;
+  try {
+    rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  } catch (error) {
+    if (!existing) stream.getTracks().forEach((track) => track.stop());
+    throw error;
+  }
   const chunks: Blob[] = [];
   const startedAt = clock.nowMs();
   let analyser: AnalyserNode | undefined;
@@ -92,11 +100,23 @@ export async function startRecording(existing?: MediaStream): Promise<ActiveReco
   rec.ondataavailable = (e) => {
     if (e.data.size > 0) chunks.push(e.data);
   };
+  let released = false;
   const release = () => {
+    if (released) return;
+    released = true;
     if (!existing) stream.getTracks().forEach((t) => t.stop());
     void ctx?.close().catch(() => undefined);
   };
-  rec.start(250);
+  let failure: Error | undefined;
+  rec.onerror = () => { failure = new Error('Recording failed. Please try recording again.'); release(); };
+  try {
+    rec.start(250);
+  } catch (error) {
+    release();
+    throw error;
+  }
+  let stopping: Promise<Recording> | undefined;
+  let rejectStop: ((error: Error) => void) | undefined;
   return {
     stream,
     level() {
@@ -105,22 +125,32 @@ export async function startRecording(existing?: MediaStream): Promise<ActiveReco
       return rms(buf);
     },
     stop() {
-      return new Promise<Recording>((resolve, reject) => {
+      if (stopping) return stopping;
+      if (failure) return Promise.reject(failure);
+      stopping = new Promise<Recording>((resolve, reject) => {
+        rejectStop = reject;
         rec.onstop = () => {
           release();
           const type = rec.mimeType || mime || 'audio/webm';
           resolve({ blob: new Blob(chunks, { type }), mime: type, durationMs: clock.nowMs() - startedAt });
         };
         rec.onerror = () => {
+          failure = new Error('Recording failed. Please try recording again.');
           release();
-          reject(new Error('Recording failed'));
+          reject(failure);
         };
-        if (rec.state === 'inactive') rec.onstop(new Event('stop'));
-        else rec.stop();
+        try {
+          if (rec.state === 'inactive') rec.onstop(new Event('stop'));
+          else rec.stop();
+        } catch (error) { release(); reject(error); }
       });
+      return stopping;
     },
     cancel() {
+      failure = new Error('Recording cancelled.');
+      rejectStop?.(failure);
       rec.onstop = null;
+      rec.onerror = null;
       try {
         if (rec.state !== 'inactive') rec.stop();
       } catch {

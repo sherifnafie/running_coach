@@ -8,6 +8,7 @@ import { MessageList } from './MessageList';
 /** Chat: the escape hatch that never breaks (SPEC P9). Always reachable, independent of coach-authored views. */
 export function ChatScreen({ visible }: { visible: boolean }) {
   const lastEventId = useStore(appStore, (s) => s.chat.lastEventId);
+  const athleteId = useStore(appStore, (s) => s.me?.athlete.id);
   const [drop, setDrop] = useState(false);
   const addFilesRef = useRef<((files: File[]) => void) | null>(null);
   const bindAdd = useCallback((add: (files: File[]) => void) => {
@@ -40,7 +41,7 @@ export function ChatScreen({ visible }: { visible: boolean }) {
       }}
     >
       <MessageList dropActive={drop} visible={visible} />
-      <Composer onFiles={bindAdd} />
+      <Composer key={athleteId} onFiles={bindAdd} visible={visible} />
     </div>
   );
 }

@@ -70,6 +70,7 @@ export function MessageList({ dropActive, visible = true }: { dropActive?: boole
       prev.current.height = el.scrollHeight;
     });
     ro.observe(inner);
+    ro.observe(el); // Composer/keyboard resizing also changes how much conversation is visible.
     return () => ro.disconnect();
   }, []);
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { appStore } from '../lib/appState';
 import { dismissToast } from '../lib/controller';
 import { presenceLabel } from '../lib/format';
@@ -18,11 +18,25 @@ import { SafetyBanner } from './SafetyBanner';
  * offline indicator are written only by the harness.
  */
 export function Shell() {
+  const shellRef = useRef<HTMLDivElement>(null);
   const route = useRoute();
   const app = useStore(appStore, (s) => s.app);
   const nav = useMemo(() => computeNav(app), [app]);
   const [moreOpen, setMoreOpen] = useState(false);
   const [visited, setVisited] = useState<Record<string, Record<string, string>>>({});
+
+  // Safari overlays its keyboard instead of resizing the layout viewport. Keep the composer reachable.
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const resize = () => {
+      if (viewport.scale !== 1) return; // Pinch zoom must not reflow the app.
+      shellRef.current?.style.setProperty('--shell-height', `${viewport.height}px`);
+    };
+    resize();
+    viewport.addEventListener('resize', resize);
+    return () => viewport.removeEventListener('resize', resize);
+  }, []);
 
   // Keep visited views mounted (hidden) so their state survives tab switches.
   useEffect(() => {
@@ -34,7 +48,7 @@ export function Shell() {
   const chatVisible = route.name === 'chat';
 
   return (
-    <div className={`shell route-${route.name}`}>
+    <div ref={shellRef} className={`shell route-${route.name}`}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>

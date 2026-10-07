@@ -623,9 +623,10 @@ export async function sendVoiceNote(rec: Recording): Promise<void> {
   const run = async () => {
     dispatchChat({ type: 'pending/patch', clientId, patch: { status: 'sending', error: undefined } });
     try {
-      const res = await chat.voiceNote(rec.blob, `voice-note.${extensionForMime(rec.mime)}`, (frac) =>
-        dispatchChat({ type: 'pending/patch', clientId, patch: { progress: frac } }),
-      );
+      const res = await chat.voiceNote(rec.blob, `voice-note.${extensionForMime(rec.mime)}`, {
+        durationS: rec.durationMs / 1000,
+        onProgress: (frac) => dispatchChat({ type: 'pending/patch', clientId, patch: { progress: frac } }),
+      });
       if (res?.event) dispatchChat({ type: 'event', event: res.event });
       retryHandlers.delete(clientId);
       URL.revokeObjectURL(previewUrl);

@@ -1,8 +1,9 @@
 // @vitest-environment node
-/** Real gateway + runtime + workspace + scripted model smoke; no mocked HTTP routes or model calls. */
+/** Real gateway/runtime/workspace, scripted coach, and a controlled speech endpoint (no paid APIs). */
 import { existsSync, readdirSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
+import { createServer as createHttpServer, type Server as HttpServer } from 'node:http';
 import { join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
@@ -44,6 +45,8 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
   let temp: string;
   let appUrl: string;
   let athleteId: string;
+  let speech: HttpServer;
+  const speechRequests: Array<{ path: string; type: string; body: Buffer }> = [];
   const browserErrors: string[] = [];
   const diagnosticErrors: string[] = [];
 
@@ -66,9 +69,21 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     config.limits.debounceIdleMs = 10;
     config.limits.debounceMaxMs = 30;
     config.defaultSettings = { notifications: { quietHours: null } };
+    // Exercise the real gateway and speech SDK using actual captured audio, without paid transcription.
+    speech = createHttpServer(async (request, response) => {
+      const chunks: Buffer[] = [];
+      for await (const chunk of request) chunks.push(Buffer.from(chunk));
+      speechRequests.push({ path: request.url ?? '', type: request.headers['content-type'] ?? '', body: Buffer.concat(chunks) });
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ text: 'Synthetic voice check: I did an easy run today.' }));
+    });
+    await new Promise<void>((resolve) => speech.listen(0, '127.0.0.1', resolve));
+    const speechAddress = speech.address();
+    if (!speechAddress || typeof speechAddress === 'string') throw new Error('No speech test port');
+    config.voice.stt = { provider: 'openai-compatible', baseUrl: `http://127.0.0.1:${speechAddress.port}/v1`, model: 'test-transcriber' };
     server = await composeServer({ config, logger: silentLogger, webDist: dist, seedRoot: join(repo, 'seed'), renderer: false, manualScheduler: true, printSetupCode: () => {} });
     await server.listen();
-    browser = await chromium.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+    browser = await chromium.launch({ executablePath, headless: true, args: ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
     context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-GB', timezoneId: 'Europe/Amsterdam', serviceWorkers: 'allow' });
     page = await context.newPage();
     page.on('pageerror', (error) => browserErrors.push(error.message));
@@ -80,6 +95,7 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await context?.close();
     await browser?.close();
     await server?.close();
+    if (speech) await new Promise<void>((resolve, reject) => speech.close((error) => error ? reject(error) : resolve()));
     if (temp) await rm(temp, { recursive: true, force: true });
   });
 
@@ -106,6 +122,13 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await server.runtime.whenIdle(athleteId);
     await page.locator('.msg.coach', { hasText: 'scripted demo coach' }).waitFor();
     const composer = page.getByRole('textbox', { name: 'Message', exact: true });
+    if (process.env.OPENCOACH_CAPTURE_CHAT === '1') {
+      await composer.fill('My goal is a comfortable 10k.\nCan we fit training around three days a week?');
+      await page.screenshot({ path: join(repo, 'docs/images/demo-chat.png') });
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.screenshot({ path: join(repo, 'docs/images/chat-desktop.png') });
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
     await composer.fill('I ran 5k today');
     await composer.press('Enter');
     await page.locator('.msg.me', { hasText: 'I ran 5k today' }).waitFor();
@@ -114,6 +137,96 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await page.locator('.msg.coach', { hasText: 'Got it, 4/10' }).waitFor();
     expect((await server.store.listEvents({ athleteId, limit: 100 })).some((event) => event.type === 'user.ui_action')).toBe(true);
     expect((await context.cookies()).some((cookie) => cookie.httpOnly)).toBe(true);
+  }, 60_000);
+
+  it('[UI-1] grows and shrinks drafts, survives tab switches/reload and supports mobile newlines', async () => {
+    const composer = page.getByRole('textbox', { name: 'Message', exact: true });
+    const height = () => composer.evaluate((el) => el.getBoundingClientRect().height);
+    await composer.fill('A short draft');
+    const short = await height();
+    const draft = 'An easy week\nThree running days\nOne longer run\nHow does that sound?';
+    await composer.fill(draft);
+    expect(await height()).toBeGreaterThan(short + 40);
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Today', exact: true }).click();
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Chat', exact: true }).click();
+    expect(await composer.inputValue()).toBe(draft);
+    expect(await height()).toBeGreaterThan(short + 40);
+    await page.reload();
+    await composer.waitFor();
+    expect(await composer.inputValue()).toBe(draft);
+    expect(await height()).toBeGreaterThan(short + 40);
+    await composer.fill(Array(30).fill('A line of a very long message').join('\n'));
+    expect(await height()).toBeLessThanOrEqual(224);
+    expect(await composer.evaluate((el) => getComputedStyle(el).overflowY)).toBe('auto');
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      const send = await page.getByRole('button', { name: 'Send', exact: true }).boundingBox();
+      expect(send!.y + send!.height).toBeLessThan(844);
+    }
+    await page.emulateMedia({ colorScheme: 'dark' });
+    expect(await page.locator('.composer-box').evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe('rgb(255, 255, 255)');
+    await page.emulateMedia({ colorScheme: 'light' });
+    const wrapped = 'Can we adjust my training this week? I have three days available and would like to keep the long run on Sunday. My legs feel rested after the easy run yesterday, and I have no race planned this month.';
+    await composer.fill(wrapped);
+    const wideHeight = await height();
+    await page.setViewportSize({ width: 320, height: 844 });
+    await expect.poll(height).toBeGreaterThan(wideHeight);
+    await page.setViewportSize({ width: 1440, height: 844 });
+    await expect.poll(height).toBe(wideHeight);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await composer.fill('');
+    expect(await height()).toBe(short);
+    expect(await page.evaluate((id) => localStorage.getItem(`oc.draft.${id}`), athleteId)).toBeNull();
+
+    const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await context.storageState(), serviceWorkers: 'block' });
+    try {
+      const phone = await mobile.newPage();
+      await phone.goto(appUrl);
+      const entry = phone.getByRole('textbox', { name: 'Message', exact: true });
+      await entry.fill('First line');
+      await entry.press('Enter');
+      await entry.type('Second line');
+      expect(await entry.inputValue()).toBe('First line\nSecond line');
+      expect(await phone.locator('.msg.me', { hasText: 'First line' }).count()).toBe(0);
+      // Reduced viewport stands in for the space left above a mobile keyboard (not an iOS device test).
+      await phone.setViewportSize({ width: 390, height: 440 });
+      await expect.poll(() => phone.locator('.composer-box').evaluate((el) => el.getBoundingClientRect().bottom)).toBeLessThan(440);
+      await phone.getByRole('button', { name: 'Send', exact: true }).click();
+      await phone.locator('.msg.me', { hasText: 'First line' }).waitFor();
+      expect(await entry.inputValue()).toBe('');
+    } finally { await mobile.close(); }
+    await server.runtime.whenIdle(athleteId);
+  }, 60_000);
+
+  it('[UI-1] captures, plays and explicitly sends voice audio through the actual gateway and speech SDK', async () => {
+    const before = (await server.store.listEvents({ athleteId, limit: 100 })).filter((event) => event.type === 'user.voice_note').length;
+    await page.getByRole('button', { name: 'Record a voice note' }).click();
+    await page.getByRole('button', { name: 'Stop recording' }).waitFor();
+    // Need more than the recorder's minimum duration, using Chromium's synthetic audio device.
+    await page.waitForTimeout(1400);
+    await page.getByRole('button', { name: 'Stop recording' }).click();
+    await page.getByRole('button', { name: 'Play voice note preview' }).click();
+    await page.getByRole('button', { name: 'Pause voice note preview' }).waitFor();
+    expect((await server.store.listEvents({ athleteId, limit: 100 })).filter((event) => event.type === 'user.voice_note')).toHaveLength(before);
+    expect(speechRequests).toHaveLength(0);
+    const uploaded = page.waitForResponse((response) => response.url().endsWith('/v1/voice-notes') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Send voice note' }).click();
+    expect((await uploaded).status()).toBe(200);
+    await server.runtime.whenIdle(athleteId);
+    const notes = (await server.store.listEvents({ athleteId, limit: 100 })).filter((event) => event.type === 'user.voice_note');
+    expect(notes).toHaveLength(before + 1);
+    expect(notes[0]!.payload).toMatchObject({ transcript: 'Synthetic voice check: I did an easy run today.', transcriptModel: 'test-transcriber' });
+    expect(notes[0]!.payload.blob.bytes).toBeGreaterThan(1000);
+    expect(notes[0]!.payload.durationS).toBeGreaterThanOrEqual(1);
+    expect(notes[0]!.payload.durationS).toBeLessThan(30);
+    expect(speechRequests[0]!.path).toBe('/v1/audio/transcriptions');
+    expect(speechRequests[0]!.type).toContain('multipart/form-data');
+    expect(speechRequests[0]!.body.toString()).toContain('test-transcriber');
+    expect(speechRequests[0]!.body.length).toBeGreaterThan(1000);
+    await page.getByRole('button', { name: 'Transcript', exact: true }).last().click();
+    await page.getByText('Synthetic voice check: I did an easy run today.', { exact: true }).waitFor();
+    expect(browserErrors).toEqual([]);
   }, 60_000);
 
   it('[SEC-4] rejects missing or wrong session proofs and accepts the XHR upload proof', async () => {
@@ -215,9 +328,12 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     const remove = page.getByRole('button', { name: 'Delete my account and data', exact: true });
     expect(await remove.isDisabled()).toBe(true);
     await page.locator('input[name="confirm-delete"]').fill('DELETE');
+    const deletion = page.waitForResponse((response) => response.url().endsWith('/v1/account') && response.request().method() === 'DELETE');
     await remove.click();
-    await page.getByRole('button', { name: 'Create my coach' }).waitFor();
+    const deleted = await deletion;
+    expect(deleted.status(), deleted.status() === 204 ? undefined : await deleted.text().catch(() => 'No response body')).toBe(204);
     expect(await server.store.getAthlete(athleteId)).toBeUndefined();
+    await page.getByRole('button', { name: 'Create my coach' }).waitFor();
     expect(existsSync(athletePaths(server.config.dataDir, athleteId).workspace)).toBe(false);
     expect(browserErrors).toEqual([]);
   }, 60_000);

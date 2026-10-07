@@ -2,7 +2,7 @@ import { stat } from 'node:fs/promises';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import {
-  PostMessageRequest, UiActionRequest, ReactionRequest, ReadRequest, DeviceContextRequest,
+  PostMessageRequest, VoiceNoteMetadata, UiActionRequest, ReactionRequest, ReadRequest, DeviceContextRequest,
   ViewQueryRequest, ViewFileRequest, ViewWriteRequest, ViewActRequest, ViewErrorRequest, ViewRevertRequest,
   PushSubscriptionRequest, CallCreateRequest, CallAttachRequest, Sha256, newId, IanaTimeZone,
 } from '@opencoach/protocol';
@@ -71,9 +71,16 @@ export function clientRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     const service = voice();
     const file = await uploaded(request, 'audio');
     if (!file.mime.startsWith('audio/') && file.mime !== 'video/webm') throw badRequest('An audio file is required.');
+    const duration = file.fields.durationS;
+    let durationS: unknown;
+    if (duration !== undefined) {
+      if (Array.isArray(duration) || duration.type !== 'field' || typeof duration.value !== 'string' || !duration.value.trim()) throw badRequest('durationS must be a single numeric field.');
+      durationS = Number(duration.value);
+    }
+    const metadata = VoiceNoteMetadata.parse({ durationS });
     const transcript = await service.transcribeVoiceNote(file.bytes, file.mime);
     const blob = blobRef(await blobs.put(id(request), file.bytes, { mime: file.mime, name: file.name, origin: 'athlete' }));
-    return { event: await runtime.ingest(id(request), { type: 'user.voice_note', payload: { blob, transcript: transcript.text, transcriptModel: transcript.model, durationS: transcript.durationS ?? 0 } }) };
+    return { event: await runtime.ingest(id(request), { type: 'user.voice_note', payload: { blob, transcript: transcript.text, transcriptModel: transcript.model, durationS: transcript.durationS ?? metadata.durationS ?? 0 } }) };
   });
   app.post('/v1/ui-actions', { preHandler: auth }, async (request) => {
     const body = UiActionRequest.parse(request.body);

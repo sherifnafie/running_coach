@@ -35,6 +35,13 @@ export async function createGateway(deps: GatewayDeps) {
     reply.header('Cache-Control', 'no-store');
   });
   app.addHook('onResponse', async (request) => { context.finishRequest(request); });
+  app.addHook('onSend', async (request, reply, payload) => {
+    // The handler has finished its work. A cancelled browser response may never reach onResponse.
+    // Register here (not on request abort) so unfinished writes still block hard deletion.
+    if (reply.raw.destroyed) context.finishRequest(request);
+    else reply.raw.once('close', () => context.finishRequest(request));
+    return payload;
+  });
   app.addHook('preHandler', async (request) => {
     // Browser requests to credential endpoints are origin-checked even before they have a session.
     if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method) && request.headers.origin && request.headers.origin !== context.publicOrigin) {

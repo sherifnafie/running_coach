@@ -221,16 +221,14 @@ describe.skipIf(!chromePath)('web e2e smoke (Chromium)', () => {
     await page.getByText(/Demo mode/).waitFor();
   }, T);
 
-  it('records a voice note with hold-to-record (fake microphone) and shows the transcript', async () => {
+  it('[UI-1] records, reviews and explicitly sends a voice note (fake microphone)', async () => {
     await nav().getByRole('button', { name: 'Chat' }).click();
-    const mic = page.getByRole('button', { name: 'Hold to record a voice note' });
-    await mic.waitFor();
-    const box = (await mic.boundingBox())!;
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.getByText(/release to send/i).waitFor({ timeout: 10_000 });
+    await page.getByRole('button', { name: 'Record a voice note' }).click();
+    await page.getByRole('button', { name: 'Stop recording' }).waitFor({ timeout: 10_000 });
     await page.waitForTimeout(1500);
-    await page.mouse.up();
+    await page.getByRole('button', { name: 'Stop recording' }).click();
+    await page.getByRole('button', { name: 'Play voice note preview' }).waitFor();
+    await page.getByRole('button', { name: 'Send voice note' }).click();
     await page.locator('.msg.me.voice, .msg.me:has(.bubble.voice)').first().waitFor({ timeout: 15_000 });
     await page.getByRole('button', { name: 'Transcript' }).last().click();
     await page.getByText('This is a mock transcript of your voice note.').waitFor();

@@ -12,6 +12,7 @@ import type {
   SetupRequest,
   UiVersionRecord,
 } from '@opencoach/protocol';
+import { VoiceNoteMetadata } from '@opencoach/protocol';
 import type { BlobRef } from '@opencoach/protocol';
 import { api, request, upload, type RequestOptions } from './api';
 
@@ -72,10 +73,12 @@ export const chat = {
   },
   commitUploads: (blobs: string[], caption?: string) =>
     api.post<PostEventResponse>('/v1/uploads/commit', { blobs, ...(caption ? { caption } : {}) }),
-  voiceNote: (audio: Blob, filename: string, onProgress?: (f: number) => void, signal?: AbortSignal) => {
+  voiceNote: (audio: Blob, filename: string, opts: { onProgress?: (f: number) => void; signal?: AbortSignal; durationS?: number } = {}) => {
     const form = new FormData();
+    const metadata = VoiceNoteMetadata.parse({ durationS: opts.durationS });
+    if (metadata.durationS !== undefined) form.append('durationS', String(metadata.durationS));
     form.append('audio', audio, filename);
-    return upload<PostEventResponse>('/v1/voice-notes', form, onProgress, signal);
+    return upload<PostEventResponse>('/v1/voice-notes', form, opts.onProgress, opts.signal);
   },
   uiAction: (body: { source: { messageId?: string; viewId?: string }; action: string; payload?: unknown; wake: boolean }) =>
     api.post<unknown>('/v1/ui-actions', body),

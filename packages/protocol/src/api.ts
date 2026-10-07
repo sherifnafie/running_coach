@@ -56,6 +56,10 @@ export const PostMessageRequest = z.object({
 });
 export type PostMessageRequest = z.infer<typeof PostMessageRequest>;
 
+/** Optional multipart metadata; recording duration is a playback hint when STT omits it. */
+export const VoiceNoteMetadata = z.object({ durationS: z.number().nonnegative().max(86_400).optional() });
+export type VoiceNoteMetadata = z.infer<typeof VoiceNoteMetadata>;
+
 export interface PostEventResponse {
   event: AnyEvent;
 }

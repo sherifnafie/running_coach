@@ -1,5 +1,6 @@
 import { mkdtemp, mkdir, rm, writeFile, symlink, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -88,9 +89,10 @@ async function fixture() {
   return { ...gateway, dir, clock, store, runtime, blobs, calls, config, strip, setup, bearer, emit };
 }
 
-function multipart(field: string, text = 'bytes', mime = 'application/octet-stream') {
+function multipart(field: string, text = 'bytes', mime = 'application/octet-stream', metadata: Record<string, string> = {}) {
   const boundary = 'oc-boundary';
-  return { headers: { 'content-type': `multipart/form-data; boundary=${boundary}` }, payload: Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${field}"; filename="sample"\r\nContent-Type: ${mime}\r\n\r\n${text}\r\n--${boundary}--\r\n`) };
+  const fields = Object.entries(metadata).map(([name, value]) => `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`).join('');
+  return { headers: { 'content-type': `multipart/form-data; boundary=${boundary}` }, payload: Buffer.from(`${fields}--${boundary}\r\nContent-Disposition: form-data; name="${field}"; filename="sample"\r\nContent-Type: ${mime}\r\n\r\n${text}\r\n--${boundary}--\r\n`) };
 }
 
 describe('gateway authentication and client API [SEC-4] [RT-3]', () => {
@@ -140,6 +142,26 @@ describe('gateway authentication and client API [SEC-4] [RT-3]', () => {
     expect(f.runtime.ingest).toHaveBeenCalledTimes(1);
     const missing = await f.app.inject({ ...req, payload: { text: 'file', clientId: 'missing', attachments: ['f'.repeat(64)] } });
     expect(missing.statusCode).toBe(404);
+  });
+
+  it('[UI-1] preserves recorded duration when speech omits it, and prefers provider duration', async () => {
+    const f = await fixture(); const a = await f.setup();
+    const audio = multipart('audio', 'sound', 'audio/webm', { durationS: '3.75' });
+    const request = { method: 'POST' as const, url: '/v1/voice-notes', ...audio, headers: { ...f.bearer(a.token), ...audio.headers } };
+    vi.mocked(f.calls.transcribeVoiceNote).mockResolvedValueOnce({ text: 'heard you', model: 'test' });
+    const fallback = await f.app.inject(request);
+    expect(fallback.statusCode).toBe(200);
+    expect(fallback.json().event.payload.durationS).toBe(3.75);
+    expect((await f.app.inject(request)).json().event.payload.durationS).toBe(2);
+  });
+
+  it.each(['-1', 'Infinity', 'NaN', '86401', ''])('[SEC-4] rejects invalid voice duration %s before transcription', async (durationS) => {
+    const f = await fixture(); const a = await f.setup();
+    const audio = multipart('audio', 'sound', 'audio/webm', { durationS });
+    const response = await f.app.inject({ method: 'POST', url: '/v1/voice-notes', ...audio, headers: { ...f.bearer(a.token), ...audio.headers } });
+    expect(response.statusCode).toBe(400);
+    expect(f.calls.transcribeVoiceNote).not.toHaveBeenCalled();
+    expect(f.runtime.ingest).not.toHaveBeenCalled();
   });
 
   it('intakes uploads and voice, strips image metadata, resolves blobs and scopes read receipts', async () => {
@@ -267,6 +289,35 @@ describe('gateway views, history, export and administration [SEC-3] [SEC-5] [SEC
     expect((await f.app.inject({ url: '/v1/views/today/versions', headers })).json()[0].dir).toBeUndefined();
     expect((await f.app.inject('/settings')).statusCode).toBe(200);
     expect((await f.app.inject('/v1/unknown')).statusCode).toBe(404);
+  });
+
+  it.each(['query', 'write'])('[SEC-6] drains cancelled %s requests only after their handlers finish', async (kind) => {
+    const f = await fixture(); const a = await f.setup();
+    const url = await f.app.listen({ port: 0, host: '127.0.0.1' });
+    let finishWork!: () => void;
+    const work = new Promise<void>((resolve) => { finishWork = resolve; });
+    const target = kind === 'query' ? f.runtime.views.query : f.runtime.ingest;
+    const originalIngest = vi.mocked(f.runtime.ingest).getMockImplementation()!;
+    if (kind === 'query') vi.mocked(f.runtime.views.query).mockImplementationOnce(async () => { await work; return []; });
+    else vi.mocked(f.runtime.ingest).mockImplementationOnce(async (id, input) => { await work; return originalIngest(id, input); });
+    const path = kind === 'query' ? '/v1/views/today/query' : '/v1/messages';
+    const body = JSON.stringify(kind === 'query' ? { sql: 'SELECT 1' } : { text: 'Cancelled transport, unfinished work', clientId: 'cancelled' });
+    const request = httpRequest(`${url}${path}`, { method: 'POST', agent: false, headers: { ...f.bearer(a.token), 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) } });
+    request.on('error', () => {}); // Expected ECONNRESET after the browser-equivalent cancellation.
+    request.end(body);
+    try {
+      await vi.waitFor(() => expect(target).toHaveBeenCalledOnce());
+      const closed = new Promise<void>((resolve) => request.once('close', resolve));
+      request.destroy();
+      await closed;
+      const deleting = f.app.inject({ method: 'DELETE', url: '/v1/account', headers: f.bearer(a.token), payload: { confirm: 'DELETE' } });
+      await vi.waitFor(async () => expect((await f.store.getAthlete(a.athleteId))?.status).toBe('deleted'));
+      expect(f.runtime.deleteAthlete).not.toHaveBeenCalled();
+      finishWork();
+      expect((await deleting).statusCode).toBe(204);
+      expect(f.runtime.deleteAthlete).toHaveBeenCalledOnce();
+      expect(await f.store.getAthlete(a.athleteId)).toBeUndefined();
+    } finally { finishWork(); request.destroy(); }
   });
 
   it('rotates legacy calendar tokens, exports data, guards admin and deletes accounts with explicit confirmation', async () => {

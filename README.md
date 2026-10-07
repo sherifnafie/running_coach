@@ -10,7 +10,7 @@ The app opens into chat. A navigation bar switches between chat and training scr
 
 | Screen | What you can do |
 |---|---|
-| **Chat** | Talk to the coach, tap quick replies, attach screenshots/files, and discuss something from another screen. Voice notes and calls need additional provider configuration. |
+| **Chat** | Talk to the coach, tap quick replies, preview attachments, and discuss something from another screen. The message box grows with your text and saves unsent drafts on this device. Record, listen to, then send voice notes when a speech provider is configured. |
 | **Today** | See today's workout, mark it done or skipped, record a subjective check-in, and ask about a session. |
 | **Calendar** | Browse planned workouts, recorded activities, and races; move a planned workout to another date. |
 | **Plan** | Read the current training block, planned weekly volume, key sessions, and race goal. Ask in chat to change the plan. |
@@ -26,6 +26,10 @@ These are the four bundled training screens. A real coach can also propose chang
 </p>
 
 The first two screenshots come from the running demo. The third shows the actual Today view with **test data**, to illustrate a populated screen. New accounts start with empty training data. Demo mode does not populate a training plan or activity charts.
+
+On a computer, Enter sends and Shift + Enter adds a line. On a phone, Enter adds a line; tap the send arrow to send. The **+** button adds photos or files. The microphone records a **voice note**: tap it, stop recording, listen if you want, then send or discard. It does not send while you grant microphone permission. Unsent text drafts survive tab switches and reloads; signing out clears them.
+
+Voice notes need HTTPS on your phone and a server-side speech-to-text service. A text-model key such as OpenCode GO alone does not enable transcription. The app explains missing configuration and microphone permission problems; see [voice setup](docs/self-hosting.md#voice-notes).
 
 ## What the AI knows about the app
 

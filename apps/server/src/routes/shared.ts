@@ -1,4 +1,5 @@
 import type { FastifyRequest } from 'fastify';
+import type { MultipartFile } from '@fastify/multipart';
 import { type BlobRef } from '@opencoach/protocol';
 import type { GatewayContext } from '../http/context';
 import { badRequest, forbidden, notFound } from '../http/errors';
@@ -41,10 +42,10 @@ export async function ownedBlob(ctx: GatewayContext, athleteId: string, sha: str
   if (!record) throw notFound('Unknown attachment.');
   return blobRef(record);
 }
-export async function uploaded(request: FastifyRequest, field: string): Promise<{ bytes: Buffer; mime: string; name: string }> {
+export async function uploaded(request: FastifyRequest, field: string): Promise<{ bytes: Buffer; mime: string; name: string; fields: MultipartFile['fields'] }> {
   const file = await request.file();
   if (!file || file.fieldname !== field) throw badRequest(`Multipart field '${field}' is required.`);
   const bytes = await file.toBuffer();
   if (!bytes.length) throw badRequest('The uploaded file is empty.');
-  return { bytes, mime: file.mimetype, name: file.filename.slice(0, 255) };
+  return { bytes, mime: file.mimetype, name: file.filename.slice(0, 255), fields: file.fields };
 }

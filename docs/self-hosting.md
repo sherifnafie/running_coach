@@ -34,6 +34,26 @@ Bounded live checks on 6 October 2026 passed authentication/model availability, 
 
 The supplied Compose file does not automatically pass the GO key or mount its configuration. For GO in Compose, add an override that passes `OPENCODE_GO_API_KEY` and `OPENCOACH_CONFIG: /config/go.yaml`, and bind-mount your secret-free YAML read-only at `/config/go.yaml`. Keep the key in the server environment and retain the separate app/views origins. The recorded live GO run used the host server; Docker browser verification used the scripted demo.
 
+## Voice notes
+
+The chat microphone uses tap → record → stop → review → send. The audio stays on your device until you explicitly send it; the configured server-side transcriber then creates the transcript the coach receives. Discarding a preview sends nothing. Switching away from Chat or putting the page in the background stops an active recording.
+
+Configure speech independently of the coaching model. For OpenAI transcription, add this to your server YAML and supply `OPENCOACH_SPEECH_API_KEY` in the trusted server process environment:
+
+```yaml
+voice:
+  stt:
+    provider: openai
+    model: gpt-4o-transcribe
+    apiKeyEnv: OPENCOACH_SPEECH_API_KEY
+```
+
+This can be used alongside the GO model configuration without changing its coach model. Restart the server after changing configuration. The key must be for the speech provider; an OpenCode GO key is not an OpenAI speech key. Audio is sent to the selected speech provider when you send a voice note. To use a local transcriber, choose `openai-compatible`, set its `baseUrl` (including `/v1`) and supported `model`, and ensure it implements `/audio/transcriptions` with multipart audio uploads. An authenticated endpoint also needs its own `apiKeyEnv`.
+
+On a phone, open the **app** origin over HTTPS and allow microphone access in the browser. Plain HTTP on a home LAN prevents microphone capture; localhost on the desktop is a browser exception. If voice notes are unavailable, the microphone shows an explanation instead of starting a recording that cannot be transcribed. Your phone keyboard's dictation button can still fill the text box using the phone's own dictation service.
+
+Browser capture/playback and authenticated upload/transcription plumbing are covered with Chromium's synthetic microphone and a controlled local speech endpoint. Paid transcription, Safari/iOS device recording and external voice-call services remain unverified.
+
 ## Views and mobile access
 
 The app defaults to port 8080 and isolated views to port 8081. `PUBLIC_URL` and `VIEWS_URL` must be distinct bare origins that the browser can reach. For a phone, replace both localhost URLs with the server's reachable hostnames. Use HTTPS through a reverse proxy or private tunnel for passkeys, microphone capture, PWA installation and push. Proxy WebSocket upgrades for `/v1/stream` and preserve the external app Origin.

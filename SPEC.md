@@ -707,7 +707,7 @@ RPE (session RPE, 1–10), sleep, soreness, mood and stress, pain (location by b
 
 ### 10.4 Voice notes
 
-The athlete holds to record. The transcription tier transcribes, and the event carries both the audio blob and the transcript. The coach may reply with a voice note (TTS). This is asynchronous and cheap, and it is how many athletes already talk to human coaches, so **voice notes ship in the MVP, ahead of calls.**
+The athlete taps to record, stops, then can listen, discard or explicitly send. Permission prompts never implicitly cancel or send a recording. The transcription tier transcribes, and the event carries both the audio blob and the transcript. The coach may reply with a voice note (TTS). This is asynchronous and cheap, and it is how many athletes already talk to human coaches, so **voice notes ship in the MVP, ahead of calls.**
 
 ### 10.5 Future data sources, and the ToS minefield
 
