@@ -49,9 +49,9 @@
       <div id="race"></div>
     </rc-card>
 
-    <!-- The coach's own words: rendered from a workspace file (declared in view.json reads) -->
-    <rc-card heading="Plan notes">
-      <rc-markdown file="plan/current.md" empty="No notes yet."></rc-markdown>
+    <!-- Athlete-facing explanation, kept separate from the coach's working notes. -->
+    <rc-card heading="Why this plan">
+      <rc-markdown file="plan/athlete-summary.md" empty="Ask your coach to explain the purpose of this plan."></rc-markdown>
     </rc-card>
 
     <rc-button id="discuss" variant="primary" icon="chat" block>Discuss this plan</rc-button>

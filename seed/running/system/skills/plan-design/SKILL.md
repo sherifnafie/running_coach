@@ -110,7 +110,17 @@ Constraints first: put the long run on their free day, keep hard sessions off da
    It lists weekly volume, long-run share, hard sessions, rest days, ramp vs the previous week and vs what they have actually run, sessions on unavailable days, and missing tapers. Flags are prompts for judgment.
 3. For high stakes (return from injury or illness, big jumps, a goal race block), have `reviewer` examine it and read the verdict.
 4. Present: the first one or two weeks in detail, the shape of the rest in a few lines, and *why*. Ask what's off.
-5. Record: `blocks`, `planned_workouts` (with `structure` where helpful), `plan/current.md` (intent, phases, key sessions, rationale), `plan/current-week.md`, `exports/calendar.ics` (`calendar-export`), and schedule the wakes that make the plan live (morning prescriptions, weekly review, key-session check-ins).
+5. Record: `blocks`, `planned_workouts` (with `structure` where helpful), `plan/current.md` (working notes: intent, phases, key sessions, rationale), `plan/current-week.md`, `plan/athlete-summary.md` (the Plan screen's explanation), `exports/calendar.ics` (`calendar-export`), and schedule the wakes that make the plan live (morning prescriptions, weekly review, key-session check-ins).
+
+Write `plan/athlete-summary.md` for the athlete: what this block aims to achieve,
+why the sessions fit their goals and available time, how to judge progress, and
+when to ease off or ask for a change. Keep it short and consistent with the
+saved plan. Do not copy working notes or a planner's draft wholesale; omit DB,
+SQL, paths, tool steps and internal scheduling bookkeeping. Explain relevant
+assumptions and uncertainty rather than hiding them. Keep it current after
+changes. In an older workspace whose Plan view still reads `plan/current.md`,
+use the `ui-kit` skill to switch its source and manifest to the athlete summary,
+then preview and publish; writing a new file alone does not change that view.
 
 ## Worked example
 Athlete: 38 km/week for 6 weeks (4 runs), longest 14 km, one tempo most weeks; half marathon in 12 weeks, goal "under 2:00"; available Mon, Wed, Thu, Sat, Sun; a work trip in week 7. Recent 10K: 54:30 → VDOT ≈ 36 (use `vdot.py`), half-marathon equivalent ≈ 2:01 if equally trained → the goal is right at the edge of plausible (a good block could get there); say so, and offer a B-goal.

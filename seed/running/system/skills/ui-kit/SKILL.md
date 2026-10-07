@@ -24,6 +24,15 @@ provide a chat shortcut. Missing measurements stay missing; never invent data
 to fill a chart. Keep focused queries and small charts within the publish
 performance budget.
 
+Use text written for the athlete: training instructions, useful rationale,
+assumptions and uncertainty. Do not display raw working notes, briefings,
+helper drafts, SQL or file/tool bookkeeping. Keep a dedicated display source
+and declare only that source in the manifest; the starter Plan view reads
+`plan/athlete-summary.md`, not `plan/current.md`. Review database "notes" fields
+and helper output before showing them. This also applies to new widgets.
+When repairing an existing view, preserve its useful customizations, remove
+the working-note read declaration, and preview and publish the corrected view.
+
 Simple athlete actions can write directly to declared targets and emit a
 declared action to wake the coach when appropriate. Use optimistic feedback
 with rollback on rejection. A view must not make clinical or training decisions

@@ -1,7 +1,7 @@
 // @vitest-environment node
 /** Real gateway/runtime/workspace, scripted coach, and a controlled speech endpoint (no paid APIs). */
 import { existsSync, readdirSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer, type Server as HttpServer } from 'node:http';
 import { join, resolve } from 'node:path';
@@ -272,6 +272,44 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     const composer = page.getByRole('textbox', { name: 'Message', exact: true });
     await composer.waitFor();
     expect(await composer.inputValue()).toContain("About today's Gateway easy run");
+    await composer.fill('');
+  }, 60_000);
+
+  it('[UI-1] shows the athlete plan explanation and denies access to coach working notes', async () => {
+    await server.runtime.whenIdle(athleteId);
+    const workspace = athletePaths(server.config.dataDir, athleteId).workspace;
+    const privateNotes = 'INTERNAL_PLAN_CANARY: reconcile data/coach.db planned_workouts; helper task bookkeeping.';
+    const explanation = 'Easy runs build consistency while leaving you fresh for your longer run.';
+    await writeFile(join(workspace, 'plan/current.md'), privateNotes);
+    await writeFile(join(workspace, 'plan/athlete-summary.md'), explanation);
+
+    await expect(server.runtime.views.readFile(athleteId, 'plan', 'plan/current.md')).rejects.toMatchObject({ code: 'NOT_ALLOWED' });
+    expect(await server.runtime.views.readFile(athleteId, 'plan', 'plan/athlete-summary.md')).toBe(explanation);
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'More', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Plan', exact: true }).click();
+    const frame = page.frameLocator('iframe[title="Plan"]');
+    await frame.getByRole('heading', { name: 'Why this plan', exact: true }).waitFor();
+    await frame.getByText(explanation, { exact: true }).waitFor();
+    const visible = await frame.locator('body').innerText();
+    expect(visible).toContain('Planned weekly volume');
+    for (const internal of ['INTERNAL_PLAN_CANARY', 'data/coach.db', 'planned_workouts', 'helper task bookkeeping']) expect(visible).not.toContain(internal);
+
+    const updated = 'We have eased this week so you can recover before building again.';
+    await writeFile(join(workspace, 'plan/athlete-summary.md'), updated);
+    // A delivered coach reply refreshes the published view's declared file subscription.
+    const reply = (await server.store.listEvents({ athleteId, limit: 100 })).find((event) => event.type === 'coach.message');
+    expect(reply).toBeDefined();
+    expect(reply!.payload.delivery).toBe('sent');
+    const changed = await server.store.appendEvent({ athleteId, type: 'coach.message', actor: 'coach', payload: { ...reply!.payload, text: 'I have updated your plan explanation.' } });
+    server.runtime.core.bus.publish(athleteId, { t: 'message.end', event: changed });
+    await frame.getByText(updated, { exact: true }).waitFor();
+    expect(await frame.locator('body').innerText()).not.toContain('INTERNAL_PLAN_CANARY');
+    expect(browserErrors).toEqual([]);
+    // Reading the delivered update clears Chat's unread badge before the next flow.
+    await frame.getByRole('button', { name: 'Discuss this plan', exact: true }).click();
+    const composer = page.getByRole('textbox', { name: 'Message', exact: true });
+    await composer.waitFor();
+    expect(await composer.inputValue()).toContain('I have a question about my plan');
     await composer.fill('');
   }, 60_000);
 

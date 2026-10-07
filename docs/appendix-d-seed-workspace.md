@@ -21,7 +21,8 @@ Design rule for the seed: **small, legible and exemplary.** Each file should tea
 │   └── preferences.md              # "No information yet."
 ├── athlete-input/                  # files views may write directly (e.g. free-form logs)
 ├── plan/
-│   ├── current.md                  # "No plan yet — complete intake first."
+│   ├── current.md                  # coach working notes; not Plan view copy
+│   ├── athlete-summary.md          # plain-language "Why this plan" explanation
 │   └── current-week.md             # pinned; coach keeps the next 7 days here in prose
 ├── journal/                        # YYYY/MM/DD.md
 ├── data/
@@ -61,7 +62,8 @@ should read this first.
 - `athlete/`: who they are. `profile.md` is the one-page essentials (pinned).
   `health.md`: injuries, conditions, clearances. `preferences.md`: how and when they
   like to be coached.
-- `plan/`: `current.md` is the current block (intent, phases, key sessions, rationale).
+- `plan/`: `current.md` is working memory for the current block (intent, phases, key sessions, rationale).
+  `athlete-summary.md` is the reviewed explanation displayed in Plan; no implementation bookkeeping.
   `current-week.md` is the next 7 days in prose (pinned). Session-level detail lives in
   `data/coach.db` → `planned_workouts`.
 - `journal/YYYY/MM/DD.md`: my daily notes: observations, decisions and why.

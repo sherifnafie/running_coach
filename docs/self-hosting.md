@@ -84,6 +84,14 @@ The Compose file binds ports to loopback. It sets `seccomp=unconfined`, `apparmo
 
 ## Export, import and maintenance
 
+### Updating an existing coach's Plan view
+
+The corrected starter Plan screen displays a separate "Why this plan" explanation. Older versions displayed the coach's working notes, which could include database and tool bookkeeping. Updates preserve each coach's existing workspace and published views, so pulling and rebuilding alone does not replace that screen. Back up your data, update the code, rebuild and restart the server as usual, then send this in your existing coach's Chat:
+
+> Please fix my Plan screen so it shows a concise explanation written for me under "Why this plan", rather than your working notes. Create and maintain `plan/athlete-summary.md`, switch the Plan view and its declared file read to that file, and remove its read of `plan/current.md`. Keep my workouts, schedule and useful screen customizations unchanged. Preview and publish the corrected view. Explain the training purpose, reasons and relevant uncertainty without database, file or tool bookkeeping.
+
+Verify the published Plan screen afterward; a chat acknowledgement or saved file alone is not a published repair. The server needs Chromium for preview/publication. This repair uses the configured model and can incur provider usage. New accounts start with the corrected view. No database migration or account reset is needed. The updated constitution takes effect at the next epoch; the explicit repair request also works in a current epoch. These notes remain part of your workspace export, rather than being deleted or made secret.
+
 Settings offers export, view history/revert, calendar feed rotation and account deletion. Exports include committed workspace files, a consistent coach database, raw uploads and events; sessions and deployment secrets are excluded. Import creates an athlete without administrator privileges. To run the CLI from the repository root:
 
 ```sh

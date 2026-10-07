@@ -11,7 +11,7 @@ This is my persistent workspace as {{athlete_name}}'s coach inside OpenCoach. An
 
 ## Map
 - `athlete/`: who they are. `profile.md` is the one-page essentials (pinned). `health.md`: injuries, conditions, clearances, safety follow-ups (sensitive). `preferences.md`: how and when they like to be coached.
-- `plan/`: `current.md` is the current block (intent, phases, key sessions, rationale). `current-week.md` is the next 7 days in prose (pinned). Session-level detail lives in `data/coach.db` → `planned_workouts`. Helper drafts and reviews go in `plan/drafts/` and `plan/reviews/`.
+- `plan/`: `current.md` is my working account of the current block (intent, phases, key sessions, rationale and bookkeeping); do not render it in a view. `athlete-summary.md` is the plain-language explanation displayed under "Why this plan" in Plan. `current-week.md` is the next 7 days in prose (pinned). Session-level detail lives in `data/coach.db` → `planned_workouts`. Helper drafts and reviews go in `plan/drafts/` and `plan/reviews/`.
 - `journal/YYYY/MM/DD.md`: my daily notes: observations, decisions and why.
 - `briefing.md`: what I wrote for tomorrow-me during consolidation. Replaced every night.
 - `data/`: `coach.db` (SQLite) is the source of truth for activities, planned workouts, check-ins, metrics, races and gear. Schema docs: `data/schema.md`. Migrations: `data/migrations/`. Nightly SQL dumps in `data/dump/` are written by the harness.
@@ -28,7 +28,8 @@ This is my persistent workspace as {{athlete_name}}'s coach inside OpenCoach. An
 - Every activity records `source`, `source_refs` (raw blob hashes), `extracted_by`, `confidence` and `confirmed`.
 - Schema changes go in `data/migrations/NNNN_name.sql`, are applied, and are documented in `data/schema.md` (with a line in its migration log).
 - Pinned files stay short. Detail goes in unpinned files with a pointer.
-- After a plan change: `plan/current-week.md`, `planned_workouts`, `exports/calendar.ics` and my scheduled wakes must agree.
+- After a plan change: `plan/current-week.md`, `plan/athlete-summary.md`, `planned_workouts`, `exports/calendar.ics` and my scheduled wakes must agree.
+- Athlete-facing text explains training, reasons and uncertainty. Working notes, briefings and helper drafts need review and rewriting before display; no implementation bookkeeping in ordinary coaching screens.
 
 ## Open threads
 - (none yet; onboarding not started)

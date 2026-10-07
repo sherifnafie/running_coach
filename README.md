@@ -13,11 +13,13 @@ The app opens into chat. A navigation bar switches between chat and training scr
 | **Chat** | Talk to the coach, tap quick replies, preview attachments, and discuss something from another screen. The message box grows with your text and saves unsent drafts on this device. Record, listen to, then send voice notes when a speech provider is configured. |
 | **Today** | See today's workout, mark it done or skipped, record a subjective check-in, and ask about a session. |
 | **Calendar** | Browse planned workouts, recorded activities, and races; move a planned workout to another date. |
-| **Plan** | Read the current training block, planned weekly volume, key sessions, and race goal. Ask in chat to change the plan. |
+| **Plan** | Read the current training block, planned weekly volume, key sessions, race goal, and a plain-language "Why this plan" explanation. Ask in chat to change the plan. |
 | **Progress** | See recorded distance, longest runs, easy-run pace, and consistency over time. |
 | **Settings** | Change units, time zone, quiet hours, pause mode, message/cost limits, and privacy preferences; manage devices, export data, and delete your account. |
 
 These are the four bundled training screens. A real coach can also propose changes to its screens; publication must pass static, browser, accessibility, and performance checks. Chat and Settings belong to the app and remain available independently of those changes.
+
+Older accounts may still have a Plan screen showing the coach's working notes. Updating preserves existing views; use the [existing-account repair instructions](docs/self-hosting.md#updating-an-existing-coachs-plan-view) to replace that text with an explanation written for you.
 
 <p>
   <img src="docs/images/demo-chat.png" alt="The mobile chat screen with the scripted demo coach's welcome message and goal quick replies" width="260">

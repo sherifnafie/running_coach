@@ -53,13 +53,17 @@ One row per planned session. Rest days may be rows of type `rest` if useful for 
 | `target_distance_m`, `target_duration_s` | Meters / seconds, whichever the session is prescribed by. |
 | `status` | `planned`, `done`, `partial`, `skipped`, `moved`. When I move a session I change its `date` and leave it `planned`; `moved` is for sessions I deliberately keep as a record of a move. |
 | `block_id` | The block this belongs to. |
-| `coach_notes` | **Private** rationale. Never exported or shown. |
+| `coach_notes` | Coach working rationale; omitted from starter views and the subscribed calendar feed. Included in the athlete's full workspace export. Not a secret store. |
 | `updated_at` | ISO 8601 with offset. |
 
 **`structure`** is a compact, device-agnostic step list: `{"steps":[...], "notes":"..."}`. A step is `{"kind": "warmup|work|recovery|cooldown|rest", "duration": {"time_s": 900} or {"distance_m": 1000}, "target": {...}}`, or a repeat: `{"kind": "repeat", "times": 5, "steps": [...]}`. Targets may be ranges (`[low, high]`) of `pace_s_km`, `hr_bpm`, `hr_zone`, `rpe`, or `talk_test` (text). Example: warm up 15 min at RPE 2 to 3, 5 x (1000 m at 235 to 245 s/km with 2 min recovery), cool down 10 min.
 
+`description` and `structure.notes` are displayed to the athlete. Write useful session instructions, not SQL, file paths or tool bookkeeping.
+
 ## `blocks`: training blocks
 `id`, `name` (e.g. "Base 1"), `start_date`, `end_date` (local dates, inclusive), `focus` (one line), `notes`.
+
+`name` and `focus` appear in Plan and should be plain-language training copy. `notes` is working memory, omitted from the starter Plan view; keep the reviewed explanation in `plan/athlete-summary.md`.
 
 ## `checkins`: subjective data
 One row per thing the athlete tells me or logs.
@@ -79,6 +83,8 @@ Primary key `(date, name, source)`. `date` is a local date. `name` e.g. `resting
 
 ## `races`
 `id`, `date` (local), `name`, `distance_m`, `priority` (`A`, `B`, `C`), `goal` JSON (e.g. `{"time_s":6000,"note":"A-goal"}`; add `b_goal_s` etc. as useful), `result` JSON (e.g. `{"time_s":6145,"place":212,"source":"athlete"}`), `notes`. Past races with known results also belong here: they anchor paces (see `zones-and-paces`).
+
+Calendar displays `notes` when the athlete opens a race, and Plan displays the race goal. Keep these athlete-facing; put internal analysis in working notes or the journal instead.
 
 ## `gear`, `activity_gear`
 `gear`: `id`, `name`, `kind` (default `shoe`; also `watch`, `other`), `started_at`, `retired_at`, `distance_offset_m` (meters already on it before tracking), `notes`. `activity_gear` (`activity_id`, `gear_id`; primary key on both) links activities to gear (many to many). Shoe mileage = `distance_offset_m` + sum of linked activities' `distance_m`.

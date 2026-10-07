@@ -38,13 +38,14 @@ export function makeWorkspace(root: string, opts: WorkspaceOptions): string {
   const db = createSchemaDb(join(root, 'data', 'coach.db'));
   if (opts.data === 'sample') {
     writeFileSync(
-      join(root, 'plan', 'current.md'),
+      join(root, 'plan', 'athlete-summary.md'),
       ['# Half marathon build', '', 'Goal: **City Half Marathon**, 6 December.', '', '## This block (Base 2)', '', '- Build easy volume to ~45 km a week', '- One quality session a week, long run on Sundays', '- Strides after two easy runs', '', '| Week | Focus |', '|---|---|', '| 1-3 | Aerobic base |', '| 4-6 | Add tempo |', ''].join('\n'),
     );
     insertSample(db);
   } else {
-    writeFileSync(join(root, 'plan', 'current.md'), 'No plan yet — complete intake first.\n');
+    writeFileSync(join(root, 'plan', 'athlete-summary.md'), 'No plan yet — complete intake first.\n');
   }
+  writeFileSync(join(root, 'plan', 'current.md'), 'Coach working notes: reconcile data/coach.db with planned_workouts. Not view copy.\n');
   db.close();
   return root;
 }

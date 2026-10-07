@@ -5,7 +5,7 @@
   "placement": { "nav": 2 },
   "entry": "index.html",
   "kit": "1",
-  "reads": ["db:blocks", "db:planned_workouts", "db:races", "file:plan/current.md"],
+  "reads": ["db:blocks", "db:planned_workouts", "db:races", "file:plan/athlete-summary.md"],
   "writes": [],
   "actions": [],
   "refresh": "on-change"
