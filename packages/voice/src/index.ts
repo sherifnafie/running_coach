@@ -3,6 +3,7 @@
  *
  *  - createTranscriber / createSynthesizer: OpenAI (or OpenAI-compatible) STT and TTS (voice notes, cascaded calls)
  *  - createOpenAIRealtimeProvider: OpenAI Realtime session minting + server sideband (tools, transcripts)
+ *  - createDictationService: live dictation sessions (realtime transcription) with limits and billing
  *  - createCallService: calls end to end ("briefed voice, shared mind", SPEC §11.2) and cascaded turns (§11.3)
  *
  * Signatures here are the package's final contract (docs/implementation.md); modules and exports may be added.
@@ -14,6 +15,8 @@ export type { OpenAIRealtimeOptions } from './openai-realtime';
 export { OpenAISideband } from './openai-sideband';
 export type { SidebandOptions } from './openai-sideband';
 export { createCallService } from './call-service';
+export { createDictationService } from './dictation';
+export type { DictationService, DictationServiceDeps, DictationBudget } from './dictation';
 export type { CallService, CallServiceDeps } from './types';
 export { VoiceError, toProviderError } from './errors';
 export type { VoiceErrorReason } from './errors';

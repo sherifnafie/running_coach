@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import '@fastify/cookie';
 import type { BlobStore, Clock, CoachRuntimeAPI, Logger, ServerConfig, Store } from '@opencoach/protocol';
-import type { CallService } from '@opencoach/voice';
+import type { CallService, DictationService } from '@opencoach/voice';
 import { SESSION_COOKIE, CSRF_COOKIE, SESSION_TTL_MS, RateLimiter, SessionManager, csrfTokenForSession, safeEqual, type AuthContext } from './auth';
 import { conflict, forbidden, tooMany, unauthorized } from './errors';
 import type { SetupCodeManager } from '../setup-code';
@@ -22,6 +22,8 @@ export interface GatewayDeps {
   blobs: BlobStore;
   runtime: CoachRuntimeAPI;
   callService?: CallService;
+  /** Live dictation in the composer (realtime transcription); present only with an OpenAI key. */
+  dictation?: DictationService;
   setupCodes: SetupCodeManager;
   /** VAPID public key; undefined disables push features. */
   vapidPublicKey?: string;

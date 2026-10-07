@@ -299,7 +299,7 @@ export async function startMockServer(opts: MockServerOptions = {}): Promise<Moc
     settings: state.athlete!.settings,
     viewsOrigin: `http://127.0.0.1:${viewsPortActual}`,
     kitUrl: `http://127.0.0.1:${viewsPortActual}/kit/1/kit.js`,
-    features: { voiceNotes: true, calls: { realtime: false, cascaded: true }, passkeys: false, push: false, webSearch: false },
+    features: { voiceNotes: true, calls: { realtime: false, cascaded: true }, passkeys: false, push: false, webSearch: false, dictation: true },
     harnessVersion: '0.1.0-mock',
     demoMode: true,
   });
@@ -453,6 +453,13 @@ export async function startMockServer(opts: MockServerOptions = {}): Promise<Moc
     if (path.startsWith('/v1/auth/passkey')) return apiError(res, 501, 'not_supported', 'Passkeys are not available in the mock server');
 
     // ---- authenticated routes
+    // Stands in for the provider's WebRTC endpoint (authorized by the ephemeral key, not a session).
+    if (path === '/v1/mock-realtime/calls' && method === 'POST') {
+      await readBody(req);
+      res.writeHead(201, { 'content-type': 'application/sdp', location: '/v1/realtime/calls/rtc_mock' });
+      res.end('v=0\r\n');
+      return;
+    }
     if (!authed(req)) return apiError(res, 401, 'unauthorized', 'Sign in required');
     const athlete = state.athlete!;
 
@@ -611,6 +618,13 @@ export async function startMockServer(opts: MockServerOptions = {}): Promise<Moc
         ],
       });
 
+    // Live dictation: a fake transcription session. The SDP exchange is answered here; the browser's
+    // RTCPeerConnection must be stubbed to see text (no real speech recognition in the mock).
+    if (path === '/v1/dictation' && method === 'POST') {
+      return json(res, 200, { sessionId: newId('dict', clock), model: 'mock-transcribe', maxDurationS: 300,
+        connect: { type: 'openai-webrtc', callsUrl: '/v1/mock-realtime/calls', ephemeralKey: 'ek_mock', expiresAt: nowIso(), model: 'mock-transcribe' } });
+    }
+    if (/^\/v1\/dictation\/[^/]+\/end$/.test(path) && method === 'POST') { res.writeHead(204); res.end(); return; }
     if (path === '/v1/calls' && method === 'POST') {
       const callId = newId('call', clock);
       state.callStartedAt.set(callId, clock.now().getTime());

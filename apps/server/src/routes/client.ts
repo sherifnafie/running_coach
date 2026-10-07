@@ -147,6 +147,16 @@ export function clientRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     await voice().end(id(request), params(request).id!, 'athlete');
     reply.code(204).send();
   });
+  // Live dictation: mint a transcription session; the browser streams audio to the provider directly.
+  const dictation = () => {
+    if (!ctx.deps.dictation?.available()) throw unavailable('Live dictation is not configured on this server.', 'dictation_unavailable');
+    return ctx.deps.dictation;
+  };
+  app.post('/v1/dictation', { preHandler: auth }, async (request) => dictation().start(id(request)));
+  app.post('/v1/dictation/:id/end', { preHandler: auth }, async (request, reply) => {
+    await dictation().end(id(request), params(request).id!);
+    reply.code(204).send();
+  });
   app.get('/v1/push/vapid-public-key', { preHandler: auth }, async () => {
     if (!ctx.deps.vapidPublicKey) throw unavailable('Push notifications are not configured.');
     return { key: ctx.deps.vapidPublicKey };

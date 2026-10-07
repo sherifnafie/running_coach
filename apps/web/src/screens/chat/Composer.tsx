@@ -6,6 +6,7 @@ import { consumePrefill, sendFiles, sendText, sendTyping, toast } from '../../li
 import { formatBytes } from '../../lib/format';
 import { lsGet, lsRemove, lsSet } from '../../lib/storage';
 import { useStore } from '../../lib/store';
+import { DictationBar, useDictation } from './Dictation';
 import { useVoiceRecorder, VoiceComposer } from './VoiceComposer';
 
 const ACCEPT = 'image/*,.fit,.gpx,.tcx,.csv,.zip,.pdf,.json';
@@ -23,6 +24,7 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
   const online = useStore(appStore, (s) => s.online);
   const athleteId = useStore(appStore, (s) => s.me?.athlete.id);
   const voiceAvailable = useStore(appStore, (s) => !!s.me?.features.voiceNotes);
+  const dictationAvailable = useStore(appStore, (s) => !!s.me?.features.dictation);
   const draftKey = athleteId ? `oc.draft.${athleteId}` : undefined;
   const [text, setText] = useState(() => draftKey ? lsGet(draftKey) ?? '' : '');
   const [tray, setTray] = useState<Array<{ file: File; id: number }>>([]);
@@ -35,6 +37,13 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileId = useRef(0);
   const voice = useVoiceRecorder(visible);
+  const dictation = useDictation({ visible, text, setText, onDone: () => {
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.focus();
+    requestAnimationFrame(() => ta.setSelectionRange(ta.value.length, ta.value.length));
+  } });
+  const dictating = dictation.phase !== 'idle';
 
   useEffect(() => {
     if (!draftKey) return;
@@ -108,7 +117,7 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
     };
   }, [menu]);
 
-  const canSend = text.trim().length > 0 || tray.length > 0;
+  const canSend = !dictating && (text.trim().length > 0 || tray.length > 0);
   const send = () => {
     if (!canSend) return;
     const files = tray.map((t) => t.file);
@@ -133,6 +142,12 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
     const files = [...e.clipboardData.files];
     if (files.length) { e.preventDefault(); addFiles(files); }
   };
+  const dictate = () => {
+    setMenu(false);
+    setHint(undefined);
+    if (!online) setHint('Reconnect to dictate. You can keep typing while offline.');
+    else void dictation.start();
+  };
   const record = () => {
     setMenu(false);
     if (!voiceAvailable) {
@@ -144,7 +159,7 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
       void voice.begin();
     }
   };
-  const feedback = voice.error ?? (hint && t(hint));
+  const feedback = voice.error ?? dictation.error ?? (hint && t(hint));
 
   return (
     <div className="composer" role="group" aria-label={t("Message composer")}>
@@ -164,10 +179,10 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
               ))}
             </ul>
           )}
-          <textarea ref={taRef} value={text} rows={1} placeholder={t("Message your coach…")} aria-label={t("Message")}
-            enterKeyHint="enter" spellCheck autoCapitalize="sentences"
+          <textarea ref={taRef} value={text} rows={1} placeholder={dictating ? t("Listening…") : t("Message your coach…")} aria-label={t("Message")}
+            enterKeyHint="enter" spellCheck autoCapitalize="sentences" readOnly={dictating} className={dictating ? 'dictating' : undefined}
             onChange={(e) => { setText(e.target.value); if (e.target.value) sendTyping(); }} onKeyDown={onKeyDown} onPaste={onPaste} />
-          <div className="composer-toolbar">
+          {dictating ? <DictationBar dictation={dictation} /> : <div className="composer-toolbar">
             <div className="attach" ref={attachRef}>
               <button ref={attachButton} type="button" className="icon-btn attach-btn" aria-label={t("Attach")} title={t("Add photos or files")} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
                 <Icon name="plus" />
@@ -175,19 +190,22 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
               {menu && <div className="menu up" role="menu" aria-label={t("Add an attachment")}>
                 <button type="button" role="menuitem" autoFocus onClick={() => { setMenu(false); fileRef.current?.click(); }}><Icon name="paperclip" size={19} /> {t("Photos & files")}</button>
                 <button type="button" role="menuitem" onClick={() => { setMenu(false); cameraRef.current?.click(); }}><Icon name="camera" size={19} /> {t("Take a photo")}</button>
+                {dictationAvailable && voiceAvailable && <button type="button" role="menuitem" onClick={record}><Icon name="mic" size={19} /> {t("Record a voice note")}</button>}
               </div>}
             </div>
             <span className="composer-key-hint">{t("Enter to send")} <span aria-hidden="true">·</span> {t("Shift + Enter for a new line")}</span>
             <div className="composer-actions">
-              <button type="button" className="icon-btn mic" aria-label={t("Record a voice note")} title={voiceAvailable ? t("Record a voice note") : t("Voice notes aren’t configured")} onClick={record}><Icon name="mic" size={21} /></button>
+              {dictationAvailable
+                ? <button type="button" className="icon-btn mic" aria-label={t("Dictate")} title={t("Dictate a message")} onClick={dictate}><Icon name="mic" size={21} /></button>
+                : <button type="button" className="icon-btn mic" aria-label={t("Record a voice note")} title={voiceAvailable ? t("Record a voice note") : t("Voice notes aren’t configured")} onClick={record}><Icon name="mic" size={21} /></button>}
               <button type="button" className="icon-btn send" aria-label={t("Send")} title={t("Send message")} disabled={!canSend} onClick={send}><Icon name="arrow-up" size={23} /></button>
             </div>
-          </div>
+          </div>}
         </>}
       </div>
       <input ref={fileRef} type="file" hidden multiple accept={ACCEPT} onChange={(e) => { addFiles([...(e.target.files ?? [])]); e.target.value = ''; }} />
       <input ref={cameraRef} type="file" hidden accept="image/*" capture="environment" onChange={(e) => { addFiles([...(e.target.files ?? [])]); e.target.value = ''; }} />
-      {feedback && <div className="composer-hint" role="status"><span>{feedback}</span><button type="button" className="icon-btn small" aria-label={t("Dismiss message")} onClick={() => { setHint(undefined); voice.clearError(); }}><Icon name="x" size={16} /></button></div>}
+      {feedback && <div className="composer-hint" role="status"><span>{feedback}</span><button type="button" className="icon-btn small" aria-label={t("Dismiss message")} onClick={() => { setHint(undefined); voice.clearError(); dictation.clearError(); }}><Icon name="x" size={16} /></button></div>}
     </div>
   );
 }

@@ -53,6 +53,10 @@ const VOICE_STATUS: Record<string, number> = {
   call_ended: 409,
   wrong_mode: 400,
   already_attached: 409,
+  dictation_unavailable: 503,
+  dictation_not_found: 404,
+  dictation_rate_limited: 429,
+  budget_exhausted: 402,
 };
 
 function isZodError(e: unknown): e is { issues: Array<{ path: Array<string | number>; message: string }> } {

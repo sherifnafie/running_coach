@@ -3,11 +3,11 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SystemClock, consoleLogger, type Clock, type Logger, type ModelProvider, type ServerConfig, type UiRenderer, type ImageProvider } from '@opencoach/protocol';
 import { createAgentLoop, createAnthropicProvider, createCompatibleProvider, createImageProvider, createModelRouter, createOpenAIProvider, createScriptedProvider, demoCoachHandler } from '@opencoach/engine';
-import { createCoachRuntime, createSafetyScreen, createWebSearchBackend } from '@opencoach/runtime';
+import { createCoachRuntime, createSafetyScreen, createWebSearchBackend, localDayStartIso, localMonthStartIso } from '@opencoach/runtime';
 import { createSandboxProvider } from '@opencoach/sandbox';
 import { openSqliteStore } from '@opencoach/store';
 import { createPlaywrightRenderer, chromiumAvailable, kitDistDir, kitDocsDir } from '@opencoach/ui-kit';
-import { createCallService, createOpenAIRealtimeProvider, createSynthesizer, createTranscriber } from '@opencoach/voice';
+import { createCallService, createDictationService, createOpenAIRealtimeProvider, createSynthesizer, createTranscriber } from '@opencoach/voice';
 import { createFsBlobStore, exportAthlete, stripImageLocation } from '@opencoach/workspace';
 import { isDemoConfig, loadConfigDetailed, type LoadConfigOptions } from './config';
 import { createGateway } from './gateway';
@@ -85,12 +85,23 @@ export async function composeServer(opts: ComposeOptions = {}) {
     cleanup.unshift(() => runtime.stop());
     const calls = createCallService({ runtime, store, blobs, clock, logger, dataDir: config.dataDir, config: config.voice, realtime, transcriber, synthesizer });
     cleanup.unshift(() => calls.dispose());
+    const dictation = createDictationService({ store, clock, logger, config: config.voice.dictation, realtime,
+      budget: async (athleteId) => {
+        const settings = await store.getSettings(athleteId);
+        const now = clock.now();
+        const [day, month] = await Promise.all([
+          store.sumUsage(athleteId, localDayStartIso(now, settings.profile.tz)),
+          store.sumUsage(athleteId, localMonthStartIso(now, settings.profile.tz)),
+        ]);
+        return { dayUsd: day.costUsd, monthUsd: month.costUsd, dailyUsd: settings.budgets.dailyUsd, monthlyUsd: settings.budgets.monthlyUsd };
+      } });
+    cleanup.unshift(() => dictation.dispose());
     if (config.telegram?.botToken) {
       telegram = createTelegramAdapter({ token: config.telegram.botToken, store, clock, runtime, logger });
       cleanup.unshift(() => telegram!.stop());
     }
     const setupCodes = new SetupCodeManager({ store, clock, dataDir: config.dataDir, logger, publicUrl: config.publicUrl, print: opts.printSetupCode });
-    const gateway = await createGateway({ config, clock, logger, store, blobs, runtime, callService: calls,
+    const gateway = await createGateway({ config, clock, logger, store, blobs, runtime, callService: calls, dictation,
       setupCodes, kitDir, webDist: opts.webDist ?? DEFAULT_WEB_DIST, features: { demoMode: isDemoConfig(config), webSearch: !!webSearch, imageGeneration: !!imageProvider },
       vapidPublicKey: push.publicKey?.(), exportAthlete, stripImageLocation,
       telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); },

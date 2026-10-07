@@ -87,6 +87,23 @@ voice:
 
 Phones only allow microphone access over HTTPS. If speech isn't configured, the microphone button explains why instead of recording.
 
+### Live dictation
+
+With `OPENAI_API_KEY` set, the chat's microphone button becomes **live dictation**: words appear in the message box as you speak, ✓ keeps them for editing and ✕ restores what you had. Nothing is sent until you press send, and voice notes move to the **+** menu. The browser streams audio straight to OpenAI's realtime transcription with a short-lived key minted by the server (your API key never reaches the browser, and no audio is stored). Without an OpenAI key the button stays the voice-note recorder.
+
+```yaml
+voice:
+  dictation:
+    enabled: true                 # default; needs an OpenAI key
+    model: gpt-realtime-whisper   # or gpt-live-transcribe (OpenAI's newer low-latency model)
+    # delay: low                  # minimal | low | medium | high | xhigh, for models that support it
+    maxDurationS: 300             # per session; the app finishes dictation at this length
+    costPerMinuteUsd: 0.017       # counted against each athlete's AI budget
+    maxSessionsPerHour: 60
+```
+
+Usage is billed per session from the time it was open on the server, capped at `maxDurationS`, and appears with the other speech costs. A session is shortened to fit the athlete's remaining daily and monthly budget and refused when the budget is used up.
+
 ## Phone access and views
 
 `PUBLIC_URL` and `VIEWS_URL` must be distinct origins the phone can reach. Use HTTPS through a reverse proxy or tunnel (Tailscale, Cloudflare Tunnel, Caddy, …) for passkeys, the microphone, installing the PWA and push. Proxy WebSocket upgrades for `/v1/stream`, preserve the original `Origin` header, and set `OPENCOACH_TRUST_PROXY`.

@@ -3,6 +3,7 @@ import type {
   AthleteSettings,
   AuthResponse,
   CallSessionInfo,
+  DictationSessionInfo,
   CascadedUtteranceResponse,
   ChangeEntry,
   EventsPage,
@@ -108,6 +109,12 @@ export const views = {
 };
 
 const enc = encodeURIComponent;
+
+// ---- live dictation ------------------------------------------------------------------------
+export const dictation = {
+  start: () => api.post<DictationSessionInfo>('/v1/dictation'),
+  end: (sessionId: string) => api.post<void>(`/v1/dictation/${enc(sessionId)}/end`),
+};
 
 // ---- calls ----------------------------------------------------------------------------------
 export const calls = {

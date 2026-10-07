@@ -13,7 +13,15 @@ export type VoiceErrorReason =
   /** e.g. `utterance` on a realtime call, or `attach` on a cascaded call. */
   | 'wrong_mode'
   /** `attach` called twice with different provider call ids. */
-  | 'already_attached';
+  | 'already_attached'
+  /** Live dictation needs an OpenAI key (realtime transcription) and is not configured or disabled. */
+  | 'dictation_unavailable'
+  /** Unknown dictation session, or one belonging to another athlete. */
+  | 'dictation_not_found'
+  /** Too many dictation sessions started in the last hour. */
+  | 'dictation_rate_limited'
+  /** The athlete's daily or monthly AI budget is used up. */
+  | 'budget_exhausted';
 
 const CODES: Record<VoiceErrorReason, ToolErrorCode> = {
   voice_notes_unavailable: 'NOT_CONFIGURED',
@@ -22,6 +30,10 @@ const CODES: Record<VoiceErrorReason, ToolErrorCode> = {
   call_ended: 'NOT_ALLOWED',
   wrong_mode: 'INVALID_INPUT',
   already_attached: 'NOT_ALLOWED',
+  dictation_unavailable: 'NOT_CONFIGURED',
+  dictation_not_found: 'NOT_FOUND',
+  dictation_rate_limited: 'LIMIT',
+  budget_exhausted: 'LIMIT',
 };
 
 /** Typed error thrown by the voice package (a `ToolError`, so the usual code mapping applies). */

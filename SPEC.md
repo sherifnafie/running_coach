@@ -717,6 +717,8 @@ RPE (session RPE, 1–10), sleep, soreness, mood and stress, pain (location by b
 
 The athlete taps to record, stops, then can listen, discard or explicitly send. Permission prompts never implicitly cancel or send a recording. The transcription tier transcribes, and the event carries both the audio blob and the transcript. The coach may reply with a voice note (TTS). This is asynchronous and cheap, and it is how many athletes already talk to human coaches, so **voice notes ship in the MVP, ahead of calls.**
 
+- `[VOICE-1]` **Live dictation** (optional, needs a realtime transcription provider; OpenAI today). The composer's microphone streams speech to text into the draft as the athlete talks; the athlete edits and sends it as an ordinary message. The browser connects to the provider with a short-lived, server-minted transcription credential (no provider key in the client, no audio stored, coach not involved). The server enforces one open session per athlete, a per-hour start limit, the AI budget (sessions shortened to fit, refused when exhausted) and per-session usage billing [COST-1].
+
 ### 10.5 Future data sources, and the ToS minefield
 
 - **On-device OS health stores (Phase 2, preferred):** Android **Health Connect** (Samsung Health syncs into it) and iOS **HealthKit**, read on-device by the native shell and uploaded as raw sync batches into `/raw`, emitting `data.synced`. The data is the athlete's own and flows under their consent.

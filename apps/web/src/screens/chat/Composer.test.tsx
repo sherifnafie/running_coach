@@ -4,13 +4,15 @@ import { defaultSettings, type MeResponse } from '@opencoach/protocol';
 import { patchApp } from '../../lib/appState';
 import { sendText, sendVoiceNote } from '../../lib/controller';
 import { startRecording, type ActiveRecorder } from '../../lib/recorder';
+import { startDictation, type DictationHandlers } from '../../lib/dictation';
 import { Composer } from './Composer';
 
 vi.mock('../../lib/controller', () => ({ sendText: vi.fn(), sendFiles: vi.fn(), sendTyping: vi.fn(), sendVoiceNote: vi.fn(), consumePrefill: vi.fn(), toast: vi.fn() }));
 vi.mock('../../lib/recorder', async (original) => ({ ...await original<typeof import('../../lib/recorder')>(), startRecording: vi.fn() }));
+vi.mock('../../lib/dictation', async (original) => ({ ...await original<typeof import('../../lib/dictation')>(), startDictation: vi.fn() }));
 
-function me(id = 'athlete-a', voiceNotes = true): MeResponse {
-  return { athlete: { id, displayName: 'Test runner', isAdmin: false }, settings: defaultSettings(), viewsOrigin: 'https://views.test', kitUrl: 'https://views.test/kit', features: { voiceNotes, calls: { realtime: false, cascaded: false }, passkeys: false, push: false, webSearch: false }, harnessVersion: 'test', demoMode: true };
+function me(id = 'athlete-a', voiceNotes = true, dictation = false): MeResponse {
+  return { athlete: { id, displayName: 'Test runner', isAdmin: false }, settings: defaultSettings(), viewsOrigin: 'https://views.test', kitUrl: 'https://views.test/kit', features: { voiceNotes, calls: { realtime: false, cascaded: false }, passkeys: false, push: false, webSearch: false, dictation }, harnessVersion: 'test', demoMode: true };
 }
 function recorder(): ActiveRecorder {
   return { stream: {} as MediaStream, cancel: vi.fn(), level: () => 0.4, stop: vi.fn().mockResolvedValue({ blob: new Blob(['test audio']), mime: 'audio/webm', durationMs: 1600 }) };
@@ -123,5 +125,35 @@ describe('[UI-1] chat composer', () => {
     view.rerender(<Composer visible={false} />);
     await waitFor(() => expect(active.cancel).toHaveBeenCalledOnce());
     expect(sendVoiceNote).not.toHaveBeenCalled();
+  });
+
+  it('dictates live into the draft: text streams in, done keeps it editable, cancel restores the draft', async () => {
+    patchApp({ me: me('athlete-a', true, true) });
+    let handlers: DictationHandlers | undefined;
+    const finish = vi.fn(async () => 'heavy but fine');
+    const cancel = vi.fn();
+    vi.mocked(startDictation).mockImplementation(async (h) => { handlers = h; return { info: {} as never, finish, cancel }; });
+    render(<Composer />);
+    fireEvent.change(message(), { target: { value: 'Squats felt' } });
+    expect(screen.queryByRole('button', { name: 'Record a voice note' })).toBeNull();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Dictate' })); });
+    expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Done dictating' })).toHaveProperty('disabled', true);
+    act(() => { handlers!.onLive(); handlers!.onText('heavy but'); });
+    expect((message() as HTMLTextAreaElement).value).toBe('Squats felt heavy but');
+    expect(message()).toHaveProperty('readOnly', true);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Done dictating' })); });
+    await waitFor(() => expect((message() as HTMLTextAreaElement).value).toBe('Squats felt heavy but fine'));
+    expect(message()).toHaveProperty('readOnly', false);
+    expect(sendText).not.toHaveBeenCalled(); // never sends on its own
+
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Dictate' })); });
+    act(() => { handlers!.onLive(); handlers!.onText('oops'); });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel dictation' }));
+    expect(cancel).toHaveBeenCalled();
+    expect((message() as HTMLTextAreaElement).value).toBe('Squats felt heavy but fine');
+    // Voice notes stay available from the attachment menu.
+    fireEvent.click(screen.getByRole('button', { name: 'Attach' }));
+    expect(screen.getByRole('menuitem', { name: 'Record a voice note' })).toBeTruthy();
   });
 });

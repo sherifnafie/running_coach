@@ -1,5 +1,13 @@
 /** Shell-only labels are excluded from the isolated-view kit bundle. */
 export const shellLabels: Record<string, [string, string]> = {
+  "Dictate": ["Dicteren", "إملاء"],
+  "Dictate a message": ["Een bericht dicteren", "إملاء رسالة"],
+  "Listening…": ["Aan het luisteren…", "جارٍ الاستماع…"],
+  "Starting dictation…": ["Dicteren starten…", "جارٍ بدء الإملاء…"],
+  "Finishing…": ["Afronden…", "جارٍ الإنهاء…"],
+  "Cancel dictation": ["Dicteren annuleren", "إلغاء الإملاء"],
+  "Done dictating": ["Klaar met dicteren", "انتهيت من الإملاء"],
+  "Reconnect to dictate. You can keep typing while offline.": ["Maak opnieuw verbinding om te dicteren. Je kunt offline blijven typen.", "أعد الاتصال للإملاء. يمكنك متابعة الكتابة دون اتصال."],
   "Coach avatar": ["Coachavatar", "صورة المدرب"],
   "Reset avatar": ["Avatar herstellen", "إعادة ضبط الصورة"],
   "Let my coach change its name and avatar": ["Laat mijn coach de naam en avatar veranderen", "السماح لمدربي بتغيير اسمه وصورته"],

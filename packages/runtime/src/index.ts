@@ -8,5 +8,5 @@ export type { CoachRuntimeDeps } from './deps';
 export { createWebSearchBackend, createWebPort, safeFetch, htmlToText, isPrivateAddress } from './web';
 export { createSafetyScreen, heuristicScreen, safetyBannerText } from './safety';
 export { athleteForViewToken } from './ui-service';
-export { nextFire, quietHoursEnd, epochDate, formatLocal } from './time';
+export { nextFire, quietHoursEnd, epochDate, formatLocal, localDayStartIso, localMonthStartIso } from './time';
 export { buildTriggerItem, renderTriggerBody, rawPath } from './render';

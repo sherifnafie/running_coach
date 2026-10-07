@@ -12,7 +12,7 @@ import {
 } from '@opencoach/protocol';
 import { openSqliteStore } from '@opencoach/store';
 import { createFsBlobStore } from '@opencoach/workspace';
-import type { CallService } from '@opencoach/voice';
+import type { CallService, DictationService } from '@opencoach/voice';
 import { createGateway } from '../src/gateway';
 import { SetupCodeManager, issueSetupCode } from '../src/setup-code';
 import { SESSION_COOKIE, CSRF_COOKIE, sha256Hex } from '../src/http/auth';
@@ -22,7 +22,7 @@ const logger: Logger = { debug() {}, info() {}, warn() {}, error() {}, child() {
 const cleanups: Array<() => Promise<unknown>> = [];
 afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
 
-async function fixture() {
+async function fixture(opts: { dictation?: DictationService } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'oc-gateway-'));
   cleanups.push(() => rm(dir, { recursive: true, force: true }));
   const clock = new VirtualClock('2026-10-06T10:00:00.000Z');
@@ -74,7 +74,7 @@ async function fixture() {
   const exportPath = join(dir, 'bundle.tar.gz');
   await writeFile(exportPath, 'archive');
   const strip = vi.fn(async (_data: Uint8Array): Promise<Uint8Array> => Buffer.from('stripped'));
-  const gateway = await createGateway({ config, clock, store, runtime, blobs, logger, setupCodes, callService: calls,
+  const gateway = await createGateway({ config, clock, store, runtime, blobs, logger, setupCodes, callService: calls, dictation: opts.dictation,
     kitDir, webDist, stripImageLocation: strip, exportAthlete: async () => exportPath, vapidPublicKey: 'vapid-test' });
   cleanups.push(async () => { await gateway.app.close(); await gateway.views.close(); });
   async function setup(displayName = 'Athlete') {
@@ -183,6 +183,29 @@ describe('gateway authentication and client API [SEC-4] [RT-3]', () => {
     expect(call.json().callId).toBe('call_test');
     const utterance = await f.app.inject({ method: 'POST', url: '/v1/calls/call_test/utterance', ...audio, headers: { ...headers, ...audio.headers } });
     expect(utterance.json()).toMatchObject({ transcript: 'hi', replyText: 'hello', audioUrl: `/v1/blobs/${'a'.repeat(64)}` });
+  });
+});
+
+describe('live dictation routes [SEC-4] [COST-1]', () => {
+  it('is off without a provider, and mints and ends only authenticated, athlete-scoped sessions when on', async () => {
+    const off = await fixture(); const a = await off.setup();
+    expect((await off.app.inject({ url: '/v1/me', headers: off.bearer(a.token) })).json().features.dictation).toBe(false);
+    const refused = await off.app.inject({ method: 'POST', url: '/v1/dictation', headers: off.bearer(a.token) });
+    expect([refused.statusCode, refused.json().error?.code ?? refused.json().code]).toEqual([503, 'dictation_unavailable']);
+
+    const dictation: DictationService = {
+      available: () => true,
+      start: vi.fn(async () => ({ sessionId: 'dict_1', model: 'gpt-realtime-whisper', maxDurationS: 300, connect: { type: 'openai-webrtc' as const, callsUrl: 'https://api.openai.com/v1/realtime/calls', ephemeralKey: 'ek_1', expiresAt: '2026-10-06T10:02:00.000Z', model: 'gpt-realtime-whisper' } })),
+      end: vi.fn(async () => {}), dispose: async () => {},
+    };
+    const on = await fixture({ dictation }); const b = await on.setup();
+    expect((await on.app.inject({ method: 'POST', url: '/v1/dictation' })).statusCode).toBe(401);
+    expect((await on.app.inject({ url: '/v1/me', headers: on.bearer(b.token) })).json().features.dictation).toBe(true);
+    const started = await on.app.inject({ method: 'POST', url: '/v1/dictation', headers: on.bearer(b.token) });
+    expect(started.json()).toMatchObject({ sessionId: 'dict_1', connect: { ephemeralKey: 'ek_1' } });
+    expect(dictation.start).toHaveBeenCalledWith(b.athleteId);
+    expect((await on.app.inject({ method: 'POST', url: '/v1/dictation/dict_1/end', headers: on.bearer(b.token) })).statusCode).toBe(204);
+    expect(dictation.end).toHaveBeenCalledWith(b.athleteId, 'dict_1');
   });
 });
 

@@ -71,6 +71,7 @@ export type IdPrefix =
   | 'sch' // schedules
   | 'ep' // epochs
   | 'call'
+  | 'dict' // live dictation sessions
   | 'ses' // sessions
   | 'job'
   | 'tool'

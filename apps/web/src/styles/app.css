@@ -2067,3 +2067,42 @@ input[aria-invalid='true'] {
   border-color: var(--rc-danger);
   color: #fff;
 }
+
+/* ---- live dictation (composer toolbar while dictating) ------------------------------------------------------------ */
+.composer-box textarea.dictating { caret-color: transparent; }
+.dictation-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.dictation-cancel { color: var(--rc-muted); }
+.dictation-wave {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  color: var(--rc-muted);
+}
+.dictation-wave .rec-time { font-size: 0.85rem; min-width: 34px; }
+.dictation-levels {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  flex: 1;
+  height: 28px;
+  overflow: hidden;
+}
+.dictation-levels i {
+  display: block;
+  flex: 0 0 3px;
+  border-radius: 3px;
+  background: var(--rc-text);
+  opacity: 0.75;
+  transition: height 0.08s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dictation-levels i { transition: none; }
+}

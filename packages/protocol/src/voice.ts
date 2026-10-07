@@ -63,8 +63,25 @@ export interface RealtimeVoiceProvider {
   readonly id: string;
   /** Create a provider session + ephemeral client credential. */
   createSession(input: { instructions: string; tools: ToolSpec[]; voice: string; model: string }): Promise<RealtimeClientConnect>;
+  /**
+   * Create a transcription-only session (live dictation) + ephemeral client credential. The client streams
+   * microphone audio and receives transcript deltas directly; no model replies, tools or server sideband.
+   */
+  createTranscriptionSession?(input: { model: string; language?: string; prompt?: string; delay?: DictationDelay }): Promise<RealtimeClientConnect>;
   /** Attach the server-side control channel to the call the client established. */
   attachSideband(input: { providerCallId: string; model: string; handlers: RealtimeSidebandHandlers }): Promise<RealtimeSideband>;
+}
+
+export const DictationDelay = z.enum(['minimal', 'low', 'medium', 'high', 'xhigh']);
+export type DictationDelay = z.infer<typeof DictationDelay>;
+
+/** A live dictation session: the client connects to the provider directly with the ephemeral credential. */
+export interface DictationSessionInfo {
+  sessionId: string;
+  model: string;
+  connect: RealtimeClientConnect;
+  /** The client stops dictating after this many seconds; the server bills at most this much per session. */
+  maxDurationS: number;
 }
 
 export const VoiceConfig = z.object({
@@ -76,6 +93,23 @@ export const VoiceConfig = z.object({
     .prefault({}),
   tts: z
     .object({ provider: z.enum(['openai', 'openai-compatible', 'none']).default('openai'), model: z.string().default('gpt-4o-mini-tts'), voice: z.string().default('alloy'), baseUrl: z.string().optional(), apiKeyEnv: z.string().optional() })
+    .prefault({}),
+  /**
+   * Live dictation in the chat composer (realtime transcription). Available only with an OpenAI key.
+   * `gpt-live-transcribe` is OpenAI's newer low-latency alternative to `gpt-realtime-whisper`.
+   */
+  dictation: z
+    .object({
+      enabled: z.boolean().default(true),
+      model: z.string().default('gpt-realtime-whisper'),
+      /** Latency/accuracy trade-off for models that support it; omitted = provider default. */
+      delay: DictationDelay.optional(),
+      maxDurationS: z.number().int().min(10).max(1800).default(300),
+      /** Billed per minute of open session (server-measured), for budgets [COST-1]. */
+      costPerMinuteUsd: z.number().min(0).default(0.017),
+      /** New sessions per athlete per hour. */
+      maxSessionsPerHour: z.number().int().min(1).max(600).default(60),
+    })
     .prefault({}),
 });
 export type VoiceConfig = z.infer<typeof VoiceConfig>;
