@@ -141,6 +141,7 @@ export const account = {
   startExport: () => api.post<{ jobId: string }>('/v1/export'),
   exportUrl: (jobId: string) => `/v1/export/${enc(jobId)}`,
   delete: () => request<void>('DELETE', '/v1/account', { confirm: 'DELETE' }),
+  reset: () => request<void>('POST', '/v1/account/reset', { confirm: 'RESET' }),
 };
 
 // ---- model access & costs --------------------------------------------------------------------

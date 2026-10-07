@@ -91,6 +91,8 @@ export interface CoachRuntimeAPI {
   createAthlete(input: CreateAthleteInput): Promise<AthleteRecord>;
   /** Hard delete: rows, workspace, blobs, snapshots (SPEC [SEC-6]). */
   deleteAthlete(athleteId: string): Promise<void>;
+  /** Start over: a fresh coach (workspace, conversation, views) on the same account; account, role, sign-ins and keys stay. */
+  resetAthlete(athleteId: string): Promise<void>;
   updateSettings(athleteId: string, patch: unknown): Promise<AthleteSettings>;
 
   /** Validate + append a client-submitted event and wake the athlete's mind if needed. */

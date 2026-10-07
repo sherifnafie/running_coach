@@ -352,6 +352,37 @@ export class SqliteStore implements Store {
     this.patchRow('athletes', ATHLETE, 'id', id, allowed, ['id', 'createdAt'], 'athlete');
   }
 
+  async resetAthleteCoach(id: string): Promise<void> {
+    if (!(await this.getAthlete(id))) throw new Error(`athlete not found: ${id}`);
+    this.tx(() => {
+      this.run("DELETE FROM kv WHERE key IN (SELECT 'epoch-system:' || id FROM epochs WHERE athlete_id = ?)", id);
+      this.run(`DELETE FROM idempotency WHERE EXISTS (
+        SELECT 1 FROM turns WHERE athlete_id = ?
+        AND substr(idempotency.key, 1, length('msg:' || turns.id || ':')) = 'msg:' || turns.id || ':'
+      )`, id);
+      for (const prefix of [`message:${id}:`, `tool:${id}:`, `export:${id}:`, `upload-draft:${id}:`, `image-attempt:${id}:`]) {
+        this.run('DELETE FROM idempotency WHERE substr(key, 1, length(?)) = ?', prefix, prefix);
+        this.run('DELETE FROM kv WHERE substr(key, 1, length(?)) = ?', prefix, prefix);
+      }
+      for (const key of [`app-manifest:${id}`, `harness-version:${id}`, `last-head:${id}`, `turns-since-pinned-write:${id}`, `upload-drafts:${id}`]) {
+        this.run('DELETE FROM kv WHERE key = ?', key);
+      }
+      this.run("DELETE FROM kv WHERE substr(key, 1, 7) = 'notice:' AND substr(key, -length(?)) = ?", `:${id}`, `:${id}`);
+      this.run('DELETE FROM events_fts WHERE rowid IN (SELECT seq FROM events WHERE athlete_id = ?)', id);
+      this.run('DELETE FROM events WHERE athlete_id = ?', id);
+      this.run('DELETE FROM message_state WHERE athlete_id = ?', id);
+      this.run('DELETE FROM blobs WHERE athlete_id = ?', id);
+      this.run('DELETE FROM schedules WHERE athlete_id = ?', id);
+      this.run('DELETE FROM epoch_items WHERE epoch_id IN (SELECT id FROM epochs WHERE athlete_id = ?)', id);
+      this.run('DELETE FROM epochs WHERE athlete_id = ?', id);
+      this.run('DELETE FROM turn_contexts WHERE athlete_id = ? OR turn_id IN (SELECT id FROM turns WHERE athlete_id = ?)', id, id);
+      this.run('DELETE FROM turns WHERE athlete_id = ?', id);
+      this.run('DELETE FROM tasks WHERE athlete_id = ?', id);
+      this.run('DELETE FROM ui_current WHERE athlete_id = ?', id);
+      this.run('DELETE FROM ui_versions WHERE athlete_id = ?', id);
+    });
+  }
+
   async deleteAthlete(id: string): Promise<void> {
     this.tx(() => {
       // Privacy includes caches and capability mappings, which do not have athlete_id columns.

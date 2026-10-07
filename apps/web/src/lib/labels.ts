@@ -1,5 +1,9 @@
 /** Shell-only labels are excluded from the isolated-view kit bundle. */
 export const shellLabels: Record<string, [string, string]> = {
+  "Start over with a fresh coach": ["Opnieuw beginnen met een nieuwe coach", "البدء من جديد بمدرب جديد"],
+  "Clears your conversation, your coach's notes and plans, uploads and app screens, and starts again with today's defaults. Your account, sign-ins, settings and keys stay. Download your data first if you want a copy.": ["Wist je gesprek, de notities en plannen van je coach, uploads en app-schermen, en begint opnieuw met de huidige standaard. Je account, inlogmethodes, instellingen en sleutels blijven. Download eerst je gegevens als je een kopie wilt.", "يمسح محادثتك وملاحظات مدربك وخططه والملفات المرفوعة وشاشات التطبيق، ويبدأ من جديد بالإعدادات الافتراضية الحالية. يبقى حسابك وطرق تسجيل الدخول والإعدادات والمفاتيح. نزّل بياناتك أولًا إن أردت نسخة."],
+  "Start over": ["Opnieuw beginnen", "ابدأ من جديد"],
+  "Starting over…": ["Opnieuw beginnen…", "جارٍ البدء من جديد…"],
   "you": ["jij", "أنت"],
   "Suspended": ["Geschorst", "موقوف"],
   "Account suspended": ["Account geschorst", "الحساب موقوف"],

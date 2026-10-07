@@ -44,6 +44,7 @@ async function fixture(opts: { ai?: boolean; dictation?: DictationService } = {}
     createAthlete: async (input) => store.createAthlete({ id: newId('ath', clock), displayName: input.displayName, isAdmin: input.isAdmin,
       settings: { ...defaultSettings(), profile: { ...defaultSettings().profile, name: input.displayName, coachName: input.coachName ?? 'Coach', tz: input.tz, locale: input.locale }, consents: { ...defaultSettings().consents, ...input.consents }, calendarToken: 'legacy-runtime-token' } }),
     deleteAthlete: vi.fn(async (id) => { await store.deleteAthlete(id); }),
+    resetAthlete: vi.fn(async (id) => { await store.resetAthleteCoach(id); }),
     updateSettings: async (id, patch) => (await store.updateSettings(id, patch)).settings,
     ingest, appendSystemEvent: async (event) => await store.appendEvent(event) as AnyEvent,
     presence: () => 'idle', subscribe: (id, listener) => { let set = listeners.get(id); if (!set) listeners.set(id, set = new Set()); set.add(listener); return () => set!.delete(listener); },
@@ -418,6 +419,19 @@ describe('administrators suspend, reactivate and delete other accounts [SEC-4] [
     expect(f.runtime.deleteAthlete).toHaveBeenCalledWith(kid.athleteId);
     expect(await f.store.getAthlete(kid.athleteId)).toBeUndefined();
     expect((await f.app.inject({ url: '/v1/me', headers: adminHeaders })).statusCode).toBe(200);
+  });
+
+  it('an administrator can start over with a fresh coach and stays signed in as admin', async () => {
+    const f = await fixture();
+    const admin = await f.setup('Admin');
+    const headers = f.bearer(admin.token);
+    expect((await f.app.inject({ method: 'POST', url: '/v1/account/reset', headers, payload: { confirm: 'reset' } })).statusCode).toBe(400);
+    expect((await f.app.inject({ method: 'POST', url: '/v1/account/reset', headers, payload: { confirm: 'RESET' } })).statusCode).toBe(204);
+    expect(f.runtime.resetAthlete).toHaveBeenCalledWith(admin.athleteId);
+    const me = await f.app.inject({ url: '/v1/me', headers });
+    expect(me.statusCode).toBe(200);
+    expect(me.json().athlete.isAdmin).toBe(true);
+    expect((await f.app.inject({ url: '/admin/athletes', headers })).statusCode).toBe(200);
   });
 });
 

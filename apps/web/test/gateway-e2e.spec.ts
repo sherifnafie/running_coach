@@ -276,8 +276,15 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await frame.getByText('Done', { exact: true }).waitFor();
     const verify = new DatabaseSync(join(athletePaths(server.config.dataDir, athleteId).workspace, 'data/coach.db'), { readOnly: true });
     try { expect(verify.prepare('SELECT status FROM planned_workouts WHERE id=?').get('easy')?.status).toBe('done'); } finally { verify.close(); }
-    await frame.getByRole('button', { name: 'Ask coach', exact: true }).click();
+    // Marking done can wake the coach, whose reply refreshes the subscription and rebuilds the card. A click that
+    // straddles that rebuild is lost, so let the coach settle first and retry until the app navigates.
+    await server.runtime.whenIdle(athleteId);
     const composer = page.getByRole('textbox', { name: 'Message', exact: true });
+    for (let attempt = 0; !page.url().includes('#/chat'); attempt++) {
+      if (attempt === 3) throw new Error('Ask coach did not open the chat');
+      await frame.getByRole('button', { name: 'Ask coach', exact: true }).click();
+      await page.waitForURL(/#\/chat/, { timeout: 3000 }).catch(() => undefined);
+    }
     await composer.waitFor();
     expect(await composer.inputValue()).toContain("About today's session (Gateway easy run)");
     await composer.fill('');

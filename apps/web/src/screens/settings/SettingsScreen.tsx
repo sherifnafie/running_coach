@@ -16,7 +16,7 @@ import { useRoute } from '../../lib/router';
 import { useStore } from '../../lib/store';
 import { AdminSection } from './AdminSection';
 import { AiSection } from './AiSection';
-import { ChangesSection, DataSection, DeleteSection, ViewHistorySection } from './DataSections';
+import { ChangesSection, DataSection, DeleteSection, ResetSection, ViewHistorySection } from './DataSections';
 import { HealthConnectSection } from './HealthConnectSection';
 import { NumberRow, Row, SaveContext, SelectRow, TextRow, TimeRow, Toggle, useCommit, type SaveStatus } from './Controls';
 
@@ -78,6 +78,7 @@ export function SettingsScreen() {
         <ChangesSection />
         <ViewHistorySection />
         <DataSection />
+        <ResetSection />
         <DeleteSection />
         {me.athlete.isAdmin && <AdminSection />}
         <AboutSection />

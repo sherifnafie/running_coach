@@ -227,6 +227,12 @@ export interface Store {
   getAthlete(id: string): Promise<AthleteRecord | undefined>;
   listAthletes(): Promise<AthleteRecord[]>;
   updateAthlete(id: string, patch: Partial<Pick<AthleteRecord, 'displayName' | 'isAdmin' | 'status' | 'suspendedAt'>>): Promise<void>;
+  /**
+   * "Start over": remove everything the coach accumulated (conversation, memory epochs, turns, tasks, schedules,
+   * uploads, published views, caches) but keep the account itself: athlete row and admin role, settings,
+   * sessions, passkeys, credentials, push subscriptions, Telegram links, usage (budgets) and audit.
+   */
+  resetAthleteCoach(id: string): Promise<void>;
   /** Hard delete of every row belonging to the athlete (SPEC [SEC-6]). */
   deleteAthlete(id: string): Promise<void>;
   getSettings(athleteId: string): Promise<AthleteSettings>;

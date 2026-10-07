@@ -43,6 +43,31 @@ describe('runtime: suspended accounts [SEC-4] [COST-1]', () => {
   });
 });
 
+describe('runtime: start over [WS-2] [SEC-6]', () => {
+  it('replaces the coach with a fresh seeded one on the same admin account and greets again', async () => {
+    h = await makeHarness();
+    const id = await newAthlete(h);
+    await greet(h, id);
+    const ws = h.runtime.core.paths(id).workspace;
+    await writeFile(join(ws, 'athlete/profile.md'), 'OLD PROFILE: marathon runner');
+    await h.runtime.core.store.recordUsage({ athleteId: id, at: '2026-10-06T10:00:00.000Z', provider: 'p', model: 'm', kind: 'turn', usage: { inputTokens: 1, cachedInputTokens: 0, cacheWriteTokens: 0, outputTokens: 1 }, costUsd: 0.5 });
+
+    await h.runtime.resetAthlete(id);
+    expect(await h.runtime.core.store.getAthlete(id)).toMatchObject({ isAdmin: true, status: 'active' });
+    expect(await readFile(join(ws, 'athlete/profile.md'), 'utf8')).not.toContain('OLD PROFILE');
+    expect(await readFile(join(ws, 'AGENTS.md'), 'utf8')).toContain('## Disciplines');
+    expect((await h.runtime.views.appInfo(id)).views.length).toBeGreaterThanOrEqual(1);
+    expect(await h.events(id, ['coach.message'])).toEqual([]);
+    expect((await h.runtime.core.store.sumUsage(id, '2000-01-01T00:00:00.000Z')).costUsd).toBeGreaterThanOrEqual(0.5); // budgets stay honest
+
+    await greet(h, id);
+    const greeting = h.requests.at(-2)!;
+    expect(situationText(greeting)).toContain('FIRST CONTACT');
+    expect(lastUserText(greeting)).toContain('fresh start');
+    expect(await h.events(id, ['coach.message'])).toHaveLength(1);
+  });
+});
+
 describe('runtime: onboarding & reactive turns', () => {
   it('creates a workspace, publishes seed views and greets on first contact', async () => {
     h = await makeHarness();

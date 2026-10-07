@@ -201,7 +201,15 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
       calendarToken: randomToken(24),
     }).settings;
     const athlete = await core.store.createAthlete({ displayName: input.displayName, isAdmin: input.isAdmin, settings });
-    const paths = core.paths(athlete.id);
+    await this.seedCoach(athlete.id, settings, now, 'First contact: the athlete just created their account. Greet them warmly, introduce yourself briefly, and start the intake conversation (see the intake skill). Keep the first message short.');
+    await core.store.audit({ athleteId: athlete.id, at: now, actor: 'harness', action: 'athlete.created', detail: { isAdmin: input.isAdmin } });
+    return athlete;
+  }
+
+  /** A fresh coach for an account: seed workspace, starter views, harness schedules and a first-contact wake. */
+  private async seedCoach(athleteId: string, settings: AthleteSettings, now: string, firstContact: string): Promise<void> {
+    const core = this.core;
+    const paths = core.paths(athleteId);
     await ensureAthleteDirs(paths);
     await initWorkspace({
       paths,
@@ -215,19 +223,15 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
         created_date: now.slice(0, 10),
       },
     });
-    await core.ui.publishSeed(athlete.id);
-    await core.store.setKv(`harness-version:${athlete.id}`, HARNESS_VERSION);
-    await core.store.setKv(`last-head:${athlete.id}`, await openWorkspaceGit(paths.workspace, core.clock).head());
-    await core.scheduler.ensureHarnessSchedules(athlete.id);
-    await core.scheduler.firstContact(
-      athlete.id,
-      'First contact: the athlete just created their account. Greet them warmly, introduce yourself briefly, and start the intake conversation (see the intake skill). Keep the first message short.',
-    );
-    await core.store.audit({ athleteId: athlete.id, at: now, actor: 'harness', action: 'athlete.created', detail: { isAdmin: input.isAdmin } });
-    return athlete;
+    await core.ui.publishSeed(athleteId);
+    await core.store.setKv(`harness-version:${athleteId}`, HARNESS_VERSION);
+    await core.store.setKv(`last-head:${athleteId}`, await openWorkspaceGit(paths.workspace, core.clock).head());
+    await core.scheduler.ensureHarnessSchedules(athleteId);
+    await core.scheduler.firstContact(athleteId, firstContact);
   }
 
-  async deleteAthlete(athleteId: string): Promise<void> {
+  /** Stop everything running for this athlete (turns, helpers, sandboxes) and wait until it is quiet. */
+  private async quiesce(athleteId: string): Promise<void> {
     const core = this.core;
     const mind = core.minds.get(athleteId);
     core.turns.abortAthlete(athleteId);
@@ -236,6 +240,30 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     await mind.whenIdle();
     core.minds.delete(athleteId);
     await core.releaseAthleteSandboxes(athleteId);
+  }
+
+  /**
+   * "Start over" (the athlete's own choice): a brand-new coach on the same account. Conversation, memory, workspace,
+   * uploads and views are removed; the account, its role, sign-ins, keys, settings and spend history stay.
+   */
+  async resetAthlete(athleteId: string): Promise<void> {
+    const core = this.core;
+    const athlete = await core.store.getAthlete(athleteId);
+    if (!athlete || athlete.status !== 'active') throw new ToolError('NOT_FOUND', 'Unknown athlete.');
+    await this.quiesce(athleteId);
+    await deleteAthleteData(core.paths(athleteId));
+    await core.store.resetAthleteCoach(athleteId);
+    // The generated avatar was an upload of the old coach; the name the athlete chose stays.
+    const settings = (await core.store.updateSettings(athleteId, { coachIdentity: { avatarSha256: null } })).settings;
+    const now = core.clock.now().toISOString();
+    await this.seedCoach(athleteId, settings, now, 'First contact after a fresh start: the athlete chose to reset their coach, so earlier conversation, notes and plans are gone. Greet them warmly, introduce yourself briefly, and start the intake conversation again (see the intake skill). Keep the first message short.');
+    await core.store.audit({ athleteId, at: now, actor: 'athlete', action: 'athlete.reset' });
+    core.bus.publish(athleteId, { t: 'settings.changed' });
+  }
+
+  async deleteAthlete(athleteId: string): Promise<void> {
+    const core = this.core;
+    await this.quiesce(athleteId);
     // Keep the account and job state until every filesystem operation succeeds,
     // so a sandbox or disk failure remains retryable instead of losing ownership.
     await deleteAthleteData(core.paths(athleteId));

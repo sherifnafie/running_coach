@@ -4,7 +4,7 @@ import type { ChangeEntry, UiVersionRecord } from '@opencoach/protocol';
 import { Section, Spinner } from '../../components/Atoms';
 import { describeError } from '../../lib/api';
 import { appStore } from '../../lib/appState';
-import { deleteAccount, refreshApp, toast } from '../../lib/controller';
+import { deleteAccount, refreshApp, resetCoach, toast } from '../../lib/controller';
 import { account, views } from '../../lib/endpoints';
 import { waitForExport } from '../../lib/exportJob';
 import { formatDateTime } from '../../lib/format';
@@ -216,6 +216,38 @@ export function DataSection() {
               {t("Try again")}</button>
           </p>
         )}
+      </div>
+    </Section>
+  );
+}
+
+/** Start over: a fresh coach on the same account. The typed word keeps it deliberate. */
+export function ResetSection() {
+  const t = useI18n();
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  const ok = typed.trim() === 'RESET';
+  return (
+    <Section title={t("Start over with a fresh coach")} hint={t("Clears your conversation, your coach's notes and plans, uploads and app screens, and starts again with today's defaults. Your account, sign-ins, settings and keys stay. Download your data first if you want a copy.")}>
+      <div className="row stack">
+        <label className="field">
+          <span>{t("Type")} <strong>RESET</strong> {t("to confirm")}</span>
+          <input value={typed} onChange={(e) => setTyped(e.target.value)} autoCapitalize="characters" autoComplete="off" name="confirm-reset" />
+        </label>
+        {error && <p role="alert" className="form-error">{error}</p>}
+        <button type="button" className="btn danger" disabled={!ok || busy} onClick={async () => {
+          setBusy(true);
+          setError(undefined);
+          try {
+            await resetCoach();
+          } catch (e) {
+            setError(describeError(e));
+            setBusy(false);
+          }
+        }}>
+          {busy ? t("Starting over…") : t("Start over")}
+        </button>
       </div>
     </Section>
   );

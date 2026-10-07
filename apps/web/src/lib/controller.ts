@@ -277,6 +277,27 @@ export async function clearLocalData(): Promise<void> {
   }
 }
 
+/**
+ * Start over with a fresh coach on the same account. Cached conversation, views and the unsent draft belong to the
+ * old coach, so they are dropped; the sign-in, push subscription and preferences on this device stay.
+ */
+export async function resetCoach(): Promise<void> {
+  const athleteId = appStore.getState().me?.athlete.id;
+  await account.reset();
+  stream?.stop();
+  await queue?.list().then((items) => Promise.all(items.map((i) => queue!.remove(i.id)))).catch(() => undefined);
+  await cacheClear();
+  if (athleteId) lsRemove(`oc.draft.${athleteId}`);
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    reg?.active?.postMessage({ type: 'CLEAR_CACHES' });
+  } catch {
+    /* ignore */
+  }
+  location.replace('/#/chat');
+  location.reload();
+}
+
 export async function deleteAccount(): Promise<void> {
   await account.delete();
   await clearLocalData();

@@ -94,6 +94,27 @@ export function accountRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     reply.code(204).send();
   });
 
+  // Start over with a fresh coach on the same account (role, sign-ins, keys and settings stay).
+  app.post('/v1/account/reset', { preHandler: auth }, async (request, reply) => {
+    z.object({ confirm: z.literal('RESET') }).parse(request.body);
+    const athleteId = ctx.athleteId(request);
+    if (deleting.has(athleteId)) throw conflict('Account deletion or reset is already in progress.');
+    deleting.add(athleteId); // blocks exports and a concurrent delete while files are replaced
+    try {
+      await Promise.all(inflightExports.get(athleteId) ?? []);
+      if (ctx.deps.callService) {
+        for (const event of await store.listEvents({ athleteId, types: ['call.started'], limit: 1_000_000 })) {
+          if (event.type !== 'call.started') continue;
+          try { await ctx.deps.callService.end(athleteId, event.payload.callId, 'athlete'); }
+          catch (error) { if ((error as { reason?: string }).reason !== 'call_not_found') throw error; }
+        }
+      }
+      await runtime.resetAthlete(athleteId);
+    } finally { deleting.delete(athleteId); }
+    ctx.sockets.closeAthlete(athleteId); // clients reconnect and reload the fresh conversation
+    reply.code(204).send();
+  });
+
   // ---- administrators: suspend, reactivate or delete someone else's account
   /** The target of an admin action: an existing account other than the administrator's own. */
   async function otherAccount(request: FastifyRequest) {

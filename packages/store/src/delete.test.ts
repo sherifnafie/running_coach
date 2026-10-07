@@ -209,6 +209,37 @@ describe('deleteAthlete', () => {
   });
 });
 
+describe('resetAthleteCoach', () => {
+  it('removes the coach (conversation, memory, turns, uploads, views, schedules) but keeps the account, sign-ins, keys and spend', async () => {
+    const { store } = await memStore();
+    stores.push(store);
+    await populate(store, 'ath_me');
+    await store.updateAthlete('ath_me', { isAdmin: true });
+    await populate(store, 'ath_other');
+    await store.resetAthleteCoach('ath_me');
+
+    const me = await store.getAthlete('ath_me');
+    expect(me).toMatchObject({ isAdmin: true, status: 'active' });
+    expect((await store.getSettings('ath_me')).profile.name).toBe('Name of ath_me');
+    expect(await store.listSessions('ath_me')).toHaveLength(1);
+    expect(await store.listPasskeys('ath_me')).toHaveLength(1);
+    expect(await store.listPushSubscriptions('ath_me')).toHaveLength(1);
+    expect((await store.sumUsage('ath_me', '2000-01-01T00:00:00.000Z')).costUsd).toBeCloseTo(0.2);
+
+    expect(await store.listEvents({ athleteId: 'ath_me' })).toEqual([]);
+    expect(await store.listSchedules('ath_me')).toEqual([]);
+    expect(await store.listTurns({ athleteId: 'ath_me' })).toEqual([]);
+    expect(await store.listTasks('ath_me')).toEqual([]);
+    expect(await store.listUiVersions('ath_me')).toEqual([]);
+    expect(await store.getBlob('ath_me', SHA_A)).toBeUndefined();
+
+    // Someone else's coach is untouched.
+    expect((await store.listEvents({ athleteId: 'ath_other' })).length).toBeGreaterThan(0);
+    expect(await store.listTurns({ athleteId: 'ath_other' })).not.toEqual([]);
+    await expect(store.resetAthleteCoach('ghost')).rejects.toThrow(/not found/);
+  });
+});
+
 describe('search fallback', () => {
   it('falls back to a LIKE scan if SQLite rejects the FTS expression', async () => {
     vi.resetModules();
