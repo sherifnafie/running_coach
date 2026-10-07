@@ -35,6 +35,7 @@ function setup() {
     ready: vi.fn(),
     viewError: vi.fn(),
     wrote: vi.fn(),
+    activity: vi.fn(),
   } satisfies BridgeActions;
   const host = new BridgeHost({
     viewId: 'plan',
@@ -166,6 +167,18 @@ describe('BridgeHost method routing', () => {
     expect(posted[0].error).toMatchObject({ code: BRIDGE_ERR.server, message: 'not declared in reads', data: { status: 403, code: 'forbidden' } });
     expect(posted[1].error).toMatchObject({ code: BRIDGE_ERR.offline });
     expect(posted[2].error).toMatchObject({ code: BRIDGE_ERR.internal });
+  });
+});
+
+describe('BridgeHost activity (first paint) ', () => {
+  it('reports requests in flight and returns to zero after the reply is posted, even on errors', async () => {
+    const { send, req, actions, posted } = setup();
+    const both = Promise.all([send(req(1, 'db.query', { sql: 'select 1' })), send(req(2, 'files.read', { path: '../escape' }))]);
+    expect(actions.activity).toHaveBeenNthCalledWith(1, 1);
+    expect(actions.activity).toHaveBeenNthCalledWith(2, 2);
+    await both;
+    expect(actions.activity).toHaveBeenLastCalledWith(0);
+    expect(posted).toHaveLength(2);
   });
 });
 

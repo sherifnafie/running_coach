@@ -14,6 +14,10 @@ import { READY_TIMEOUT_MS, initialLoadState, reduceLoad } from '../lib/viewLoad'
 import { Icon } from './Icon';
 
 const CARD_HEIGHTS = { s: 120, m: 200, l: 320 } as const;
+/** No view requests for this long after `ready` counts as a finished first paint. */
+const SETTLE_QUIET_MS = 80;
+/** Show the view after this long regardless (a view that polls or waits on a slow query still appears). */
+const SETTLE_MAX_MS = 1500;
 
 export interface ViewFrameProps {
   view: PublishedView;
@@ -38,6 +42,20 @@ export function ViewFrame({ view, params, active, mode }: ViewFrameProps) {
   const [cardHeight, setCardHeight] = useState<number>(CARD_HEIGHTS[view.manifest.card?.height ?? 'm']);
   const hasPrevious = !!view.previousUrl;
   const [load, dispatch] = useReducer((s: typeof initialLoadState, a: Parameters<typeof reduceLoad>[1]) => reduceLoad(s, a, hasPrevious), initialLoadState);
+
+  // Stay hidden until the view has said `ready` and its first requests have been answered, so a refresh shows one
+  // finished screen instead of a header, then an empty state, then data. Capped so a slow view can't hide itself.
+  const [revealed, setRevealed] = useState(false);
+  const pendingRef = useRef(0);
+  const readyRef = useRef(false);
+  const quietRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const settle = useCallback(() => {
+    if (!readyRef.current) return;
+    if (quietRef.current) clearTimeout(quietRef.current);
+    quietRef.current = setTimeout(() => {
+      if (pendingRef.current === 0) setRevealed(true);
+    }, SETTLE_QUIET_MS);
+  }, []);
 
   const viewId = view.manifest.id;
   const baseUrl = mode === 'card' ? view.cardUrl : view.url;
@@ -90,6 +108,10 @@ export function ViewFrame({ view, params, active, mode }: ViewFrameProps) {
           if (mode === 'card') setCardHeight(Math.max(60, Math.min(h, 640)));
         },
         ready: () => dispatch({ type: 'ready' }),
+        activity: (pending) => {
+          pendingRef.current = pending;
+          settle();
+        },
         viewError: (info) => dispatch({ type: 'error', message: info.message.slice(0, 200) }),
         wrote: () => emitWorkspaceChange(),
       },
@@ -104,7 +126,23 @@ export function ViewFrame({ view, params, active, mode }: ViewFrameProps) {
       host.dispose();
       if (hostRef.current === host) hostRef.current = null;
     };
-  }, [src, viewId, shownVersion, buildEnv, viewport, mode, attempt]);
+  }, [src, viewId, shownVersion, buildEnv, viewport, mode, attempt, settle]);
+
+  // Reveal once settled after `ready` (or after a cap); hide again for a fresh document.
+  const frameDoc = `${src}#${attempt}`;
+  useEffect(() => {
+    readyRef.current = load.phase === 'ready';
+    if (load.phase !== 'ready') {
+      setRevealed(false);
+      return;
+    }
+    settle();
+    const cap = setTimeout(() => setRevealed(true), SETTLE_MAX_MS);
+    return () => clearTimeout(cap);
+  }, [load.phase, frameDoc, settle]);
+  useEffect(() => () => {
+    if (quietRef.current) clearTimeout(quietRef.current);
+  }, []);
 
   // Ready timeout → fall back / fail.
   useEffect(() => {
@@ -195,7 +233,11 @@ export function ViewFrame({ view, params, active, mode }: ViewFrameProps) {
           Showing the previous version of {title}. Your coach has been told and will fix it.
         </p>
       )}
-      {load.phase === 'loading' && <div className="view-loading" aria-hidden="true" />}
+      {!revealed && (
+        <div className="view-loading" aria-hidden="true">
+          <span className="spinner" />
+        </div>
+      )}
       <iframe
         key={frameKey}
         ref={iframeRef}
@@ -204,7 +246,7 @@ export function ViewFrame({ view, params, active, mode }: ViewFrameProps) {
         sandbox="allow-scripts"
         referrerPolicy="no-referrer"
         loading={mode === 'card' ? 'lazy' : undefined}
-        className={load.phase === 'ready' ? 'ready' : undefined}
+        className={revealed ? 'ready' : undefined}
       />
     </div>
   );

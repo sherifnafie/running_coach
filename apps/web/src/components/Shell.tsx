@@ -150,12 +150,30 @@ function Header({ route }: { route: Route }) {
   );
 }
 
+/** True once `active` has held continuously for `ms` (resets when it turns false). */
+function useSustained(active: boolean, ms: number): boolean {
+  const [sustained, setSustained] = useState(false);
+  useEffect(() => {
+    if (!active) {
+      setSustained(false);
+      return;
+    }
+    const timer = setTimeout(() => setSustained(true), ms);
+    return () => clearTimeout(timer);
+  }, [active, ms]);
+  return active && sustained;
+}
+
+/** A normal startup or a brief reconnect takes well under this; only a real connection problem is worth a banner. */
+const CONNECTION_GRACE_MS = 2000;
+
 function ConnectionBar() {
   const t = useI18n();
   const online = useStore(appStore, (s) => s.online);
   const ws = useStore(appStore, (s) => s.ws);
   const queued = useStore(appStore, (s) => s.queued);
   const boot = useStore(appStore, (s) => s.boot);
+  const slowSocket = useSustained(boot === 'ready' && online && ws !== 'open', CONNECTION_GRACE_MS);
   if (boot !== 'ready') return null;
   if (!online)
     return (
@@ -163,7 +181,7 @@ function ConnectionBar() {
         <Icon name="wifi-off" size={16} /> {t("You're offline. Showing saved data")}{queued > 0 ? `, ${queued} item${queued === 1 ? '' : 's'} waiting to send` : ''}.
       </div>
     );
-  if (ws !== 'open')
+  if (ws !== 'open' && slowSocket)
     return (
       <div className="conn-bar" role="status">
         <Icon name="refresh" size={16} /> {ws === 'connecting' ? t('Connecting…') : t('Reconnecting…')}

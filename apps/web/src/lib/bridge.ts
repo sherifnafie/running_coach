@@ -47,6 +47,8 @@ export interface BridgeActions {
   viewError(info: { message: string; stack?: string }): void;
   /** A direct write or act succeeded (other views may want to refresh). */
   wrote?(): void;
+  /** Number of view requests (queries, file reads, ...) still in flight; lets the host wait for a first full paint. */
+  activity?(pending: number): void;
 }
 
 export interface BridgeHostOptions {
@@ -107,6 +109,7 @@ export class BridgeHost {
   private changeTimer: ReturnType<typeof setTimeout> | undefined;
   private reportedUnknown = new Set<string>();
   private disposed = false;
+  private pending = 0;
 
   constructor(private readonly opts: BridgeHostOptions) {}
 
@@ -151,6 +154,7 @@ export class BridgeHost {
     }
 
     const { id, method, params } = parsed.data;
+    this.opts.actions.activity?.(++this.pending);
     try {
       const result = await this.dispatch(method, params);
       this.reply(id, result ?? null);
@@ -158,6 +162,9 @@ export class BridgeHost {
     } catch (e) {
       this.reply(id, undefined, toRpcError(e));
       return 'rejected';
+    } finally {
+      // Reported after the reply is posted, so the view has the data by the time the host sees zero.
+      if (!this.disposed) this.opts.actions.activity?.(--this.pending);
     }
   }
 
