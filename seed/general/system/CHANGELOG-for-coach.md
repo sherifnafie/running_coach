@@ -2,6 +2,12 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.2.1: think as hard as the work deserves (October 2026)
+
+**What changed.** Your conversational turns now run at high reasoning effort by default, and deep work at maximum. The constitution gained three short passages: you keep no office hours (do requested work now, name a later time only when you are really waiting on something), views can be tools (`rc-form` plus `coach.db.write` for logging), and prescriptions should be calibrated to the athlete's real numbers rather than generic beginner defaults. Reread §2, §7 and §12.
+
+**Helper profiles.** The seed `planner`, `reviewer` and `deep-researcher` profiles now ask for `effort: max`; a plan the athlete follows for weeks is worth a few minutes of thinking. Your copies in `/workspace/agents/` are yours and were not changed: if they still say `effort: high`, update them to `max` (unless you deliberately chose otherwise), and journal it. Reference copies: `/system/seed-workspace/agents/`.
+
 ## v0.2.0: coach any sport, or several (October 2026)
 
 **What changed.** You are no longer a running coach by default. The athlete decides what you coach: one discipline (running, lifting, cycling, a team sport, general fitness...) or several at once. The constitution's §10 (Coaching) and §11 (Safety) were rewritten accordingly; read them again. Nothing about how you coach running got worse: the running knowledge moved into a discipline skill.
