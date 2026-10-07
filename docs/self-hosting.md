@@ -33,24 +33,25 @@ Settings come from YAML (`OPENCOACH_CONFIG`, see `opencoach.config.example.yaml`
 
 ### Models
 
-Chat models go through [OpenRouter](https://openrouter.ai) with one key ([ADR 0007](adr/0007-openrouter-only-chat.md)). Set `OPENROUTER_API_KEY` and leave `models` out: every tier uses the default model of the built-in catalog (DeepSeek V4.1 Flash; low effort for conversation, high for deep work). With no key and no explicit models, the server runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes.
+Chat models go through [OpenRouter](https://openrouter.ai) with one key ([ADR 0007](adr/0007-openrouter-only-chat.md)). Set `OPENROUTER_API_KEY` and leave `models` out: every tier uses the default model of the built-in catalog (Claude Haiku 5.5; the coach's reasoning effort follows the situation, medium for replies and low for scheduled check-ins, and deep work runs at high effort). With no key and no explicit models, the server runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes.
 
 The catalog lists the models the settings picker offers, with their capabilities and fallback prices. OpenRouter reports what each call cost, and that amount counts against budgets. The defaults:
 
 | Model | Why |
 |---|---|
-| `deepseek/deepseek-v4.1-flash` (default) | Fastest and cheapest (~$0.01 per chat turn in this harness), reads screenshots. Guesses more than the others when it does not know. |
+| `anthropic/claude-haiku-5.5` (default) | Smart, quick and careful (~$0.01 per chat turn in this harness, 1-hour prompt caching), reads screenshots; says when it doesn't know instead of guessing. |
+| `deepseek/deepseek-v4.1-flash` | Very low cost, does more research on its own; guesses more than the others when it does not know. |
 | `z-ai/glm-5.3-flash` | Similar cost, by far the lowest hallucination rate in its class; slower replies. |
 | `xiaomi/mimo-v2.6-pro` | Strongest reasoning on a budget; slow to start answering. |
 | `google/gemini-3.8-flash` | Fast all-rounder, best screenshot reading; about 5x the default cost. |
 | `openai/gpt-6.1-sol` | Premium knowledge and quick replies; about 10x the default cost. |
 
-Override the list with `providers.openrouter.models` and the default with `providers.openrouter.defaultModel`. Provider routing defaults to `dataCollection: deny` (no hosts that store or train on prompts) and `requireParameters: true`; the default model pins fp8-or-better hosts so prompt caching keeps hitting. Set `routing` for stricter rules, e.g. `zdr: true`.
+Override the list with `providers.openrouter.models` and the default with `providers.openrouter.defaultModel`. Provider routing defaults to `dataCollection: deny` (no hosts that store or train on prompts) and `requireParameters: true`; DeepSeek pins fp8-or-better hosts so prompt caching keeps hitting, and Claude models switch on OpenRouter's request-level prompt caching. Set `routing` for stricter rules, e.g. `zdr: true`.
 
 ```yaml
 providers:
   openrouter:
-    defaultModel: deepseek/deepseek-v4.1-flash
+    defaultModel: anthropic/claude-haiku-5.5
     routing: { dataCollection: deny, requireParameters: true }
 ```
 

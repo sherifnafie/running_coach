@@ -445,11 +445,11 @@ Chat models are reached through OpenRouter, one key for every vendor ([ADR 0007]
 ```yaml
 # models (illustrative; the default when only OPENROUTER_API_KEY is set)
 tiers:
-  coach: { provider: openrouter, model: deepseek/deepseek-v4.1-flash, effort: low }
-  deep:  { provider: openrouter, model: deepseek/deepseek-v4.1-flash, effort: high }
-  fast:  { provider: openrouter, model: deepseek/deepseek-v4.1-flash, effort: low }
+  coach: { provider: openrouter, model: anthropic/claude-haiku-5.5 }                 # effort follows the trigger class
+  deep:  { provider: openrouter, model: anthropic/claude-haiku-5.5, effort: high }
+  fast:  { provider: openrouter, model: anthropic/claude-haiku-5.5, effort: low }
 fallbacks:
-  coach: [ { provider: openrouter, model: z-ai/glm-5.3-flash } ]
+  coach: [ { provider: openrouter, model: deepseek/deepseek-v4.1-flash } ]
 voice: { realtime: gpt-realtime-2.1, stt: gpt-realtime-whisper }   # OpenAI, or local Whisper/Parakeet
 ```
 

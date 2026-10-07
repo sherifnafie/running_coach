@@ -36,9 +36,9 @@ describe('OpenCode GO compatible configuration [RT-7] [SEC-1]', () => {
     expect(openrouter.config.providers.openrouter?.apiKey).toBe('sk-or-synthetic-credential');
     expect(openrouter.config.providers.openrouter?.routing).toMatchObject({ dataCollection: 'deny', requireParameters: true });
     expect(openrouter.config.models?.tiers).toEqual({
-      coach: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'low' },
-      deep: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'high' },
-      fast: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'low' },
+      coach: { provider: 'openrouter', model: 'anthropic/claude-haiku-5.5' },
+      deep: { provider: 'openrouter', model: 'anthropic/claude-haiku-5.5', effort: 'high' },
+      fast: { provider: 'openrouter', model: 'anthropic/claude-haiku-5.5', effort: 'low' },
     });
     const custom = await configFile('providers:\n  openrouter:\n    apiKeyEnv: MY_ROUTER_KEY\n    defaultModel: z-ai/glm-5.3-flash\n');
     const renamed = loadConfigDetailed({ cwd: custom.dir, path: custom.path, env: { MY_ROUTER_KEY: 'sk-or-synthetic-other' } });

@@ -51,7 +51,7 @@ export OPENROUTER_API_KEY=...   # use your shell or process manager
 OPENCOACH_DEMO=0 pnpm start
 ```
 
-The coach then runs on DeepSeek V4.1 Flash, which also reads screenshots. Settings → AI and costs shows what has been used, and lets an administrator, or someone who connects their own OpenRouter account, pick another model from the catalog (see [self-hosting](docs/self-hosting.md#models)). Keys stay in the server process and never reach the coach's sandbox. `OPENAI_API_KEY` adds voice notes and calls. For limits, search, speech and MCP servers, copy `opencoach.config.example.yaml` and point `OPENCOACH_CONFIG` at it. The server does not read `.env` files. Other OpenAI-compatible endpoints (Ollama, OpenCode GO: `opencoach.config.opencode-go.example.yaml`) also work.
+The coach then runs on Claude Haiku 5.5, which also reads screenshots. Settings → AI and costs shows what has been used, and lets an administrator, or someone who connects their own OpenRouter account, pick another model from the catalog (see [self-hosting](docs/self-hosting.md#models)). Keys stay in the server process and never reach the coach's sandbox. `OPENAI_API_KEY` adds voice notes and calls. For limits, search, speech and MCP servers, copy `opencoach.config.example.yaml` and point `OPENCOACH_CONFIG` at it. The server does not read `.env` files. Other OpenAI-compatible endpoints (Ollama, OpenCode GO: `opencoach.config.opencode-go.example.yaml`) also work.
 
 ## Phone access and Docker
 

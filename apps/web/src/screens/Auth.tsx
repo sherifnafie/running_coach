@@ -15,10 +15,6 @@ function detectTz(): string {
   }
 }
 
-function detectUnits(locale: string): 'metric' | 'imperial' {
-  return /-(US|LR|MM)\b/i.test(locale) ? 'imperial' : 'metric';
-}
-
 function Brand({ subtitle }: { subtitle: string }) {
   return (
     <header className="auth-brand">
@@ -49,7 +45,7 @@ export function SetupScreen({ invite, initialCode = '', onBack }: { invite?: boo
   const [coachName, setCoachName] = useState('Coach');
   const [tz, setTz] = useState(detectTz());
   const [loc, setLoc] = useState(locale);
-  const [units, setUnits] = useState<'metric' | 'imperial'>(detectUnits(locale));
+  const [units, setUnits] = useState<'metric' | 'imperial'>('metric');
   const [healthData, setHealthData] = useState(false);
   const [aiDisclosure, setAiDisclosure] = useState(false);
   const [age, setAge] = useState(false);

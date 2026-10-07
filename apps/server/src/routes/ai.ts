@@ -63,7 +63,7 @@ export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     const { models } = requireModels();
     if (!models.catalog.some((m) => m.id === model)) throw badRequest('Choose one of the offered models.');
     await runtime.updateSettings(athleteId, {
-      models: { coach: { provider: 'openrouter', model, effort: 'low' }, deep: { provider: 'openrouter', model, effort: 'high' } },
+      models: { coach: { provider: 'openrouter', model }, deep: { provider: 'openrouter', model, effort: 'high' } },
     });
   }
 

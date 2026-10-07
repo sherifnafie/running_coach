@@ -5,16 +5,18 @@ import type { ModelCatalogEntryInput } from '@opencoach/protocol';
  *
  * Selection, checked 2026-10-07 against the Artificial Analysis leaderboard and the OpenRouter model API:
  * each entry calls tools and read a workout screenshot correctly through OpenRouter with `data_collection: deny`.
+ * Default since 2026-10-07: Claude Haiku 5.5 (AA intelligence 38 at high / 43 at max vs DeepSeek V4.1 Flash 39 at max,
+ * non-hallucination 55-60% vs 4%, $0.10/$0.50 per MTok with 1h prompt caching, faster first answer in our probes).
  * Prices are OpenRouter list prices (USD per MTok) and are only a fallback: OpenRouter reports the charged
  * amount on every response. Deployments override the list with `providers.openrouter.models`.
  */
-export const DEFAULT_OPENROUTER_MODEL = 'deepseek/deepseek-v4.1-flash';
+export const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-haiku-5.5';
 
 export const DEFAULT_OPENROUTER_CATALOG: ModelCatalogEntryInput[] = [
   {
     id: 'deepseek/deepseek-v4.1-flash',
     label: 'DeepSeek V4.1 Flash',
-    description: 'Default. Fastest replies and lowest cost; verified live in OpenCoach. Guesses more often than the others when it does not know.',
+    description: 'Very low cost and long, fast answers; does more research on its own. Guesses more often than the others when it does not know.',
     vision: true,
     contextTokens: 1_048_576,
     maxOutputTokens: 32_768,
@@ -22,6 +24,18 @@ export const DEFAULT_OPENROUTER_CATALOG: ModelCatalogEntryInput[] = [
     pricing: { inputPerMTok: 0.3, outputPerMTok: 1.2, cacheReadPerMTok: 0.006 },
     // Pin hosts so prompt caching hits (a host switch is a cache miss); fp8 or better.
     routing: { order: ['deepinfra/fp8', 'together', 'atlas-cloud/fp8'], allowFallbacks: true },
+  },
+  {
+    id: 'anthropic/claude-haiku-5.5',
+    label: 'Claude Haiku 5.5',
+    description: 'Default. Smart, quick and careful at a low price: says when it does not know instead of guessing, and reads screenshots well.',
+    vision: true,
+    contextTokens: 1_000_000,
+    maxOutputTokens: 32_768,
+    efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+    // Cache writes at the 1h rate (2x input); reads at $0.01.
+    pricing: { inputPerMTok: 0.1, outputPerMTok: 0.5, cacheReadPerMTok: 0.01, cacheWritePerMTok: 0.2 },
+    promptCache: '1h',
   },
   {
     id: 'z-ai/glm-5.3-flash',
