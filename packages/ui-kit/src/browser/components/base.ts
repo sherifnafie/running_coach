@@ -194,12 +194,15 @@ export abstract class RcBound extends RcElement {
     }
   }
 
-  /** Standard inline error element. */
+  /**
+   * Standard inline error element. The athlete sees a plain sentence; the technical message already went to the coach
+   * through `coach.report` (a `ui.error` event) and stays out of the screen.
+   */
   protected errorEl(): HTMLElement {
     const d = document.createElement('div');
     d.className = 'rc-error';
     d.setAttribute('role', 'alert');
-    d.textContent = `Couldn’t load this section. ${this.error ?? ''}`.trim();
+    d.textContent = getCoach().t('Couldn’t load this section. Your coach has been told.');
     return d;
   }
 }

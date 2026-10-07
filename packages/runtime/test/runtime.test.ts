@@ -77,7 +77,7 @@ describe('runtime: onboarding & reactive turns', () => {
     expect(agents).toContain('pinned');
     const app = await h.runtime.views.appInfo(id);
     expect(app.views.length).toBeGreaterThanOrEqual(1);
-    expect(app.views[0]!.url).toMatch(/\/v\/[A-Za-z0-9_-]+\/[a-z0-9-]+@1\//);
+    expect(app.views[0]!.url).toMatch(/\/v\/[A-Za-z0-9_-]+\/[a-z0-9-]+@1\.[0-9a-f]{12}\//);
 
     await greet(h, id);
     const req = h.requests.at(-2)!;

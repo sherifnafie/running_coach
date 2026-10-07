@@ -76,12 +76,13 @@ export async function createGateway(deps: GatewayDeps) {
   });
   views.get('/v/:token/:bundle/*', async (request, reply) => {
     const { token, bundle, '*': rel } = request.params as { token: string; bundle: string; '*': string };
-    const match = /^([a-z0-9][a-z0-9-]{0,31})@([0-9]+)$/.exec(bundle);
+    // `<view>@<version>.<commit fingerprint>`; the fingerprint must match the record (older URLs without it still work).
+    const match = /^([a-z0-9][a-z0-9-]{0,31})@([0-9]+)(?:\.([0-9a-f]{7,40}))?$/.exec(bundle);
     if (!match) throw notFound();
     const athleteId = await athleteForViewToken(deps.store, token);
     if (!athleteId || !accountUsable(await deps.store.getAthlete(athleteId))) throw notFound();
     const record = await deps.store.getUiVersion(athleteId, match[1]!, match[2]!);
-    if (!record) throw notFound();
+    if (!record || (match[3] && !record.commit.startsWith(match[3]))) throw notFound();
     const file = await resolveSafeFile(record.dir, rel || record.manifest.entry);
     if (!file) throw notFound();
     return sendFile(request, reply, file, { cacheControl: 'private, max-age=31536000, immutable' });

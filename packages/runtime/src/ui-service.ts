@@ -102,7 +102,9 @@ export class UiService {
       const all = await this.core.store.listUiVersions(athleteId, c.viewId);
       const sorted = all.sort((a, b) => Number(a.version) - Number(b.version));
       const prev = sorted.filter((v) => Number(v.version) < Number(c.version)).pop();
-      const base = (v: UiVersionRecord) => `${viewsUrl}/v/${token}/${v.viewId}@${v.version}/`;
+      // The commit fingerprint makes each published bundle's URL unique, so an immutably cached file can never be
+      // served for a different bundle with the same version number (e.g. after a fresh-coach reset restarts at 1).
+      const base = (v: UiVersionRecord) => `${viewsUrl}/v/${token}/${v.viewId}@${v.version}${/^[0-9a-f]{12,40}$/.test(v.commit) ? `.${v.commit.slice(0, 12)}` : ''}/`;
       views.push({
         manifest: c.manifest,
         version: c.version,

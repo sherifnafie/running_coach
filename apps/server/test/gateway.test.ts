@@ -301,7 +301,7 @@ describe('gateway views, history, export and administration [SEC-3] [SEC-5] [SEC
     const published = join(f.dir, 'published'); await mkdir(published);
     await writeFile(join(published, 'index.html'), '<html>view</html>');
     await f.store.setKv('view-token-rev:token_123456789', a.athleteId);
-    await f.store.addUiVersion({ athleteId: a.athleteId, viewId: 'today', version: '1', commit: 'commit', summary: 'seed', publishedAt: f.clock.now().toISOString(), publishedBy: 'seed', dir: published,
+    await f.store.addUiVersion({ athleteId: a.athleteId, viewId: 'today', version: '1', commit: '0123456789abcdef0123456789abcdef01234567', summary: 'seed', publishedAt: f.clock.now().toISOString(), publishedBy: 'seed', dir: published,
       manifest: { id: 'today', title: 'Today', entry: 'index.html', icon: 'sun', description: '', kit: '1', reads: [], writes: [], actions: [] } as never });
     const response = await f.views.inject('/v/token_123456789/today@1/index.html');
     expect(response.statusCode).toBe(200); expect(response.headers['access-control-allow-origin']).toBe('*');
@@ -309,6 +309,9 @@ describe('gateway views, history, export and administration [SEC-3] [SEC-5] [SEC
     expect(response.headers['content-security-policy']).toContain('frame-ancestors http://localhost:8080');
     expect(response.headers['set-cookie']).toBeUndefined();
     expect((await f.views.inject('/v/bad/today@1/index.html')).statusCode).toBe(404);
+    // Bundle URLs carry the commit fingerprint, so a cached file never stands in for a different bundle with the same version.
+    expect((await f.views.inject('/v/token_123456789/today@1.0123456789ab/index.html')).statusCode).toBe(200);
+    expect((await f.views.inject('/v/token_123456789/today@1.fedcba987654/index.html')).statusCode).toBe(404);
     expect((await f.views.inject('/v/token_123456789/today@1/%2e%2e/kit/kit.js')).statusCode).toBe(404);
     expect((await f.views.inject('/kit/1/kit.js')).statusCode).toBe(200);
     const headers = f.bearer(a.token);

@@ -137,6 +137,7 @@ const labels: Record<string, [string, string]> = {
   "Next week": ["Volgende week", "الأسبوع التالي"],
   "Nothing planned.": ["Niets gepland.", "لا شيء مخطط."],
   "Nothing planned": ["Niets gepland", "لا شيء مخطط"],
+  "Couldn’t load this section. Your coach has been told.": ["Dit onderdeel kon niet laden. Je coach is op de hoogte gebracht.", "تعذر تحميل هذا القسم. تم إبلاغ مدربك."],
   "Move here": ["Hierheen verplaatsen", "انقل إلى هنا"],
   "Selected workout": ["Geselecteerde training", "التمرين المحدد"],
   "Move": ["Verplaatsen", "نقل"],
