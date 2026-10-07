@@ -51,20 +51,9 @@ seed/running/workspace/                → copied into each new athlete workspac
 Placeholders rendered at workspace init: `{{athlete_name}}`, `{{coach_name}}`, `{{voice_id}}`, `{{created_date}}`.
 Placeholders rendered per epoch in the constitution: `{{coach_name}}`, `{{athlete_name}}`, `{{harness_version}}`, `{{pack_version}}`.
 
-The runtime loads the constitution and running addenda, a skill index (not all skill bodies), `AGENTS.md` plus its pinned files, and `briefing.md` into a frozen epoch system prompt. Detailed product guidance lives at `/system/docs/opencoach.md`; research procedures live in the `research` skill. New workspaces include quick/deep research profiles; old coach-owned profiles are not overwritten. The skill explains how to add the deep profile when missing.
-
-`capabilities.ts` renders granted core tools, configured web search/fetch and renderer state, and primary model/vision routes into each coach situation report and helper environment. Helpers also receive the Clock-derived time, their role, inputs and write scope, without the main conversation. Configuration facts are not live service certification. Constitution/skill-index edits take effect at the next epoch; current turns receive guide/skill pointers through the fresh report. Never put provider credentials or deployment headers into model context. Runtime context tests execute research helpers and inspect the actual requests and persisted outputs.
+The runtime builds a frozen per-epoch system prompt from the constitution (with the pack's addenda), a skill index (not the skill bodies), `AGENTS.md` with its pinned files, and `briefing.md`. Product guidance for the coach lives at `/system/docs/opencoach.md`. `capabilities.ts` adds configuration facts to each turn's situation report and to helper environments: granted tools, search/fetch, renderer, and model/vision routes. Credentials and deployment headers never enter model context.
 
 ## Views at runtime
-
-The eval-only published-view observer reuses the PWA's `BridgeHost` and stream-change predicate
-directly from their source modules. It serves immutable published bundles in an opaque-origin
-Chromium iframe and calls the runtime's manifest-scoped read API. It records accessible text,
-queries, subscriptions, publication reports, mount/version and screenshots across actions.
-The CLI uses a runner-owned renderer factory so previews share the advancing runtime Clock.
-This component client is separate from full gateway/PWA authentication and offline acceptance.
-The VO₂max fixtures use general saved-data/file/UI-scope assertions; their arithmetic controls
-are confined to `packages/evals-sim`, not the production coach policy.
 
 - Views origin (separate port/host, [SEC-3]) serves:
   - `/kit/1/kit.js`, `/kit/1/kit.css` (+ assets): the built UI kit
@@ -80,7 +69,7 @@ are confined to `packages/evals-sim`, not the production coach policy.
 - **Naming:** model-facing tool inputs and coach-authored files use snake_case; events, HTTP JSON and TS use camelCase; SQL columns use snake_case (ADR 0002).
 - **Errors:** tools return `ToolOutcome` with `ToolErrorCode`s. Packages throw `ToolError` / `ProviderError` where the contracts say so.
 - **Logging:** take a `Logger` (protocol) and use `.child({...})`. Use `silentLogger` in tests.
-- **Tests:** vitest, colocated `src/**/*.test.ts` or `test/**/*.test.ts`. No network and no live model calls in unit tests (use the scripted provider or cassettes). Tests that need Chromium use `PLAYWRIGHT_BROWSERS_PATH` (set in this environment) and must skip cleanly if it's absent.
+- **Tests:** vitest, colocated `src/**/*.test.ts` or `test/**/*.test.ts`. No network and no live model calls in unit tests (use the scripted provider or cassettes). Tests that need Chromium find it via `chromiumExecutable()` (ui-kit) and must skip cleanly if it's absent.
 - **Run:** `pnpm test` (all), `npx vitest run packages/<name>`, `pnpm typecheck` (root tsc + web).
 - **TypeScript:** 5.9, strict, `moduleResolution: Bundler`, ESM, extensionless relative imports. Packages are consumed as TS source (no build step), except `apps/web` (Vite) and the browser kit bundle (esbuild).
 
@@ -110,3 +99,23 @@ Daily heartbeat. Work through HEARTBEAT.md.
 ```
 
 Images the athlete sent are attached as image parts after the text, when the coach model has vision. The **situation report** follows as a separate harness item whose text starts with `<situation>` and ends with `</situation>`. It includes a `trigger: <class> (<event types>)` line and a `reply required: yes|no` line.
+
+## Environment
+
+- Node ≥ 22.13 and pnpm 10.28. TypeScript is **pinned to 5.9** on purpose. Packages are consumed as TS source; only `apps/web` and the UI kit bundle are built.
+- `node:sqlite` with FTS5 and JSON1 is required (Node 22 has it).
+- The local sandbox needs unprivileged user namespaces (ADR 0004). On Ubuntu 24.04 CI this needs `kernel.apparmor_restrict_unprivileged_userns=0`.
+- Chromium is needed for the preview renderer, e2e tests and UI evals. It is found automatically, or set `OPENCOACH_CHROMIUM_PATH`.
+- Unit tests never call a model. Live checks need keys in the trusted server environment. Never put keys in files under the repo or in athlete sandboxes.
+- Commands: `pnpm install`, `pnpm typecheck`, `pnpm test`, `npx vitest run packages/<name>`, `pnpm build`, `pnpm test:e2e`, `pnpm eval:selftest`.
+
+## Settled design decisions
+
+ADRs 0001–0004 are in `docs/adr/`. In addition:
+- The coach reaches the athlete only through the `send_message` tool. Final assistant text is a private turn note. [RT-4] guarantees a reply to athlete messages.
+- Epochs are per athlete-day (boundary 04:00 local), and also roll over on model change and compaction. The system prompt is frozen per epoch (kv `epoch-system:<id>`) for prompt-cache hits.
+- Proactive messages are scheduled, heartbeat and most follow-up turns. Only those are subject to quiet hours, budgets and the minimum gap. A held message is released as a new event with the same `payload.messageId`.
+- Helpers run in `git worktree`s. Only files in their write scope are merged back. Grants intersect along the helper chain.
+- Coach views are served on a separate origin with capability tokens and run in `sandbox="allow-scripts"` iframes. Data access goes through the gateway, which enforces the view manifest.
+- Coach-visible upload paths are `/raw/<sha256>.<ext>`.
+- Language, theme and accent are account settings. The coach can change them through a presentation-only tool.

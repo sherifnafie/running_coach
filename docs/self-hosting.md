@@ -1,101 +1,81 @@
 # Self-hosting OpenCoach
 
-OpenCoach stores each athlete's coach workspace, raw uploads and history on your server. The app and coach-authored views use separate origins. Node 22.13 or newer, pnpm 10.28, Git and Python 3 are required. Linux with unprivileged user namespaces is the default isolated execution environment; Docker is the alternative.
+OpenCoach keeps each athlete's coach workspace, raw uploads and history on your server. The app and the coach-authored views are served on separate origins. You need Node ≥ 22.13, pnpm 10.28, Git and Python 3. Command isolation uses Linux unprivileged user namespaces by default; Docker is the alternative.
 
-## Start the demo
+## Start
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm build
+export OPENCOACH_DATA_DIR=/absolute/path/to/data
 OPENCOACH_DEMO=1 pnpm start
 ```
 
-Open `http://localhost:8080`. Copy the setup code printed at startup (also saved with mode 0600 to `apps/server/.data/setup-code.txt` by the default start command). Accept the health-data consent, AI disclosure and age confirmation. The demo is a scripted test double, clearly labeled in its messages. It exercises chat, quick replies, scheduling and workspace writes. It provides no real model reasoning.
+Open `http://localhost:8080` and enter the setup code printed at startup (also in `<dataDir>/setup-code.txt`, mode 0600). `pnpm start` runs from `apps/server`, so relative paths resolve there. Use absolute `OPENCOACH_DATA_DIR` and `OPENCOACH_CONFIG` paths. Treat the data directory as health data: keep it private and back it up.
 
-`pnpm start` runs with `apps/server` as its working directory. Relative configuration and data paths resolve there. For predictable paths across CLI and server commands, use absolute `OPENCOACH_CONFIG` and `OPENCOACH_DATA_DIR` paths. Create data on a private filesystem and back it up as health information.
+## Configuration
 
-## Use a model
+Settings come from YAML (`OPENCOACH_CONFIG`, see `opencoach.config.example.yaml`) plus environment variables, which override YAML. The server does not load `.env` files; `.env.example` is for Docker Compose.
 
-Unset `OPENCOACH_DEMO` (or set it to `0`) and set one of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `DEEPSEEK_API_KEY`. Restart the server. Provider SDKs run in the trusted server; keys never enter coach sandboxes. With no keys and no explicit model configuration the server selects the demo automatically. With explicit tiers, an unavailable provider fails startup.
+| Variable | Purpose |
+|---|---|
+| `OPENCOACH_DATA_DIR`, `OPENCOACH_CONFIG` | Data directory and YAML config |
+| `PORT`, `VIEWS_PORT`, `HOST` | Listeners (defaults 8080, 8081, 0.0.0.0) |
+| `PUBLIC_URL`, `VIEWS_URL` | Browser-facing origins of the app and the views; they must differ |
+| `OPENCOACH_TRUST_PROXY` | `true`, or trusted proxy addresses (`loopback`, `10.0.0.0/8`), when a reverse proxy or tunnel fronts the server. Without it, all clients share the proxy's rate-limit bucket. |
+| `OPENCOACH_DEMO` | `1` for the scripted demo coach |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY` | Pick default models for that provider |
+| `BRAVE_API_KEY`, `TAVILY_API_KEY`, `SEARXNG_URL` | Web search for the coach |
+| `TELEGRAM_BOT_TOKEN`, `OPENCOACH_ADMIN_TOKEN` | Telegram channel; bearer token for `/admin/*` |
+| `OPENCOACH_SANDBOX`, `OPENCOACH_ALLOW_UNSAFE_SANDBOX` | `local` (default) or `docker`; unsafe fallback for development only |
+| `OPENCOACH_CHROMIUM_PATH` | Chromium for view previews, if not found automatically |
 
-Copy `opencoach.config.example.yaml` to an absolute configuration path and set `OPENCOACH_CONFIG` to it to choose tier models, compatible endpoints, limits, search, or MCP servers. Environment variables override YAML. `.env.example` documents supported variables; the CLI does not load dotenv automatically. Supply credentials through your process manager or shell, and exclude them from version control.
+### Models
 
-OpenAI enables voice notes, speech synthesis and realtime/cascaded calls. Compatible STT/TTS endpoints can be configured separately. These features report unavailable when their providers are absent. MCP servers are configured by the deployment administrator; their outputs are treated as untrusted content. Tools can be allowlisted, and helper access defaults off.
+With one provider key and no `models` section, the server picks default tiers for that provider. With no keys and no explicit models, it runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes. Set `models.pricing` for models the server doesn't know, otherwise their cost counts as zero against budgets.
 
-### OpenCode GO
+**OpenCode GO:** use `opencoach.config.opencode-go.example.yaml` and supply `OPENCODE_GO_API_KEY`. It runs DeepSeek V4.1 Flash on all tiers through the compatible provider, with thinking enabled, low effort for conversation and high effort for deep work. Vision is off because this is the text model; add a vision-capable route before relying on screenshot reading. In Compose, mount the YAML read-only and set `OPENCOACH_CONFIG` (see the comments in `docker-compose.yml`).
 
-Copy `opencoach.config.opencode-go.example.yaml` to an absolute configuration path, set `OPENCOACH_CONFIG` to that path, set `OPENCOACH_DEMO=0`, and supply `OPENCODE_GO_API_KEY` through your shell or process manager. The CLI does not load `.env` files automatically. The key alone does not select OpenCode GO: both the compatible provider and its tier mappings must be configured explicitly. Default provider selection remains unchanged.
+**MCP servers** are configured under `mcp.servers`. Their tools appear to the coach as `mcp__<server>__<tool>`, and their output is treated as untrusted. Tools can be allowlisted; helper access is off by default.
 
-The example uses **DeepSeek V4.1 Flash** (`deepseek-v4.1-flash`) for coach, deep and fast tiers at the [official GO endpoint](https://opencode.ai/docs/go/): `https://opencode.ai/zen/go/v1`. It enables `replayReasoningContent: true` for thinking/tool continuations. Requests include `User-Agent: OpenCoach/0.1.0` and a stable conversation identifier in `x-opencode-session`, using supplied epoch metadata or the athlete/cache key. Credentials stay in the trusted server. The example sets `vision: false`; this is the text model, distinct from DeepSeek V4 Flash Vision Exp. Add a separately verified vision provider before relying on screenshot extraction.
+### Voice notes
 
-The example's `models.pricing` uses GO's peak USD-per-million-token values, checked on 6 October 2026: input $0.30, output $1.20, cache reads $0.006. GO also documents off-peak rates. OpenCoach uses these fixed peak rates for a conservative token-equivalent budget estimate; it does not read subscription allowances or the provider's billing ledger. Unknown models otherwise report zero cost, so update pricing when changing models and check current official rates.
-
-The example explicitly enables thinking, with low effort for conversation and high effort for deep helpers. Thinking and emitted tool arguments share the output budget; the example allows 16,384 tokens. `reasoningEfforts` and `thinking` are opt-in compatible-provider settings; use only values supported by your endpoint. Existing configuration copies need these additions and a server restart. All three GO tiers use the same model, so a helper review is a separate execution rather than an independent model family.
-
-Bounded live checks on 6 October 2026 passed authentication/model availability, streamed tools, reasoning replay, usage/cache reporting, and the real app's signup → delivered welcome/intake → saved run/plan → all four views. The requested 08:00 local check-in was persisted; future scheduled delivery was not exercised. See [the verification record](verification/opencode-go-smoke.md). This is smoke evidence, not the full [MOD-2] conformance suite or coaching-quality certification.
-
-The supplied Compose file does not automatically pass the GO key or mount its configuration. For GO in Compose, add an override that passes `OPENCODE_GO_API_KEY` and `OPENCOACH_CONFIG: /config/go.yaml`, and bind-mount your secret-free YAML read-only at `/config/go.yaml`. Keep the key in the server environment and retain the separate app/views origins. The recorded live GO run used the host server; Docker browser verification used the scripted demo.
-
-## Voice notes
-
-The chat microphone uses tap → record → stop → review → send. The audio stays on your device until you explicitly send it; the configured server-side transcriber then creates the transcript the coach receives. Discarding a preview sends nothing. Switching away from Chat or putting the page in the background stops an active recording.
-
-Configure speech independently of the coaching model. For OpenAI transcription, add this to your server YAML and supply `OPENCOACH_SPEECH_API_KEY` in the trusted server process environment:
+Speech is configured separately from the coach model. An OpenAI key enables speech-to-text, text-to-speech and calls. A different provider or a local transcriber works too:
 
 ```yaml
 voice:
   stt:
-    provider: openai
+    provider: openai            # or openai-compatible with baseUrl (incl. /v1) implementing /audio/transcriptions
     model: gpt-4o-transcribe
     apiKeyEnv: OPENCOACH_SPEECH_API_KEY
 ```
 
-This can be used alongside the GO model configuration without changing its coach model. Restart the server after changing configuration. The key must be for the speech provider; an OpenCode GO key is not an OpenAI speech key. Audio is sent to the selected speech provider when you send a voice note. To use a local transcriber, choose `openai-compatible`, set its `baseUrl` (including `/v1`) and supported `model`, and ensure it implements `/audio/transcriptions` with multipart audio uploads. An authenticated endpoint also needs its own `apiKeyEnv`.
+Phones only allow microphone access over HTTPS. If speech isn't configured, the microphone button explains why instead of recording.
 
-On a phone, open the **app** origin over HTTPS and allow microphone access in the browser. Plain HTTP on a home LAN prevents microphone capture; localhost on the desktop is a browser exception. If voice notes are unavailable, the microphone shows an explanation instead of starting a recording that cannot be transcribed. Your phone keyboard's dictation button can still fill the text box using the phone's own dictation service.
+## Phone access and views
 
-Browser capture/playback and authenticated upload/transcription plumbing are covered with Chromium's synthetic microphone and a controlled local speech endpoint. Paid transcription, Safari/iOS device recording and external voice-call services remain unverified.
+`PUBLIC_URL` and `VIEWS_URL` must be distinct origins the phone can reach. Use HTTPS through a reverse proxy or tunnel (Tailscale, Cloudflare Tunnel, Caddy, …) for passkeys, the microphone, installing the PWA and push. Proxy WebSocket upgrades for `/v1/stream`, preserve the original `Origin` header, and set `OPENCOACH_TRUST_PROXY`.
 
-## Views and mobile access
+Views run in `<iframe sandbox="allow-scripts">` on the views origin with a restrictive CSP. Their data access goes through the gateway, which enforces each view's manifest. Without Chromium, the coach can't preview or publish view changes, but the existing views keep working.
 
-The app defaults to port 8080 and isolated views to port 8081. `PUBLIC_URL` and `VIEWS_URL` must be distinct bare origins that the browser can reach. For a phone, replace both localhost URLs with the server's reachable hostnames. Use HTTPS through a reverse proxy or private tunnel for passkeys, microphone capture, PWA installation and push. Proxy WebSocket upgrades for `/v1/stream` and preserve the external app Origin.
-
-Install Chromium and set `OPENCOACH_CHROMIUM_PATH` when automatic discovery cannot locate it. Coach publication runs static, browser, performance and accessibility gates. Missing Chromium disables preview and publication; bundled seed views remain available. Preview screenshots and view code run without general network access. Views use a restrictive CSP on their own origin and an iframe with `sandbox="allow-scripts"`.
-
-Push keys are generated under `<dataDir>/secrets/vapid.json` (0600). Preserve this file across upgrades to keep browser subscriptions working. Set `push.vapidSubject` to your contact email. Push delivery respects notification preferences, quiet-hour holds and connected app clients.
-
-Browser sessions use an HttpOnly session cookie. Mutations require both the public Origin and a session-bound `X-CSRF-Token`; the PWA supplies it automatically. Authenticated workers can fetch the token from `GET /v1/auth/csrf`. Bearer clients use their explicit authorization header.
-
-Large uploads can resume through Tus 1.0.0 at `POST /v1/uploads/resumable`. Supply `Upload-Length` and optional base64 `Upload-Metadata`, then use authenticated `HEAD` and offset-checked `PATCH` requests at the returned Location. Drafts expire after one hour and are limited to 25 MiB. The final PATCH returns `Upload-Blob-Sha256`; GET returns `{blob}` for the existing `/v1/uploads/commit` flow. Image privacy processing applies before completion.
+Browser sessions use an HttpOnly cookie. State-changing requests need the app `Origin` and a session-bound `X-CSRF-Token` (the PWA handles this; other clients can get one from `GET /v1/auth/csrf`, or use a bearer session). Push uses VAPID keys in `<dataDir>/secrets/vapid.json`; keep that file across upgrades, and set `push.vapidSubject` to your contact address. Large uploads can resume over Tus at `/v1/uploads/resumable`.
 
 ## Sandboxes
 
-The local provider probes user, mount and network namespaces before starting. Commands see only `/workspace`, read-only `/raw`, `/history` and `/system`, read-only OS files, and private temporary storage. Git metadata is read-only. Process environments are built from an allowlist. Isolation failures stop startup unless `OPENCOACH_ALLOW_UNSAFE_SANDBOX=1` was explicitly set for development. Both Docker images include the Python analysis/parsing libraries listed in SPEC §4; local namespaces select `/opt/coach-python/bin` when that read-only environment is installed and exposed.
+The local provider checks for user, mount and network namespaces at startup. Coach commands see only `/workspace`, read-only `/raw`, `/history` and `/system`, read-only OS files and a private `/tmp`. They have no network access and get an allowlisted environment. If isolation is unavailable, startup fails unless `OPENCOACH_ALLOW_UNSAFE_SANDBOX=1` is set (development only). Python analysis libraries are used from `/opt/coach-python` when present (the Docker images install them).
 
-For Docker execution, build `docker/sandbox.Dockerfile`, set `OPENCOACH_SANDBOX=docker`, and configure the image/socket. The server must have access to the daemon. Athlete bind paths must exist at the same absolute paths from the daemon's perspective: when the server itself runs in a container, use matching host bind paths rather than a container-only `/data` path. Docker socket access gives the trusted server control of the daemon; keep it outside athlete mounts.
+**Docker sandbox:** build `docker/sandbox.Dockerfile` (`docker compose --profile sandbox-image build`) and set `OPENCOACH_SANDBOX=docker`. The athlete bind paths must be identical from the daemon's point of view. Daemon socket access gives the server control of Docker, so keep it out of athlete mounts.
 
-The example Compose deployment uses local namespaces inside the server container:
-
-```sh
-mkdir -p .data
-# The server image runs as uid/gid 1000; the bind directory must be writable by that user.
-docker compose up --build
-```
-
-The Compose file binds ports to loopback. It sets `seccomp=unconfined`, `apparmor=unconfined` and `systempaths=unconfined` for the trusted server so nested user/PID namespaces can mount private procfs. Each athlete namespace still drops capabilities, mounts its own procfs, masks sensitive paths and denies networking. Hosts that disallow user namespaces need their policy configured or the Docker sandbox provider selected. The final server image built and passed non-root startup, browser demo, Python-library and sandbox virtual-time checks on 6 October 2026 (see the verification record). A managed build proxy can supply its CA with `docker build --secret id=proxy_ca,src="$CODEX_PROXY_CERT" -f docker/server.Dockerfile .`; TLS verification stays enabled and the CA is not stored in image layers.
+**Compose:** `docker-compose.yml` runs the server image (uid/gid 1000; `.data` must be writable by it) with local namespaces inside the container. Ports are bound to loopback only. It sets `seccomp`, `apparmor` and `systempaths` to `unconfined` for the trusted server so it can create nested namespaces. Each athlete sandbox still drops capabilities, masks sensitive paths and has no network.
 
 ## Export, import and maintenance
 
-Upgrades preserve each athlete's workspace and published screens. New starter files do not overwrite customizations. Ask your coach to adopt a newer view or translate existing content; it must preview and publish changes. Harness prompts refresh at the next epoch. Back up your data before upgrading.
-
-Settings offers export, view history/revert, calendar feed rotation and account deletion. Exports include committed workspace files, a consistent coach database, raw uploads and events; sessions and deployment secrets are excluded. Import creates an athlete without administrator privileges. To run the CLI from the repository root:
+Settings offers export, per-view history and revert, calendar-feed rotation and account deletion. Exports include the workspace, a consistent coach database, raw uploads and events; sessions and server secrets are excluded. CLI, run from the repository root with the same data and config paths as the server (stop the server before importing):
 
 ```sh
 node apps/server/bin/opencoach.mjs setup-code
-node apps/server/bin/opencoach.mjs export "athlete-id"
-node apps/server/bin/opencoach.mjs import "/absolute/path/bundle.tar.gz" "new-athlete-id"
+node apps/server/bin/opencoach.mjs export <athlete-id>
+node apps/server/bin/opencoach.mjs import /path/bundle.tar.gz <new-athlete-id>
 ```
 
-Replace the quoted example arguments with the real account ID or file path. Use the same absolute data/config paths as the running server. Stop the server before imports. A setup code can only create the first administrator; later accounts use administrator-issued invites. SIGINT/SIGTERM closes listeners, voice calls, timers, sandboxes and SQLite connections.
-
-Run `pnpm typecheck`, `pnpm test`, `pnpm build` and `pnpm eval:selftest` before an upgrade. `pnpm test:e2e` verifies the built PWA against a real demo server. Offline evaluation self-tests use seeded scripted coaches and make no model API calls. Real provider credentials and an explicit eval CLI choice are required for paid model runs.
+Upgrades keep each athlete's workspace and published views: new starter files never overwrite the coach's own versions, and harness prompts refresh at the next epoch. Back up the data directory before upgrading. SIGINT and SIGTERM shut the server down cleanly.
