@@ -286,7 +286,7 @@ export class HelperManager {
       const system = [
         {
           text: [
-            addendum || `You are a helper to ${settings.profile.coachName}, a running coach. You do not talk to the athlete.`,
+            addendum || `You are a helper to ${settings.profile.coachName}, the athlete's coach. You do not talk to the athlete.`,
             '',
             '## Your environment',
             `now: ${core.clock.now().toISOString()} · athlete local time: ${formatLocal(core.clock.now(), settings.profile.tz)} (${settings.profile.tz})`,

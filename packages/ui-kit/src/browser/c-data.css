@@ -79,6 +79,22 @@ rc-workout { display: block; }
 .rc-step--recovery, .rc-step--rest { --rc-step-c: var(--rc-series-1); }
 .rc-step--steady { --rc-step-c: var(--rc-series-6); }
 .rc-step--strides, .rc-step--drill { --rc-step-c: var(--rc-series-7); }
+.rc-exercise {
+  --rc-step-c: var(--rc-type-strength);
+  display: grid; grid-template-columns: 6px 1fr auto; grid-template-areas: 'bar name scheme' 'bar load load' 'bar sets sets' 'bar meta meta' 'bar note note';
+  column-gap: var(--rc-space-3); row-gap: 2px; align-items: center;
+  padding: 10px var(--rc-space-3) 10px 0; background: var(--rc-surface-2); border-radius: var(--rc-radius-sm); overflow: hidden;
+}
+.rc-exercise > .rc-step__bar { grid-area: bar; }
+.rc-exercise__name { grid-area: name; font-weight: 700; }
+.rc-exercise > .rc-exercise__scheme { grid-area: scheme; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rc-exercise > .rc-exercise__load { grid-area: load; color: var(--rc-text-2); font-size: var(--rc-text-sm); font-variant-numeric: tabular-nums; }
+.rc-exercise__sets { grid-area: sets; list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.rc-exercise__sets > li { display: flex; flex-wrap: wrap; gap: 0 var(--rc-space-2); align-items: baseline; }
+.rc-exercise__sets .rc-exercise__scheme { font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc-exercise__sets .rc-exercise__load { color: var(--rc-text-2); font-size: var(--rc-text-sm); font-variant-numeric: tabular-nums; }
+.rc-exercise__meta { grid-area: meta; color: var(--rc-text-3); font-size: var(--rc-text-sm); }
+.rc-exercise > .rc-step__note { grid-area: note; }
 .rc-repeat { border: 1px solid var(--rc-border-strong); border-radius: var(--rc-radius-sm); padding: var(--rc-space-2); }
 .rc-repeat__head { display: flex; gap: 6px; align-items: baseline; margin-bottom: 6px; font-weight: 700; color: var(--rc-text-2); }
 .rc-repeat__times { font-size: var(--rc-text-lg); color: var(--rc-text); }
@@ -127,3 +143,25 @@ rc-week-strip { display: block; }
 .rc-type-hike { --rc-type-c: var(--rc-type-hike); }
 .rc-type-bike { --rc-type-c: var(--rc-type-bike); }
 .rc-type-swim { --rc-type-c: var(--rc-type-swim); }
+.rc-type-recovery { --rc-type-c: var(--rc-type-recovery); }
+.rc-type-technique { --rc-type-c: var(--rc-type-technique); }
+.rc-type-skill { --rc-type-c: var(--rc-type-skill); }
+.rc-type-test { --rc-type-c: var(--rc-type-test); }
+.rc-type-mobility { --rc-type-c: var(--rc-type-mobility); }
+.rc-type-conditioning { --rc-type-c: var(--rc-type-conditioning); }
+.rc-type-competition { --rc-type-c: var(--rc-type-competition); }
+.rc-type-heavy { --rc-type-c: var(--rc-type-heavy); }
+.rc-type-power { --rc-type-c: var(--rc-type-power); }
+.rc-type-hypertrophy { --rc-type-c: var(--rc-type-hypertrophy); }
+.rc-type-meet { --rc-type-c: var(--rc-type-meet); }
+.rc-type-row { --rc-type-c: var(--rc-type-row); }
+.rc-type-climb { --rc-type-c: var(--rc-type-climb); }
+.rc-type-yoga { --rc-type-c: var(--rc-type-yoga); }
+.rc-type-x1 { --rc-type-c: var(--rc-series-1); }
+.rc-type-x2 { --rc-type-c: var(--rc-series-2); }
+.rc-type-x3 { --rc-type-c: var(--rc-series-3); }
+.rc-type-x4 { --rc-type-c: var(--rc-series-4); }
+.rc-type-x5 { --rc-type-c: var(--rc-series-5); }
+.rc-type-x6 { --rc-type-c: var(--rc-series-6); }
+.rc-type-x7 { --rc-type-c: var(--rc-series-7); }
+.rc-type-x8 { --rc-type-c: var(--rc-series-8); }

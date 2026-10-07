@@ -1,4 +1,9 @@
-/** Workout/sport type metadata shared by calendar, week strip, lists and badges. */
+/**
+ * Session and sport type metadata shared by calendar, week strip, lists and badges. Types are free text
+ * written by the coach: known words get a fixed colour, label and letter; any other word gets a stable
+ * colour from a hash (classes rc-type-x1..x8), a humanized label and its first letter, so a new sport or
+ * session type is always distinguishable without a kit change.
+ */
 import { humanize } from '../util';
 
 export interface TypeMeta {
@@ -8,35 +13,67 @@ export interface TypeMeta {
 }
 
 export const TYPE_META: Record<string, TypeMeta> = {
+  // session intent, any sport
   easy: { label: 'Easy', glyph: 'E' },
-  long: { label: 'Long run', glyph: 'L' },
-  tempo: { label: 'Tempo', glyph: 'T' },
-  intervals: { label: 'Intervals', glyph: 'I' },
-  hills: { label: 'Hills', glyph: 'H' },
-  race: { label: 'Race', glyph: 'R' },
-  strength: { label: 'Strength', glyph: 'S' },
+  recovery: { label: 'Recovery', glyph: 'R' },
+  technique: { label: 'Technique', glyph: 'T' },
+  skill: { label: 'Skill', glyph: 'K' },
+  test: { label: 'Test', glyph: '!' },
+  mobility: { label: 'Mobility', glyph: 'M' },
+  conditioning: { label: 'Conditioning', glyph: 'C' },
+  competition: { label: 'Competition', glyph: '★' },
   rest: { label: 'Rest', glyph: '–' },
   cross: { label: 'Cross-train', glyph: 'X' },
   other: { label: 'Other', glyph: '•' },
+  // endurance
+  long: { label: 'Long', glyph: 'L' },
+  tempo: { label: 'Tempo', glyph: 'T' },
+  intervals: { label: 'Intervals', glyph: 'I' },
+  hills: { label: 'Hills', glyph: 'H' },
+  race: { label: 'Race', glyph: '★' },
+  // strength
+  strength: { label: 'Strength', glyph: 'S' },
+  heavy: { label: 'Heavy', glyph: 'H' },
+  power: { label: 'Power', glyph: 'P' },
+  hypertrophy: { label: 'Hypertrophy', glyph: 'V' },
+  meet: { label: 'Meet', glyph: '★' },
+  // sports
   run: { label: 'Run', glyph: 'R' },
   walk: { label: 'Walk', glyph: 'W' },
   hike: { label: 'Hike', glyph: 'H' },
   bike: { label: 'Bike', glyph: 'B' },
   swim: { label: 'Swim', glyph: 'S' },
+  row: { label: 'Row', glyph: 'R' },
+  climb: { label: 'Climb', glyph: 'C' },
+  yoga: { label: 'Yoga', glyph: 'Y' },
 };
 
+const HASHED_CLASSES = 8;
+
+function norm(type: unknown): string {
+  return String(type ?? '').trim().toLowerCase();
+}
+
+/** CSS-safe key for a type: the known word itself, or x1..x8 chosen by a stable hash of the word. */
 export function typeKey(type: unknown): string {
-  const t = String(type ?? 'other').toLowerCase();
-  return TYPE_META[t] ? t : 'other';
+  const t = norm(type);
+  if (!t) return 'other';
+  if (TYPE_META[t]) return t;
+  let h = 0;
+  for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+  return `x${(h % HASHED_CLASSES) + 1}`;
 }
 
 export function typeLabel(type: unknown): string {
-  const t = String(type ?? '').toLowerCase();
+  const t = norm(type);
   return TYPE_META[t]?.label ?? (t ? humanize(t) : 'Other');
 }
 
 export function typeGlyph(type: unknown): string {
-  return TYPE_META[typeKey(type)]?.glyph ?? '•';
+  const t = norm(type);
+  if (TYPE_META[t]) return TYPE_META[t].glyph;
+  const first = humanize(t).charAt(0);
+  return first ? first.toUpperCase() : '•';
 }
 
 export const STATUS_LABEL: Record<string, string> = {

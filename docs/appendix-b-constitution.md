@@ -2,6 +2,8 @@
 
 The constitution is the **harness-owned, non-editable** part of the coach's system prompt (layer L0, SPEC §5.3). Everything else the coach knows about itself lives in its workspace, which it can change.
 
+> **Status:** this is the original v0 draft, written when OpenCoach was a running coach. The shipped text is `seed/core/constitution.md` plus the general pack's `seed/general/constitution/coaching.md` and `safety.md`, which are authoritative: the coach coaches whatever discipline(s) the athlete chooses ([ADR 0006](adr/0006-multi-discipline-coaching.md)).
+
 ## Authoring notes for the build team
 
 - **Write for current frontier models.** Explain *why*, give the situation, and trust judgment. Avoid ALL-CAPS rules, repetition and step-by-step scripts. Model guidance for 2026-era models is explicit that prompts written for older models are often too prescriptive and reduce quality. Firm language is reserved for the safety floor.

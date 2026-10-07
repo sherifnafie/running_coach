@@ -9,12 +9,12 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 | Area | State |
 |---|---|
 | `packages/protocol` | Contracts (zod). Browser-safe. |
-| `packages/engine` | Agent loop. OpenRouter for all chat models with a vetted model catalog (ADR 0006); OpenAI-compatible endpoints (Ollama, OpenCode GO); scripted demo coach. |
+| `packages/engine` | Agent loop. OpenRouter for all chat models with a vetted model catalog ([ADR 0007](adr/0007-openrouter-only-chat.md)); OpenAI-compatible endpoints (Ollama, OpenCode GO); scripted demo coach. |
 | `packages/runtime`, `packages/tools` | Mind loop, epochs, situation report, messaging policy, scheduler, helpers in git worktrees, UI publish/revert, MCP, safety screen, web search/fetch. |
 | `packages/store`, `workspace`, `sandbox` | SQLite store; athlete workspace (git, coach.db, history, virtual FS, blobs, export/import/delete); local namespace sandbox and Docker sandbox. |
 | `packages/ui-kit` | Browser kit, bridge, Playwright preview renderer with publish gates, coach-facing docs. |
 | `packages/voice` | STT/TTS, realtime calls with server sideband, cascaded calls. |
-| `seed/` | Constitution, running pack, 17 skills, helper profiles, the workspace template and four starter views (Today, Calendar, Plan, Progress). |
+| `seed/` | Constitution and one general pack for any sport or combination ([ADR 0006](adr/0006-multi-discipline-coaching.md)): 18 skills (sport-neutral method skills plus `running`, `strength-training` and `disciplines`), helper profiles, a sport-agnostic workspace template and four starter views (Today, Calendar, Plan, Progress). |
 | `apps/server` | Gateway (HTTP, WebSocket, auth, passkeys, CSRF), separate views origin, push, Telegram, CLI, Docker packaging. Per-athlete encrypted OpenRouter keys: managed (hard monthly allowance) or bring-your-own (OAuth PKCE or pasted). Admin recovery codes. |
 | `ops/` | systemd user units, deploy with rollback, nightly consistent backups for a small home instance. |
 | `apps/web` | React PWA: chat (streaming, micro-UI, attachments, voice notes), coach views in sandboxed iframes, settings (incl. language/theme), calls. |
@@ -52,7 +52,6 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 - **Bring-your-own OpenAI key for voice** is not implemented. Voice uses the server key. The credential store already supports `openai`; the voice services need per-athlete scoping.
 - **Claude through OpenRouter** is left out of the catalog until the adapter sends `cache_control` breakpoints; without them every call pays full input price.
 - **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting, "Small home instance"). Store them relative to the data directory.
-- **Renderer gate on ac9933c:** `packages/ui-kit/test/renderer.test.ts` fails on the progress view (`<rc-stat> query failed: column index out of range`). The `general-coaching` branch reworks the seed views.
 
 These are smaller findings from the code review on 2026-10-07 that haven't been fixed yet:
 - **Harness wording that coaches the model:** some harness strings tell the model how to behave and could move to `seed/` (the deletion test). Examples: the delegation advice in `runtime/src/capabilities.ts`, the helper LIMIT message in `helpers.ts`, and the `spawn_agent` and `set_preferences` tool descriptions.

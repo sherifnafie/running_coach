@@ -12,7 +12,7 @@ import { resolveEffort } from './effort';
 import { abortError } from './errors';
 
 /**
- * OpenRouter (https://openrouter.ai/docs): one OpenAI-compatible endpoint for every chat model (ADR 0006).
+ * OpenRouter (https://openrouter.ai/docs): one OpenAI-compatible endpoint for every chat model (ADR 0007).
  * On top of the compatible adapter it adds per-model capabilities from the catalog, the unified `reasoning`
  * parameter, provider routing preferences and attribution headers. Responses carry reasoning_details (replayed
  * within tool loops) and the charged cost, both handled by the shared stream parser.

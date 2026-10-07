@@ -41,11 +41,12 @@ athletes/<athleteId>/             see athletePaths() in protocol/src/config.ts
 ```
 seed/core/constitution.md              harness-generic constitution with {{pack_coaching}} and {{pack_safety}} slots
 seed/core/addenda/*.md                 helper, voice, consolidation, upgrade, safety-notice preambles
-seed/running/pack.json                 { "id": "running", "version": "0.1.0", "name": "Running" }
-seed/running/constitution/coaching.md  fills {{pack_coaching}}
-seed/running/constitution/safety.md    fills {{pack_safety}} (running red flags)
-seed/running/system/                   → /system: docs/*.md, skills/<name>/SKILL.md (+ refs, scripts), CHANGELOG-for-coach.md
-seed/running/workspace/                → copied into each new athlete workspace (Appendix D), incl. ui/ seed views
+seed/general/pack.json                 { "id": "general", "version": "0.2.0", "name": "General coaching" }
+seed/general/constitution/coaching.md  fills {{pack_coaching}} (any sport, chosen by the athlete; ADR 0006)
+seed/general/constitution/safety.md    fills {{pack_safety}} (red flags for all sports, weight-cut and high-risk rules)
+seed/general/system/                   → /system: docs/*.md, skills/<name>/SKILL.md (+ refs, scripts), CHANGELOG-for-coach.md
+seed/general/workspace/                → copied into each new athlete workspace (Appendix D), incl. ui/ seed views;
+                                         also mounted read-only as /system/seed-workspace/ for upgraded coaches
 ```
 
 Placeholders rendered at workspace init: `{{athlete_name}}`, `{{coach_name}}`, `{{voice_id}}`, `{{created_date}}`.

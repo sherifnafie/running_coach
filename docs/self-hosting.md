@@ -33,7 +33,7 @@ Settings come from YAML (`OPENCOACH_CONFIG`, see `opencoach.config.example.yaml`
 
 ### Models
 
-Chat models go through [OpenRouter](https://openrouter.ai) with one key (ADR 0006). Set `OPENROUTER_API_KEY` and leave `models` out: every tier uses the default model of the built-in catalog (DeepSeek V4.1 Flash; low effort for conversation, high for deep work). With no key and no explicit models, the server runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes.
+Chat models go through [OpenRouter](https://openrouter.ai) with one key ([ADR 0007](adr/0007-openrouter-only-chat.md)). Set `OPENROUTER_API_KEY` and leave `models` out: every tier uses the default model of the built-in catalog (DeepSeek V4.1 Flash; low effort for conversation, high for deep work). With no key and no explicit models, the server runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes.
 
 The catalog lists the models the settings picker offers, with their capabilities and fallback prices. OpenRouter reports what each call cost, and that amount counts against budgets. The defaults:
 

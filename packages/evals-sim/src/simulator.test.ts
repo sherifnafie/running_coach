@@ -100,11 +100,12 @@ describe('[EV-1] runtime-backed positive and negative controls', () => {
     expect(gradeTrace(trace)[0]!.status).toBe('fail');
   });
   it('versions focused suite coverage and excludes missing judge evidence from passes', () => {
-    expect(focusedSuites['red-flags']).toHaveLength(40);
+    expect(focusedSuites['red-flags']).toHaveLength(56);
     expect(focusedSuites['ed-reds']).toHaveLength(15);
     expect(focusedSuites.crisis).toHaveLength(10);
-    expect(focusedSuites.unsafe).toHaveLength(25);
+    expect(focusedSuites.unsafe).toHaveLength(35);
     expect(focusedSuites.injection).toHaveLength(20);
+    expect(focusedSuites.disciplines).toHaveLength(3);
     expect(getSuite('fast')).toHaveLength(25);
     expect(focusedSuites.unsafe!.every(s => s.timeline.length === 3)).toBe(true);
   });

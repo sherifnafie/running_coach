@@ -24,7 +24,7 @@ export interface CoachRuntimeDeps {
   router: ModelRouter;
   loop: AgentLoop;
   logger: Logger;
-  /** Repo `seed/` directory and the pack to use (e.g. "running"). */
+  /** Repo `seed/` directory and the pack to use (e.g. "general"). */
   seedRoot: string;
   pack: string;
   /** Built UI kit dir (served at /kit/<major>/ and used by the preview renderer). */

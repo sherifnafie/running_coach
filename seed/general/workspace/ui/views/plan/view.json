@@ -1,0 +1,12 @@
+{
+  "id": "plan",
+  "title": "Plan",
+  "icon": "plan",
+  "placement": { "nav": 2 },
+  "entry": "index.html",
+  "kit": "1",
+  "reads": ["db:blocks", "db:planned_workouts", "db:goal_events", "file:plan/athlete-summary.md"],
+  "writes": [],
+  "actions": [],
+  "refresh": "on-change"
+}

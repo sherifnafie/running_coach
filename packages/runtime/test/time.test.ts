@@ -69,6 +69,18 @@ describe('safety heuristic', () => {
   it('does not flag ordinary soreness', () => {
     expect(heuristicScreen('legs are a bit sore after yesterday, quads tight').flagged).toBe(false);
   });
+
+  it('[SAFE-2] screens lifting and other-sport red flags without flagging ordinary gym soreness', () => {
+    const caudaEquina = heuristicScreen('lower back pain after deadlifts and now my groin is numb and I can\'t control my bladder');
+    expect(caudaEquina).toMatchObject({ flagged: true, categories: ['neuro'] });
+    expect(heuristicScreen('both legs went weak after squats and my back hurts').categories).toContain('neuro');
+    expect(heuristicScreen('sudden severe headache during a heavy set right now')).toMatchObject({ flagged: true, acute: true });
+    expect(heuristicScreen('felt a pop in my bicep on the last rep, now there is a lump and it is weak').categories).toContain('other_acute');
+    expect(heuristicScreen('I fainted mid-set').acute).toBe(true);
+    for (const ordinary of ['my legs are weak after leg day', 'DOMS from squats, glutes sore', 'heard my knee pop, no pain at all', 'bench felt heavy today']) {
+      expect(heuristicScreen(ordinary).flagged, ordinary).toBe(false);
+    }
+  });
   it('flags crisis language as acute', () => {
     const r = heuristicScreen("honestly I don't want to be alive anymore");
     expect(r.categories).toContain('self_harm');

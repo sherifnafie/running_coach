@@ -1,7 +1,7 @@
 import type { ModelCatalogEntryInput } from '@opencoach/protocol';
 
 /**
- * Built-in OpenRouter catalog: the models the server offers in the model picker (SPEC §5.7, ADR 0006).
+ * Built-in OpenRouter catalog: the models the server offers in the model picker (SPEC §5.7, ADR 0007).
  *
  * Selection, checked 2026-10-07 against the Artificial Analysis leaderboard and the OpenRouter model API:
  * each entry calls tools and read a workout screenshot correctly through OpenRouter with `data_collection: deny`.

@@ -24,8 +24,8 @@ export const EMERGENCY_GUIDANCE =
 const BY_CATEGORY: Partial<Record<SafetyCategory, string>> = {
   cardiac: 'Chest pain or pressure, palpitations or fainting need medical attention. Stop training until a clinician has seen you.',
   heat_illness: 'Confusion, vomiting or stopping sweating in the heat can be heat illness. Get out of the heat, cool down and seek urgent medical help.',
-  stress_fracture: 'Sharp bone pain, or pain at rest or at night, can mean a stress injury. Stop running and have it checked.',
-  neuro: 'Numbness, weakness or a head injury needs prompt medical assessment.',
+  stress_fracture: 'Sharp bone pain, or pain at rest or at night, can mean a stress injury. Stop the activity that hurts and have it checked.',
+  neuro: 'Numbness, weakness, a head injury, or back pain with groin numbness or bladder changes needs urgent medical assessment.',
   rhabdo: 'Dark urine and severe muscle pain after hard exercise need urgent medical care.',
   dvt: 'A swollen, painful calf after travel or rest can be a clot. Seek medical care promptly.',
   eating_disorder: 'If food, weight or exercise feels out of control, talking to a doctor or an eating-disorder helpline can help. You deserve support.',

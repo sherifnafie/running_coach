@@ -1,6 +1,6 @@
 /**
  * @opencoach/engine — the agent loop and provider adapters (SPEC §5.7, §5.8, Appendix C §C.6).
- * Chat models go through OpenRouter (docs/adr/0006-openrouter-only-chat.md); other OpenAI-compatible
+ * Chat models go through OpenRouter (docs/adr/0007-openrouter-only-chat.md); other OpenAI-compatible
  * endpoints use the compatible adapter. Both are written on the official `openai` SDK.
  *
  * Signatures of the original stub are final. Additions are optional parameters / extra exports only.

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title data-i18n="Today">Today</title>
+  <!-- The kit: design tokens + <rc-*> components + window.coach. Always absolute /kit/1/ paths. -->
+  <link rel="stylesheet" href="/kit/1/kit.css">
+  <script type="module" src="/kit/1/kit.js"></script>
+  <!-- The CSP forbids inline scripts: view logic lives in an external module. -->
+  <script type="module" src="view.js"></script>
+</head>
+<body>
+<rc-page>
+  <rc-header id="header" heading="Today" data-i18n-heading="Today"></rc-header>
+
+  <!-- Shown only while there is no plan and no logged training (day zero). -->
+  <rc-empty id="onboarding" hidden icon="chat" heading="Your coach will fill this in" data-i18n-heading="Your coach will fill this in"><span data-i18n="After your first chat, today's session shows up here.">After your first chat, today's session shows up here.</span><rc-button id="say-hi" variant="primary" icon="chat"><span data-i18n="Say hi to your coach">Say hi to your coach</span></rc-button>
+  </rc-empty>
+
+  <!-- 1. Today's session(s), any sport: one card per planned workout, built by view.js -->
+  <section id="sessions" class="rc-stack" aria-label="Today's sessions" data-i18n-aria-label="Today's sessions"></section>
+
+  <!-- 2. Readiness check-in shortcut -->
+  <rc-card id="checkin-card" heading="Quick check-in" data-i18n-heading="Quick check-in" subheading="Helps your coach adjust the plan." data-i18n-subheading="Helps your coach adjust the plan." hidden>
+    <rc-button id="checkin-open" variant="secondary" icon="heart"><span data-i18n="How are you feeling?">How are you feeling?</span></rc-button>
+    <rc-form id="checkin-form" submit-label="Save check-in" data-i18n-submit-label="Save check-in" hidden></rc-form>
+  </rc-card>
+
+  <!-- 3. Last activity: view.js picks the numbers that fit the sport -->
+  <rc-card id="last-card" heading="Last activity" data-i18n-heading="Last activity" hidden>
+    <p id="last-title" class="rc-muted"></p>
+    <div id="last-stats" class="rc-grid" data-cols="3"></div>
+    <p id="last-note" class="rc-muted" hidden></p>
+  </rc-card>
+
+  <!-- 4. Next key session (planned_workouts.key = 1) -->
+  <rc-card id="next-card" heading="Next key session" data-i18n-heading="Next key session" hidden>
+    <rc-list id="next" selectable></rc-list>
+  </rc-card>
+</rc-page>
+</body>
+</html>

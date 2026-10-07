@@ -104,7 +104,7 @@ export async function makeHarness(opts: { start?: string; renderer?: UiRenderer 
     loop: createAgentLoop({ price: (m, u) => router.cost(m, u) }),
     logger: silentLogger,
     seedRoot: join(REPO, 'seed'),
-    pack: 'running',
+    pack: 'general',
     kitDir: join(REPO, 'packages/ui-kit/dist'),
     renderer: opts.renderer === null ? undefined : opts.renderer ?? passRenderer,
     webSearch: opts.webSearch,
