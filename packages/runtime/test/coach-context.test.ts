@@ -58,7 +58,7 @@ describe('coach context delivered to the model [CTX-1, SUB-3, UI-1]', () => {
 
   it.each([
     { profile: 'researcher', effort: 'low', model: 'scripted-fast' },
-    { profile: 'deep-researcher', effort: 'high', model: 'scripted-coach' },
+    { profile: 'deep-researcher', effort: 'max', model: 'scripted-coach' },
   ])('lets $profile retrieve a source and persist a scoped report with the correct context', async ({ profile, effort, model }) => {
     h = await makeHarness({ webSearch: {
       kind: 'test', async search() { return [{ title: 'Primary source', url: 'https://example.org/source', snippet: 'Source excerpt for an offline fixture.' }]; },
