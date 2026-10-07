@@ -29,9 +29,22 @@ function Brand({ subtitle }: { subtitle: string }) {
   );
 }
 
-export function SetupScreen() {
+/** `?invite=CODE` in the address bar: an invite link from Settings → Admin. */
+function inviteFromUrl(): string | undefined {
+  try {
+    return new URLSearchParams(location.search).get('invite')?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Creates an account with a code: the first-run setup code (administrator), or an invite code from an
+ * administrator (`invite`). The server accepts both on the same route.
+ */
+export function SetupScreen({ invite, initialCode = '', onBack }: { invite?: boolean; initialCode?: string; onBack?: () => void } = {}) {
   const locale = navigator.language || 'en';
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(initialCode);
   const [displayName, setDisplayName] = useState('');
   const [coachName, setCoachName] = useState('Coach');
   const [tz, setTz] = useState(detectTz());
@@ -68,6 +81,7 @@ export function SetupScreen() {
     setBusy(true);
     try {
       const res = await auth.setup(parsed.data);
+      if (invite && location.search) history.replaceState(null, '', location.pathname + location.hash);
       await onAuthenticated(res, { fresh: true });
     } catch (err) {
       setError(describeError(err));
@@ -78,12 +92,12 @@ export function SetupScreen() {
 
   return (
     <main className="auth">
-      <Brand subtitle="Set up your coach" />
+      <Brand subtitle={invite ? 'Join with your invite' : 'Set up your coach'} />
       <form className="card auth-form" onSubmit={submit} aria-describedby={error ? 'auth-error' : undefined}>
         <label className="field">
-          <span>Setup code</span>
+          <span>{invite ? 'Invite code' : 'Setup code'}</span>
           <input value={code} onChange={(e) => setCode(e.target.value)} autoComplete="one-time-code" autoCapitalize="characters" inputMode="text" required name="setup-code" />
-          <small>From the server's first-run output or your administrator.</small>
+          <small>{invite ? 'From the person who invited you. It works once, for 24 hours.' : "From the server's first-run output or your administrator."}</small>
         </label>
         <label className="field">
           <span>Your name</span>
@@ -140,6 +154,11 @@ export function SetupScreen() {
         <button className="btn primary block" type="submit" disabled={!ready || busy}>
           {busy ? 'Setting up…' : 'Create my coach'}
         </button>
+        {onBack && (
+          <button className="btn link block" type="button" onClick={onBack} disabled={busy}>
+            I already have an account
+          </button>
+        )}
       </form>
       <datalist id="tz-list">
         {(typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []).map((z) => (
@@ -151,6 +170,8 @@ export function SetupScreen() {
 }
 
 export function SignInScreen() {
+  const [inviteCode] = useState(inviteFromUrl);
+  const [joining, setJoining] = useState(!!inviteCode);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -184,6 +205,8 @@ export function SignInScreen() {
     }
   }
 
+  if (joining) return <SetupScreen invite initialCode={inviteCode} onBack={() => setJoining(false)} />;
+
   return (
     <main className="auth">
       <Brand subtitle="Welcome back" />
@@ -211,6 +234,10 @@ export function SignInScreen() {
             {busy ? 'Signing in…' : 'Pair this device'}
           </button>
         </form>
+        <p className="divider">new here?</p>
+        <button className="btn block" type="button" onClick={() => setJoining(true)} disabled={busy}>
+          I have an invite code
+        </button>
       </div>
     </main>
   );
