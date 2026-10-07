@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Today</title>
+  <title data-i18n="Today">Today</title>
   <!-- The kit: design tokens + <rc-*> components + window.coach. Always absolute /kit/1/ paths. -->
   <link rel="stylesheet" href="/kit/1/kit.css">
   <script type="module" src="/kit/1/kit.js"></script>
@@ -12,35 +12,33 @@
 </head>
 <body>
 <rc-page>
-  <rc-header id="header" heading="Today"></rc-header>
+  <rc-header id="header" heading="Today" data-i18n-heading="Today"></rc-header>
 
   <!-- Shown only while the plan is empty (day zero, or before the coach has written a plan). -->
-  <rc-empty id="onboarding" hidden icon="chat" heading="Your coach will fill this in">
-    After your first chat, today's session shows up here.
-    <rc-button id="say-hi" variant="primary" icon="chat">Say hi to your coach</rc-button>
+  <rc-empty id="onboarding" hidden icon="chat" heading="Your coach will fill this in" data-i18n-heading="Your coach will fill this in"><span data-i18n="After your first chat, today's session shows up here.">After your first chat, today's session shows up here.</span><rc-button id="say-hi" variant="primary" icon="chat"><span data-i18n="Say hi to your coach">Say hi to your coach</span></rc-button>
   </rc-empty>
 
   <!-- 1. Today's session(s): one card per planned workout, built by view.js -->
-  <section id="sessions" class="rc-stack" aria-label="Today's sessions"></section>
+  <section id="sessions" class="rc-stack" aria-label="Today's sessions" data-i18n-aria-label="Today's sessions"></section>
 
   <!-- 2. Readiness check-in shortcut -->
-  <rc-card id="checkin-card" heading="Quick check-in" subheading="Helps your coach adjust the plan." hidden>
-    <rc-button id="checkin-open" variant="secondary" icon="heart">How are you feeling?</rc-button>
-    <rc-form id="checkin-form" submit-label="Save check-in" hidden></rc-form>
+  <rc-card id="checkin-card" heading="Quick check-in" data-i18n-heading="Quick check-in" subheading="Helps your coach adjust the plan." data-i18n-subheading="Helps your coach adjust the plan." hidden>
+    <rc-button id="checkin-open" variant="secondary" icon="heart"><span data-i18n="How are you feeling?">How are you feeling?</span></rc-button>
+    <rc-form id="checkin-form" submit-label="Save check-in" data-i18n-submit-label="Save check-in" hidden></rc-form>
   </rc-card>
 
   <!-- 3. Last activity: view.js fills the attributes -->
-  <rc-card id="last-card" heading="Last activity" hidden>
+  <rc-card id="last-card" heading="Last activity" data-i18n-heading="Last activity" hidden>
     <p id="last-title" class="rc-muted"></p>
     <div class="rc-grid" data-cols="3">
-      <rc-stat id="last-distance" label="Distance" format="distance"></rc-stat>
-      <rc-stat id="last-time" label="Time" format="duration"></rc-stat>
-      <rc-stat id="last-pace" label="Pace" format="pace"></rc-stat>
+      <rc-stat id="last-distance" label="Distance" data-i18n-label="Distance" format="distance"></rc-stat>
+      <rc-stat id="last-time" label="Time" data-i18n-label="Time" format="duration"></rc-stat>
+      <rc-stat id="last-pace" label="Pace" data-i18n-label="Pace" format="pace"></rc-stat>
     </div>
   </rc-card>
 
   <!-- 4. Next key session -->
-  <rc-card id="next-card" heading="Next key session" hidden>
+  <rc-card id="next-card" heading="Next key session" data-i18n-heading="Next key session" hidden>
     <rc-list id="next" selectable></rc-list>
   </rc-card>
 </rc-page>

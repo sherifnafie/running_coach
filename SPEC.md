@@ -558,6 +558,7 @@ Kept deliberately small (P7). Full contracts, parameters and errors are in Appen
 | `send_message` | The only channel to the athlete (§5.4) | Runtime | Policy engine; idempotency |
 | `no_reply` | Explicitly end a reactive turn without replying, with a reason | Runtime | Reactive turns only |
 | `schedule`, `list_schedules`, `cancel_schedule`, `set_heartbeat` | Self-wakes and the heartbeat time (§5.5) | Runtime | ≤ 50 active; minimum interval 15 min; timezone-aware RRULE |
+| `set_preferences` | Persistent locale, theme and accent requested by the athlete [UI-1] | Runtime | Coach only; strict presentation-only schema; audited; no consent, privacy, budget, security or delivery changes |
 | `spawn_agent`, `task_status`, `cancel_task` | Helpers and background tasks (§5.6) | Runtime | Depth, concurrency and budget limits |
 | `preview_ui`, `publish_ui`, `rollback_ui` | Validate, screenshot, publish and revert views (§9.6) | Runtime + sandbox Chromium | Validation gates |
 | `web_search`, `web_fetch` | Research: weather, races, literature | Runtime (proxied) | Rate limits; results marked untrusted; logged |
@@ -653,7 +654,7 @@ The bridge provides: `coach.db.query(sql, params)` (read-only connection, row ca
 
 ### 9.5 App manifest
 
-`ui/app.json` defines the nav order, the home view and the theme accent. The shell renders the nav from it. `[UI-2]` The shell MUST keep chat reachable whatever `app.json` says.
+`ui/app.json` defines the nav order, the home view and the theme accent. Persisted athlete appearance preferences can override the accent and choose system/light/dark; Settings and the coach presentation tool update them across devices. The shell renders the nav from it. `[UI-2]` The shell MUST keep chat reachable whatever `app.json` says.
 
 ### 9.6 Publish pipeline
 
@@ -811,7 +812,7 @@ The full text is in Appendix B. Summary:
 
 - **Phase 1: PWA** (React + Vite), mobile-first. Installable. Web Push: on iOS this needs home-screen installation (iOS 16.4+) and is less reliable (Appendix A §A.9), so onboarding includes an install step. Camera and file upload, MediaRecorder for voice notes, WebRTC for calls (Phase 2).
 - **Phase 2: native shell (Capacitor)** wrapping the same web app. It adds Health Connect and HealthKit, reliable FCM/APNs push with action buttons, a share-sheet target ("share screenshot to coach" straight from Samsung Health), background audio, and home-screen widgets (Today) rendered from a coach-provided widget snapshot. **Android first**, because the founder uses Samsung Health and Health Connect.
-- **i18n:** the coach speaks the athlete's language. The shell is localized. Views get `coach.env.locale` and units, and the kit formats numbers, dates and paces.
+- **i18n:** the coach speaks the athlete's chosen language. The built-in shell and starter-view labels support English, Dutch and Arabic, with RTL where appropriate; other language tags retain English shell labels. Authored training prose and older/custom views need deliberate translation, not automatic rewriting. Views get `coach.env.locale` and units, and the kit formats numbers, dates and paces.
 - **Accessibility:** shell at WCAG 2.2 AA; views checked by axe in the publish pipeline; the kit is accessible by default; outdoor readability (contrast, large tap targets) is a kit design rule.
 - **Multi-device:** events sync to all devices; push goes to the most recently active device first (configurable).
 

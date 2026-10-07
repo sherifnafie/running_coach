@@ -51,7 +51,7 @@ export interface CompatibleProviderDeps {
   client?: CompatibleClientLike;
 }
 
-type Cfg = Pick<CompatibleProviderConfig, 'id' | 'vision' | 'contextTokens' | 'maxOutputTokens' | 'replayReasoningContent'>;
+type Cfg = Pick<CompatibleProviderConfig, 'id' | 'vision' | 'contextTokens' | 'maxOutputTokens' | 'replayReasoningContent'> & Partial<Pick<CompatibleProviderConfig, 'reasoningEfforts' | 'thinking'>>;
 
 // ------------------------------------------------------------------ request mapping
 
@@ -142,6 +142,8 @@ export function buildCompatibleRequest(req: ModelRequest, cfg: Cfg): CreateParam
     stream_options: { include_usage: true },
     max_tokens: Math.max(1, Math.min(req.maxOutputTokens, cfg.maxOutputTokens)),
     ...(tools.length > 0 ? { tools } : {}),
+    ...(req.effort && cfg.reasoningEfforts?.includes(req.effort) ? { reasoning_effort: req.effort } : {}),
+    ...(cfg.thinking === undefined ? {} : { thinking: { type: cfg.thinking ? 'enabled' : 'disabled' } }),
   };
 }
 
@@ -297,7 +299,7 @@ export function createCompatibleProvider(cfg: CompatibleProviderConfig & { apiKe
     promptCaching: false,
     midConversationSystem: false,
     parallelToolCalls: true,
-    efforts: [],
+    efforts: cfg.reasoningEfforts ?? [],
     batch: false,
   };
   return {

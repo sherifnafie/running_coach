@@ -6,7 +6,8 @@ import { applyServerCallMessage } from './calls';
 import { emitWorkspaceChange, isWorkspaceChange } from './changeBus';
 import { chatReducer, noticeText, type ChatAction, type LocalAnswer, type PendingAttachment } from './chatModel';
 import { clock } from './clock';
-import { contrastText } from './color';
+import { accentText, contrastText } from './color';
+import { languageDirection } from '@opencoach/protocol';
 import { account, auth, chat, me as meApi, settingsApi, views } from './endpoints';
 import { OfflineQueue, idbQueueStorage, type QueuedRequest, type SendResult } from './offlineQueue';
 import { extensionForMime, type Recording } from './recorder';
@@ -31,6 +32,13 @@ let queue: OfflineQueue | undefined;
 let booted = false;
 let chatVisible = false;
 let hiddenAt = 0;
+// Preserve write order and prevent an older settings GET from undoing a newer saved preference.
+let settingsRequests: Promise<unknown> = Promise.resolve();
+function queueSettings<T>(request: () => Promise<T>): Promise<T> {
+  const result = settingsRequests.then(request);
+  settingsRequests = result.catch(() => undefined);
+  return result;
+}
 const retryHandlers = new Map<string, () => Promise<void>>();
 
 export function getQueue(): OfflineQueue | undefined {
@@ -59,6 +67,7 @@ export function dismissToast(id: string): void {
 export function initTheme(): void {
   const pref = (lsGet('oc.theme') as ThemePref | null) ?? 'system';
   setTheme(pref === 'light' || pref === 'dark' ? pref : 'system');
+  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', applyPresentation);
 }
 
 export function setTheme(pref: ThemePref): void {
@@ -81,10 +90,38 @@ function applyAccent(accent: string | undefined): void {
   if (!accent || !/^#[0-9a-fA-F]{6}$/.test(accent)) {
     root.style.removeProperty('--rc-accent');
     root.style.removeProperty('--rc-on-accent');
+    root.style.removeProperty('--rc-accent-text');
     return;
   }
   root.style.setProperty('--rc-accent', accent);
   root.style.setProperty('--rc-on-accent', contrastText(accent));
+  root.style.setProperty('--rc-accent-text', accentText(accent, effectiveTheme() === 'dark' ? '#1a1b1e' : '#ffffff'));
+}
+
+function applyPresentation(): void {
+  const s = appStore.getState();
+  const settings = s.me?.settings;
+  if (settings) {
+    setTheme(settings.appearance.theme);
+    document.documentElement.lang = settings.profile.locale;
+    document.documentElement.dir = languageDirection(settings.profile.locale);
+  }
+  applyAccent(settings?.appearance.accent ?? s.app?.app.theme?.accent);
+}
+
+async function refreshSettings(): Promise<void> {
+  const athleteId = appStore.getState().me?.athlete.id;
+  if (!athleteId) return;
+  await queueSettings(async () => {
+    if (appStore.getState().me?.athlete.id !== athleteId) return;
+    try {
+      const me = await meApi.get();
+      if (appStore.getState().me?.athlete.id !== athleteId) return;
+      patchApp({ me });
+      void cacheSet(ME_CACHE_KEY, me);
+      applyPresentation();
+    } catch { /* Keep the last saved presentation offline. Reconnect retries. */ }
+  });
 }
 
 // ---- boot & session -------------------------------------------------------------------------------
@@ -145,6 +182,7 @@ async function startSession(me: MeResponse, opts: { offline?: boolean } = {}): P
     safetyDismissed: lsGetJson<string[]>('oc.safety.dismissed', []),
   });
   initQueue();
+  applyPresentation();
   const cachedApp = await cacheGet<AppInfo>(APP_CACHE_KEY);
   if (cachedApp) setApp(cachedApp, true);
   const cachedEvents = await cacheGet<AnyEvent[]>(EVENTS_CACHE_KEY);
@@ -180,6 +218,9 @@ function teardownSession(): void {
     queued: 0,
   }));
   applyAccent(undefined);
+  document.documentElement.lang = navigator.language || 'en';
+  document.documentElement.dir = languageDirection(navigator.language || 'en');
+  setTheme('system');
 }
 
 export async function signOut(): Promise<void> {
@@ -217,7 +258,7 @@ export async function deleteAccount(): Promise<void> {
 
 function setApp(app: AppInfo, fromCache = false): void {
   patchApp({ app, appFromCache: fromCache });
-  applyAccent(app.app.theme?.accent);
+  applyPresentation();
 }
 
 export async function refreshApp(): Promise<void> {
@@ -319,6 +360,7 @@ function startStream(): void {
       if (reconnect) {
         void fillGap();
         void refreshApp();
+        void refreshSettings();
       }
       void queue?.flush();
     },
@@ -333,6 +375,9 @@ function startStream(): void {
 export function handleStream(m: StreamMessage): void {
   const nowIso = clock.nowIso();
   switch (m.t) {
+    case 'settings.changed':
+      void refreshSettings();
+      return;
     case 'presence':
       appStore.setState((s) => ({ ...s, presence: m.state, progress: m.state === 'idle' ? undefined : s.progress }));
       return;
@@ -754,17 +799,22 @@ export function consumePrefill(): void {
 // ---- settings ----------------------------------------------------------------------------------------------------------
 
 export async function updateSettings(patch: unknown): Promise<AthleteSettings | undefined> {
-  try {
-    const settings = await settingsApi.put(patch);
-    appStore.setState((s) => {
-      if (!s.me) return s;
-      const next = { ...s.me, settings, athlete: { ...s.me.athlete, displayName: settings.profile?.name ?? s.me.athlete.displayName } };
-      void cacheSet(ME_CACHE_KEY, next);
-      return { ...s, me: next };
-    });
-    return settings;
-  } catch (e) {
-    toast(`Could not save settings: ${describeError(e)}`, 'error');
-    return undefined;
-  }
+  const athleteId = appStore.getState().me?.athlete.id;
+  return queueSettings(async () => {
+    if (!athleteId || appStore.getState().me?.athlete.id !== athleteId) return undefined;
+    try {
+      const settings = await settingsApi.put(patch);
+      appStore.setState((s) => {
+        if (!s.me || s.me.athlete.id !== athleteId) return s;
+        const next = { ...s.me, settings, athlete: { ...s.me.athlete, displayName: settings.profile?.name ?? s.me.athlete.displayName } };
+        void cacheSet(ME_CACHE_KEY, next);
+        return { ...s, me: next };
+      });
+      applyPresentation();
+      return settings;
+    } catch (e) {
+      toast(`Could not save settings: ${describeError(e)}`, 'error');
+      return undefined;
+    }
+  });
 }

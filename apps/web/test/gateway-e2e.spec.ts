@@ -4,6 +4,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer, type Server as HttpServer } from 'node:http';
+import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +14,7 @@ import { build } from 'vite';
 import { athletePaths, silentLogger } from '../../../packages/protocol/src';
 import { composeServer, type ComposedServer } from '../../server/src/compose';
 import { loadConfig } from '../../server/src/config';
+import { createExecutor } from '../../../packages/runtime/src/executor';
 
 const repo = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 const webRoot = join(repo, 'apps/web');
@@ -327,6 +329,82 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await page.getByLabel('Units', { exact: true }).waitFor();
     expect(await page.getByLabel('Units', { exact: true }).inputValue()).toBe('imperial');
   }, 60_000);
+
+  it('[UI-1] persists language/colors, updates open clients and starter views, and supports Arabic RTL', async () => {
+    const requireKit = createRequire(join(repo, 'packages/ui-kit/package.json'));
+    const axeSource = await readFile(requireKit.resolve('axe-core/axe.min.js'), 'utf8');
+    const audit = async () => {
+      await page.evaluate(axeSource);
+      const violations = await page.evaluate(`(async () => (await window.axe.run(document, { resultTypes: ['violations'] })).violations.filter(v => ['critical', 'serious'].includes(v.impact)).map(v => ({ id: v.id, targets: v.nodes.map(n => n.target) })))()`);
+      expect(violations).toEqual([]);
+    };
+    const nav = () => page.getByRole('navigation', { name: 'Main' });
+    await nav().getByRole('button', { name: 'Today', exact: true }).click();
+    const today = page.locator('iframe[title="Today"]');
+    await today.contentFrame().getByRole('heading', { name: 'Today', exact: true }).waitFor();
+    await nav().getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.getByRole('heading', { name: 'Your coach, your way' }).waitFor();
+    await audit();
+    if (process.env.OPENCOACH_CAPTURE_SETTINGS === '1') {
+      await page.screenshot({ path: join(repo, 'docs/images/settings-phone.png') });
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.screenshot({ path: join(repo, 'docs/images/settings-desktop.png') });
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
+    await page.getByLabel('App and coach language', { exact: true }).selectOption('nl');
+    await page.getByRole('heading', { name: 'Je coach, op jouw manier' }).waitFor();
+    await page.getByRole('button', { name: 'Donker', exact: true }).click();
+    await page.getByRole('button', { name: 'Kies een kleur #2563eb', exact: true }).click();
+    await expect.poll(async () => (await server.store.getSettings(athleteId)).appearance).toEqual({ theme: 'dark', accent: '#2563eb' });
+    await page.reload();
+    await page.getByLabel('Taal van app en coach', { exact: true }).waitFor();
+    expect(await page.getByLabel('Taal van app en coach', { exact: true }).inputValue()).toBe('nl');
+    expect(await page.locator('html').getAttribute('data-theme')).toBe('dark');
+    const second = await browser.newContext({ storageState: await context.storageState(), viewport: { width: 390, height: 844 } });
+    const other = await second.newPage();
+    const executor = createExecutor(server.runtime.core, { athleteId, turnId: 'browser-preferences', triggerClass: 'reactive', agent: { kind: 'coach', depth: 0 }, tools: ['set_preferences'], fs: server.runtime.core.fsFor(athleteId), sandbox: { exec: async () => { throw new Error('No shell'); } }, vision: false });
+    const change = async (id: string, input: unknown) => {
+      const result = await executor.execute({ type: 'tool_call', id, name: 'set_preferences', input }, new AbortController().signal);
+      expect(result.isError).toBe(false);
+    };
+    try {
+      await other.goto(appUrl);
+      await other.getByRole('navigation', { name: 'Hoofdnavigatie' }).waitFor();
+      expect(await other.locator('html').getAttribute('data-theme')).toBe('dark');
+      // Re-mount Today after the explicit reload, then keep it mounted while changing preferences.
+      await page.getByRole('navigation', { name: 'Hoofdnavigatie' }).getByRole('button', { name: 'Vandaag', exact: true }).click();
+      await today.contentFrame().getByRole('heading', { name: 'Vandaag', exact: true }).waitFor();
+      const currentSrc = await today.getAttribute('src');
+      await change('arabic', { locale: 'ar', theme: 'light', accent: '#047857' });
+      await page.getByRole('navigation', { name: 'التنقل الرئيسي' }).waitFor();
+      await other.getByRole('navigation', { name: 'التنقل الرئيسي' }).waitFor();
+      await today.contentFrame().getByRole('heading', { name: 'اليوم', exact: true }).waitFor();
+      expect(await today.getAttribute('src')).toBe(currentSrc);
+      expect(await today.contentFrame().locator('html').getAttribute('dir')).toBe('rtl');
+      expect(await today.contentFrame().locator('html').getAttribute('lang')).toBe('ar');
+      expect(await page.locator('html').getAttribute('dir')).toBe('rtl');
+      expect(await other.locator('html').getAttribute('lang')).toBe('ar');
+      expect(await other.locator('html').evaluate(el => el.style.getPropertyValue('--rc-accent'))).toBe('#047857');
+      await page.getByRole('navigation', { name: 'التنقل الرئيسي' }).getByRole('button', { name: 'الإعدادات', exact: true }).click();
+      await page.getByLabel('لغة التطبيق والمدرب', { exact: true }).waitFor();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await audit();
+      if (process.env.OPENCOACH_CAPTURE_SETTINGS === '1') await page.screenshot({ path: join(repo, 'docs/images/settings-arabic.png') });
+      await page.getByLabel('لغة التطبيق والمدرب', { exact: true }).selectOption('en');
+      await page.getByRole('heading', { name: 'Your coach, your way' }).waitFor();
+      expect(await page.locator('html').getAttribute('dir')).toBe('ltr');
+      // Rapid choices must preserve the user's final selection across server responses.
+      await page.getByRole('button', { name: 'Dark', exact: true }).click();
+      await page.getByRole('button', { name: 'Light', exact: true }).click();
+      await page.getByRole('button', { name: 'Dark', exact: true }).click();
+      await expect.poll(async () => (await server.store.getSettings(athleteId)).appearance.theme).toBe('dark');
+      await expect.poll(() => page.locator('html').getAttribute('data-theme')).toBe('dark');
+    } finally {
+      await change('restore', { locale: 'en', theme: 'system', accent: null });
+      await page.getByRole('navigation', { name: 'Main' }).waitFor();
+      await second.close();
+    }
+  }, 90_000);
 
   it('registers a browser passkey and signs back in with a verified assertion', async () => {
     const cdp = await context.newCDPSession(page);

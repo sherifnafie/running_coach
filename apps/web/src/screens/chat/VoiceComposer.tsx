@@ -1,3 +1,4 @@
+import { t, useI18n } from '../../lib/i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AudioPlayer, Spinner, useTick } from '../../components/Atoms';
 import { Icon } from '../../components/Icon';
@@ -108,13 +109,14 @@ export function useVoiceRecorder(visible: boolean) {
 }
 
 export function VoiceComposer({ voice, online }: { voice: ReturnType<typeof useVoiceRecorder>; online: boolean }) {
+  const t = useI18n();
   useTick(200);
   const recording = voice.phase === 'recording';
   return (
     <div className="voice-composer">
       <div className="voice-heading" role="status" aria-live="polite">
-        {recording ? <><span className="rec-dot" aria-hidden="true" /><strong>Recording</strong></> :
-          voice.phase === 'ready' ? <><Icon name="mic" size={18} /><strong>Voice note</strong><span>Listen before sending</span></> :
+        {recording ? <><span className="rec-dot" aria-hidden="true" /><strong>{t("Recording")}</strong></> :
+          voice.phase === 'ready' ? <><Icon name="mic" size={18} /><strong>{t("Voice note")}</strong><span>{t("Listen before sending")}</span></> :
           <><Spinner label={voice.phase === 'starting' ? 'Starting microphone' : 'Preparing preview'} /><strong>{voice.phase === 'starting' ? 'Starting microphone…' : 'Preparing preview…'}</strong></>}
       </div>
       {voice.phase === 'ready' && voice.preview ?
@@ -124,11 +126,11 @@ export function VoiceComposer({ voice, online }: { voice: ReturnType<typeof useV
           <div className="voice-level">{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ height: `${4 + (recording ? voice.level : 0) * (12 + (i % 5) * 10)}px` }} />)}</div>
         </div>}
       <div className="voice-controls">
-        <button type="button" className="btn voice-discard" onClick={voice.cancel}><Icon name="x" size={18} />{voice.phase === 'ready' ? 'Discard' : 'Cancel'}</button>
-        {recording && <button type="button" autoFocus className="btn primary" onClick={() => void voice.stop()}><Icon name="stop" size={17} /> Stop recording</button>}
-        {voice.phase === 'ready' && <button type="button" autoFocus className="btn primary" onClick={voice.send} disabled={!online}><Icon name="arrow-up" size={18} /> Send voice note</button>}
+        <button type="button" className="btn voice-discard" onClick={voice.cancel}><Icon name="x" size={18} />{voice.phase === 'ready' ? 'Discard' : t("Cancel")}</button>
+        {recording && <button type="button" autoFocus className="btn primary" onClick={() => void voice.stop()}><Icon name="stop" size={17} /> {t("Stop recording")}</button>}
+        {voice.phase === 'ready' && <button type="button" autoFocus className="btn primary" onClick={voice.send} disabled={!online}><Icon name="arrow-up" size={18} /> {t("Send voice note")}</button>}
       </div>
-      {!online && voice.phase === 'ready' && <p className="voice-offline">Reconnect to send. Your recording is kept here.</p>}
+      {!online && voice.phase === 'ready' && <p className="voice-offline">{t("Reconnect to send. Your recording is kept here.")}</p>}
     </div>
   );
 }

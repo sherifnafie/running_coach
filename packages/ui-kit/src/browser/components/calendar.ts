@@ -11,6 +11,7 @@ import { RcBound, define, emit, getCoach } from './base';
 import { iconSvg } from './basic';
 import { toDayItems, typeGlyph, typeKey, typeLabel, statusLabel, type DayItem } from './types';
 
+const labelText = (text: string) => getCoach().t(text);
 const STATUS_MARK: Record<string, string> = { done: '✓', partial: '◐', skipped: '✕', moved: '→' };
 
 function itemMeta(it: DayItem): string {
@@ -26,7 +27,7 @@ function itemMeta(it: DayItem): string {
 
 function itemLabel(it: DayItem): string {
   const f = getCoach().format;
-  return `${it.title}, ${typeLabel(it.type)}, ${f.date(it.date, 'long')}, ${statusLabel(it.status).toLowerCase()}`;
+  return `${it.title}, ${getCoach().t(typeLabel(it.type))}, ${f.date(it.date, 'long')}, ${getCoach().t(statusLabel(it.status)).toLowerCase()}`;
 }
 
 function today(): string {
@@ -65,11 +66,11 @@ class RcWeekStrip extends RcBound {
     const days = weekDates(start);
     const items = groupByDate(toDayItems(this.rows, []));
     const sel = this.selected;
-    const strip = h('div', { class: 'rc-strip', role: 'group', 'aria-label': 'Week' });
+    const strip = h('div', { class: 'rc-strip', role: 'group', 'aria-label': labelText('Week') });
     for (const d of days) {
       const its = items.get(d) ?? [];
       const dow = coach.format.date(d, 'weekday-short');
-      const label = `${coach.format.date(d, 'long')}${its.length ? `: ${its.map((i) => `${i.title} (${statusLabel(i.status).toLowerCase()})`).join(', ')}` : ', nothing planned'}`;
+      const label = `${coach.format.date(d, 'long')}${its.length ? `: ${its.map((i) => `${i.title} (${coach.t(statusLabel(i.status)).toLowerCase()})`).join(', ')}` : `, ${labelText('Nothing planned')}`}`;
       const btn = h(
         'button',
         { type: 'button', class: `rc-day${d === t ? ' is-today' : ''}${d === sel ? ' is-selected' : ''}`, 'aria-label': label, 'aria-pressed': sel ? String(d === sel) : null, 'aria-current': d === t ? 'date' : null },
@@ -228,9 +229,9 @@ class RcCalendar extends RcBound {
       h(
         'div',
         { class: 'rc-cal__bar' },
-        h('button', { type: 'button', class: 'rc-cal__nav', 'aria-label': mode === 'month' ? 'Previous month' : 'Previous week', onClick: () => step(-1) }, iconSvg('chevron-left', 22)),
+        h('button', { type: 'button', class: 'rc-cal__nav', 'aria-label': mode === 'month' ? labelText('Previous month') : labelText('Previous week'), onClick: () => step(-1) }, iconSvg('chevron-left', 22)),
         h('h2', { class: 'rc-cal__title' }, title),
-        h('button', { type: 'button', class: 'rc-cal__nav', 'aria-label': mode === 'month' ? 'Next month' : 'Next week', onClick: () => step(1) }, iconSvg('chevron-right', 22)),
+        h('button', { type: 'button', class: 'rc-cal__nav', 'aria-label': mode === 'month' ? labelText('Next month') : labelText('Next week'), onClick: () => step(1) }, iconSvg('chevron-right', 22)),
         h(
           'button',
           {
@@ -244,7 +245,7 @@ class RcCalendar extends RcBound {
               emit(this, 'navigate', { mode, anchor: t });
             },
           },
-          'Today',
+          labelText('Today'),
         ),
       ),
     );
@@ -254,8 +255,8 @@ class RcCalendar extends RcBound {
         h(
           'div',
           { class: 'rc-cal__banner', role: 'status' },
-          h('span', null, `Pick a new day for “${moving.title}”`),
-          h('button', { type: 'button', class: 'rc-cal__cancel', onClick: () => this.cancelMove() }, 'Cancel'),
+          h('span', null, `${labelText('Pick a new day for')} “${moving.title}”`),
+          h('button', { type: 'button', class: 'rc-cal__cancel', onClick: () => this.cancelMove() }, labelText('Cancel')),
         ),
       );
     }
@@ -319,7 +320,7 @@ class RcCalendar extends RcBound {
             h('span', { class: 'rc-cal__wdow', 'aria-hidden': 'true' }, f.date(d, 'weekday-short')),
             h('span', { class: 'rc-cal__wnum', 'aria-hidden': 'true' }, f.date(d, 'day')),
           ),
-          h('div', { class: 'rc-cal__witems' }, ...(its.length ? its.map((i) => this.chip(i, true)) : [h('span', { class: 'rc-cal__rest' }, this.moveId ? 'Move here' : 'Nothing planned')])),
+          h('div', { class: 'rc-cal__witems' }, ...(its.length ? its.map((i) => this.chip(i, true)) : [h('span', { class: 'rc-cal__rest' }, this.moveId ? labelText('Move here') : labelText('Nothing planned'))])),
         );
         list.append(day);
       }
@@ -332,8 +333,8 @@ class RcCalendar extends RcBound {
       root.append(
         h(
           'div',
-          { class: 'rc-cal__sel', role: 'group', 'aria-label': 'Selected workout' },
-          h('div', { class: 'rc-cal__seltext' }, h('strong', null, sel.title), h('span', null, ` · ${f.date(sel.date, 'medium')} · ${statusLabel(sel.status)}`)),
+          { class: 'rc-cal__sel', role: 'group', 'aria-label': labelText('Selected workout') },
+          h('div', { class: 'rc-cal__seltext' }, h('strong', null, sel.title), h('span', null, ` · ${f.date(sel.date, 'medium')} · ${coach.t(statusLabel(sel.status))}`)),
           sel.movable ? h('button', { type: 'button', class: 'rc-btn rc-btn--secondary rc-cal__movebtn', onClick: () => this.startMove(sel.id) }, iconSvg('arrow-right', 18), h('span', { class: 'rc-btn__label' }, 'Move…')) : null,
         ),
       );
@@ -355,7 +356,7 @@ class RcCalendar extends RcBound {
     if (!this.selDate) return box;
     const its = by.get(this.selDate) ?? [];
     box.append(h('h3', { class: 'rc-cal__agendatitle' }, f.date(this.selDate, 'long')));
-    if (its.length === 0) box.append(h('p', { class: 'rc-cal__rest' }, 'Nothing planned.'));
+    if (its.length === 0) box.append(h('p', { class: 'rc-cal__rest' }, labelText('Nothing planned.')));
     else box.append(...its.map((i) => this.chip(i, true)));
     return box;
   }
@@ -552,4 +553,3 @@ export function registerCalendar(): void {
   define('rc-week-strip', RcWeekStrip);
   define('rc-calendar', RcCalendar);
 }
-

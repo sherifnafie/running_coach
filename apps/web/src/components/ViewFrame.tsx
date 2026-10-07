@@ -56,6 +56,7 @@ export function ViewFrame({ view, params, active, mode }: ViewFrameProps) {
     const el = wrapRef.current;
     return {
       theme: effectiveTheme(),
+      accent: s.me?.settings.appearance.accent ?? s.app?.app.theme?.accent,
       locale: profile?.locale ?? navigator.language ?? 'en',
       units: profile?.units ?? 'metric',
       tz: profile?.tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC',
@@ -126,10 +127,12 @@ export function ViewFrame({ view, params, active, mode }: ViewFrameProps) {
   // Env changes: theme, connectivity, size, params, becoming visible.
   const online = useStore(appStore, (s) => s.online);
   const themePref = useStore(appStore, (s) => s.theme);
+  const settings = useStore(appStore, (s) => s.me?.settings);
+  const appAccent = useStore(appStore, (s) => s.app?.app.theme?.accent);
   const paramsKey = JSON.stringify(params);
   useEffect(() => {
     if (load.phase === 'ready') hostRef.current?.notifyEnvChanged();
-  }, [online, themePref, paramsKey, active, load.phase]);
+  }, [online, themePref, settings, appAccent, paramsKey, active, load.phase]);
   useEffect(() => {
     const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
     const on = () => hostRef.current?.notifyEnvChanged();

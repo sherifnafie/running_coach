@@ -37,6 +37,12 @@ across an epoch, correction, older result and duplicate. These are included in `
 This is an initial synthetic suite, not a claim to cover a consented real-world extraction corpus
 or human-reviewed journeys J1–J8.
 
+`--suite planning` adds three commitment cases: sparse intake, a requested one-week horizon, and
+a checked four-week draft with separate review. Deterministic checks require saved state within
+the requested dates and appropriate intake evidence; the optional planning judge assesses
+personalization, numerical consistency and whether review concerns were resolved. Time spent
+and requested reasoning effort alone do not establish quality.
+
 Deterministic graders require zero availability violations, quiet-hours violations, fabricated
 fields and duplicate activity rows. They check first-reply safety language, explicit disclosed
 memory, source provenance, schema documentation, references, reply discipline, schedule

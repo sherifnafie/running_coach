@@ -3,20 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Progress</title>
+  <title data-i18n="Progress">Progress</title>
   <link rel="stylesheet" href="/kit/1/kit.css">
   <script type="module" src="/kit/1/kit.js"></script>
   <script type="module" src="view.js"></script>
 </head>
 <body>
 <rc-page>
-  <rc-header heading="Progress">
-    <rc-segmented id="range" label="Time range" value="12" options='[{"value":"8","label":"8 wk"},{"value":"12","label":"12 wk"},{"value":"16","label":"16 wk"}]'></rc-segmented>
+  <rc-header heading="Progress" data-i18n-heading="Progress">
+    <rc-segmented id="range" label="Time range" data-i18n-label="Time range" value="12" options='[{"value":"8","label":"8 wk"},{"value":"12","label":"12 wk"},{"value":"16","label":"16 wk"}]' data-i18n-options='[{"value":"8","label":"8 wk"},{"value":"12","label":"12 wk"},{"value":"16","label":"16 wk"}]'></rc-segmented>
   </rc-header>
 
-  <rc-empty id="onboarding" hidden icon="progress" heading="Your coach will fill this in">
-    Once you've logged a few runs, your weekly volume and trends show up here.
-  </rc-empty>
+  <rc-empty id="onboarding" hidden icon="progress" heading="Your coach will fill this in" data-i18n-heading="Your coach will fill this in"><span data-i18n="Once you've logged a few runs, your weekly volume and trends show up here.">Once you've logged a few runs, your weekly volume and trends show up here.</span></rc-empty>
 
   <!--
     Declarative data binding: every component below runs its own `sql` through coach.db.query and
@@ -25,21 +23,21 @@
   -->
   <div id="content" class="rc-stack">
     <div class="rc-grid" data-cols="3">
-      <rc-stat id="s-week" label="This week" format="distance" delta-label="vs last week" delta-good="neutral"
+      <rc-stat id="s-week" label="This week" data-i18n-label="This week" format="distance" delta-label="vs last week" data-i18n-delta-label="vs last week" delta-good="neutral"
         sql="SELECT sum(CASE WHEN d >= ?1 THEN m ELSE 0 END) AS value,
                     sum(CASE WHEN d >= ?1 THEN m ELSE 0 END) - sum(CASE WHEN d >= ?2 AND d < ?1 THEN m ELSE 0 END) AS delta
                FROM (SELECT substr(started_at, 1, 10) AS d, coalesce(distance_m, 0) AS m FROM activities
                       WHERE sport = 'run' AND substr(started_at, 1, 10) >= ?2)"></rc-stat>
-      <rc-stat id="s-runs" label="Runs" format="integer"
+      <rc-stat id="s-runs" label="Runs" data-i18n-label="Runs" format="integer"
         sql="SELECT count(*) AS value FROM activities WHERE sport = 'run' AND substr(started_at, 1, 10) >= ?"></rc-stat>
-      <rc-stat id="s-longest" label="Longest" format="distance"
+      <rc-stat id="s-longest" label="Longest" data-i18n-label="Longest" format="distance"
         sql="SELECT max(distance_m) AS value FROM activities WHERE sport = 'run' AND substr(started_at, 1, 10) >= ?"></rc-stat>
     </div>
 
-    <rc-card heading="Weekly distance">
+    <rc-card heading="Weekly distance" data-i18n-heading="Weekly distance">
       <!-- A recursive CTE gives every week a bar, including zero weeks. -->
       <rc-chart id="volume" type="bar" y-format="distance" height="190" show-values
-        label="Distance run per week" empty="No runs in this period yet."
+        label="Distance run per week" data-i18n-label="Distance run per week" empty="No runs in this period yet." data-i18n-empty="No runs in this period yet."
         sql="WITH RECURSIVE weeks(w) AS (
                SELECT date(?, '-6 days', 'weekday 1')
                UNION ALL SELECT date(w, '+7 days') FROM weeks WHERE w < date(?, '-6 days', 'weekday 1'))
@@ -49,17 +47,17 @@
                FROM weeks"></rc-chart>
     </rc-card>
 
-    <rc-card heading="Longest run each week">
-      <rc-chart id="longest" type="line" y-format="distance" height="170" label="Longest run per week"
-        empty="Your long runs will show up here."
+    <rc-card heading="Longest run each week" data-i18n-heading="Longest run each week">
+      <rc-chart id="longest" type="line" y-format="distance" height="170" label="Longest run per week" data-i18n-label="Longest run per week"
+        empty="Your long runs will show up here." data-i18n-empty="Your long runs will show up here."
         sql="SELECT date(substr(started_at, 1, 10), '-6 days', 'weekday 1') AS x, max(distance_m) AS y
                FROM activities WHERE sport = 'run' AND substr(started_at, 1, 10) >= ?
               GROUP BY x ORDER BY x"></rc-chart>
     </rc-card>
 
-    <rc-card heading="Easy-run pace" subheading="Easy runs with heart rate. Faster at the same effort is a good sign.">
-      <rc-chart id="pace" type="line" y-format="pace" y-reverse height="170" label="Pace of easy runs"
-        empty="Needs a few easy runs with heart-rate data."
+    <rc-card heading="Easy-run pace" data-i18n-heading="Easy-run pace" subheading="Easy runs with heart rate. Faster at the same effort is a good sign." data-i18n-subheading="Easy runs with heart rate. Faster at the same effort is a good sign.">
+      <rc-chart id="pace" type="line" y-format="pace" y-reverse height="170" label="Pace of easy runs" data-i18n-label="Pace of easy runs"
+        empty="Needs a few easy runs with heart-rate data." data-i18n-empty="Needs a few easy runs with heart-rate data."
         sql="SELECT substr(a.started_at, 1, 10) AS x, a.avg_pace_s_km AS y
                FROM activities a JOIN planned_workouts p ON p.id = a.planned_id
               WHERE p.type = 'easy' AND a.avg_hr IS NOT NULL AND a.avg_pace_s_km IS NOT NULL
@@ -68,13 +66,13 @@
     </rc-card>
 
     <!-- Calm consistency: no streak counter, no flames, nothing to lose. -->
-    <rc-card heading="Consistency">
-      <rc-stat id="consistency" label="Weeks with 3 or more runs"
-        hint="Missed weeks happen. What counts is the pattern over months."></rc-stat>
+    <rc-card heading="Consistency" data-i18n-heading="Consistency">
+      <rc-stat id="consistency" label="Weeks with 3 or more runs" data-i18n-label="Weeks with 3 or more runs"
+        hint="Missed weeks happen. What counts is the pattern over months." data-i18n-hint="Missed weeks happen. What counts is the pattern over months."></rc-stat>
     </rc-card>
 
-    <rc-card heading="Race results">
-      <rc-list id="races" empty="No race results yet."></rc-list>
+    <rc-card heading="Race results" data-i18n-heading="Race results">
+      <rc-list id="races" empty="No race results yet." data-i18n-empty="No race results yet."></rc-list>
     </rc-card>
   </div>
 </rc-page>

@@ -1,3 +1,4 @@
+import { t, useI18n } from '../lib/i18n';
 import { useEffect } from 'react';
 import type { PublishedView } from '@opencoach/protocol';
 import { Icon } from '../components/Icon';
@@ -9,6 +10,7 @@ import { useStore } from '../lib/store';
 
 /** A full-screen coach view, plus the "Updated by your coach" marker (SPEC §9.6 step 5). */
 export function ViewScreen({ view, params, active }: { view: PublishedView; params: Record<string, string>; active: boolean }) {
+  const t = useI18n();
   const id = view.manifest.id;
   const updated = useStore(appStore, (s) => s.updated[id]);
   const fromCache = useStore(appStore, (s) => s.appFromCache);
@@ -27,29 +29,28 @@ export function ViewScreen({ view, params, active }: { view: PublishedView; para
         <div className="updated-marker" role="status">
           <Icon name="refresh" size={16} />
           <span>
-            Updated by your coach{updated.summary ? `: ${updated.summary}` : ''}
+            {t("Updated by your coach")}{updated.summary ? `: ${updated.summary}` : ''}
           </span>
-          <button type="button" className="icon-btn small" aria-label="Dismiss" onClick={() => clearUpdated(id)}>
+          <button type="button" className="icon-btn small" aria-label={t("Dismiss")} onClick={() => clearUpdated(id)}>
             <Icon name="x" size={16} />
           </button>
         </div>
       )}
-      {!online && fromCache && <p className="view-notice">Offline: showing what was last saved.</p>}
+      {!online && fromCache && <p className="view-notice">{t("Offline: showing what was last saved.")}</p>}
       <ViewFrame key={`${id}@${view.version}`} view={view} params={params} active={active} mode="full" />
     </div>
   );
 }
 
 export function MissingView({ viewId }: { viewId: string }) {
+  const t = useI18n();
   return (
     <div className="empty-screen">
       <Icon name="alert" size={32} />
       <p>
-        <strong>{viewId}</strong> isn't available right now.
-      </p>
+        <strong>{viewId}</strong> {t("isn't available right now.")}</p>
       <button type="button" className="btn primary" onClick={() => navigate({ name: 'chat' })}>
-        Back to chat
-      </button>
+        {t("Back to chat")}</button>
     </div>
   );
 }

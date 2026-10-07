@@ -6,7 +6,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./presentation": "./src/presentation.ts"
   },
   "scripts": {
     "test": "vitest run --root ../.. packages/protocol"

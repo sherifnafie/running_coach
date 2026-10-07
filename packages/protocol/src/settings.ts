@@ -11,16 +11,32 @@ export type QuietHours = z.infer<typeof QuietHours>;
 export const TierOverride = z.object({ provider: z.string(), model: z.string(), effort: Effort.optional() });
 export type TierOverride = z.infer<typeof TierOverride>;
 
+export const Locale = z.string().trim().min(2).max(35).refine((value) => {
+  try { return Intl.getCanonicalLocales(value).length === 1; } catch { return false; }
+}, 'Use a valid language tag, such as en, nl or ar');
+export const Appearance = z.object({
+  theme: z.enum(['system', 'light', 'dark']).default('system'),
+  accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().default(null),
+});
+/** The coach may change presentation only; privacy, money and delivery controls stay athlete-owned. */
+export const PresentationPatch = z.object({
+  locale: Locale.optional(),
+  theme: z.enum(['system', 'light', 'dark']).optional(),
+  accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, 'Choose at least one preference');
+export type PresentationPatch = z.infer<typeof PresentationPatch>;
+
 export const AthleteSettings = z.object({
   profile: z
     .object({
       name: z.string().min(1).max(80).default('Athlete'),
       coachName: z.string().min(1).max(40).default('Coach'),
-      locale: z.string().default('en'),
+      locale: Locale.default('en'),
       tz: z.string().default('UTC'),
       units: Units.default('metric'),
     })
     .prefault({}),
+  appearance: Appearance.prefault({}),
   notifications: z
     .object({
       quietHours: QuietHours.nullable().default({ start: '22:00', end: '07:00' }),

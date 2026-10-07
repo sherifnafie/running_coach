@@ -138,6 +138,7 @@ export const BridgeParams = {
 
 export interface ViewEnv {
   theme: 'light' | 'dark';
+  accent?: string;
   locale: string;
   units: 'metric' | 'imperial';
   tz: string;

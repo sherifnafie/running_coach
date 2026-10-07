@@ -1,3 +1,4 @@
+import { t, useI18n } from '../../lib/i18n';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Spinner } from '../../components/Atoms';
 import { appStore } from '../../lib/appState';
@@ -18,6 +19,7 @@ const STICK_PX = 90;
  * messages are prepended, groups by local day, and marks visible coach messages as read.
  */
 export function MessageList({ dropActive, visible = true }: { dropActive?: boolean; visible?: boolean }) {
+  const t = useI18n();
   const chat = useStore(appStore, (s) => s.chat);
   const views = useStore(appStore, (s) => s.app?.views);
   const profile = useStore(appStore, (s) => s.me?.settings.profile);
@@ -125,7 +127,7 @@ export function MessageList({ dropActive, visible = true }: { dropActive?: boole
   let lastDay = '';
 
   return (
-    <div className={`chat-scroll${dropActive ? ' drop' : ''}`} ref={scrollRef} onScroll={onScroll} role="log" aria-label="Conversation" aria-relevant="additions">
+    <div className={`chat-scroll${dropActive ? ' drop' : ''}`} ref={scrollRef} onScroll={onScroll} role="log" aria-label={t("Conversation")} aria-relevant="additions">
       <div className="chat-inner" ref={innerRef}>
         {!chat.initialLoaded && items.length === 0 && (
           <div className="chat-empty">
@@ -135,15 +137,15 @@ export function MessageList({ dropActive, visible = true }: { dropActive?: boole
         {chat.initialLoaded && timeline.length === 0 && (
           <div className="chat-empty">
             <p>
-              <strong>Say hello to your coach.</strong>
+              <strong>{t("Say hello to your coach.")}</strong>
             </p>
-            <p>Tell them about your running, your goals, or just how today went.</p>
+            <p>{t("Tell them about your running, your goals, or just how today went.")}</p>
           </div>
         )}
         {(chat.hasMore || limit < timeline.length) && (
           <div className="load-older">
             <button type="button" className="btn link small" onClick={() => (limit < timeline.length ? setLimit((l) => l + WINDOW_STEP) : fetchOlder())} disabled={loadingOlder}>
-              {loadingOlder ? 'Loading…' : 'Show earlier messages'}
+              {loadingOlder ? 'Loading…' : t("Show earlier messages")}
             </button>
           </div>
         )}
@@ -173,8 +175,7 @@ export function MessageList({ dropActive, visible = true }: { dropActive?: boole
             setJump(false);
           }}
         >
-          New messages
-        </button>
+          {t("New messages")}</button>
       )}
     </div>
   );

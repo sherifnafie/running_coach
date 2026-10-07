@@ -10,9 +10,9 @@
 
 .table-wrap { overflow-x: auto; margin-top: var(--rc-space-3); }
 .plan-table { width: 100%; font-size: var(--rc-text-sm); font-variant-numeric: tabular-nums; }
-.plan-table caption { text-align: left; color: var(--rc-text-2); padding-bottom: var(--rc-space-2); }
-.plan-table th, .plan-table td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--rc-border); white-space: nowrap; }
-.plan-table th:first-child, .plan-table td:first-child { text-align: left; }
+.plan-table caption { text-align: start; color: var(--rc-text-2); padding-bottom: var(--rc-space-2); }
+.plan-table th, .plan-table td { padding: 8px 6px; text-align: end; border-bottom: 1px solid var(--rc-border); white-space: nowrap; }
+.plan-table th:first-child, .plan-table td:first-child { text-align: start; }
 .plan-table tr.is-current td, .plan-table tr.is-current th { background: var(--rc-accent-soft); font-weight: 700; }
 
 .race-name { font-size: var(--rc-text-xl); font-weight: 750; }

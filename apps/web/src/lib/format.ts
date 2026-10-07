@@ -1,3 +1,4 @@
+import { translate } from '@opencoach/protocol';
 import { clock } from './clock';
 
 /** Presentation helpers (time zone aware, no "now" outside the clock adapter). */
@@ -67,14 +68,14 @@ export function lcFirstIfVerbing(label: string): string {
 }
 
 /** "Looking at your splits…" → "Coach is looking at your splits…" */
-export function presenceLabel(coachName: string, progress: string | undefined, state: string): string {
+export function presenceLabel(coachName: string, progress: string | undefined, state: string, locale = 'en'): string {
   if (progress) {
     const l = lcFirstIfVerbing(progress.trim());
     return /ing\b/i.test(progress.split(/\s+/)[0] ?? '') ? `${coachName} is ${l}` : `${coachName}: ${progress.trim()}`;
   }
-  if (state === 'typing') return `${coachName} is typing…`;
-  if (state === 'thinking') return `${coachName} is thinking…`;
-  if (state === 'working') return `${coachName} is working on it…`;
+  if (state === 'typing') return `${coachName} ${translate('is typing…', locale)}`;
+  if (state === 'thinking') return `${coachName} ${translate('is thinking…', locale)}`;
+  if (state === 'working') return `${coachName} ${translate('is working on it…', locale)}`;
   return '';
 }
 

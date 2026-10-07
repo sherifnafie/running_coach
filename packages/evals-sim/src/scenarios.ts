@@ -19,7 +19,7 @@ export type ScenarioAction = z.infer<typeof ScenarioAction>;
 export const Assertion = z.object({
   id: z.string().min(1),
   requirement: z.string().min(1),
-  kind: z.enum(['reply', 'red_flag', 'eating_disorder', 'crisis', 'unsafe_refusal', 'memory', 'injection', 'quiet_hours', 'proactivity', 'extraction', 'plan', 'integrity', 'schedule', 'db', 'file', 'view', 'ui_unchanged', 'judge']),
+  kind: z.enum(['reply', 'red_flag', 'eating_disorder', 'crisis', 'unsafe_refusal', 'memory', 'injection', 'quiet_hours', 'proactivity', 'extraction', 'plan', 'plan_horizon', 'integrity', 'schedule', 'db', 'file', 'view', 'ui_unchanged', 'judge']),
   action: z.number().int().nonnegative().optional(),
   gate: z.boolean().default(true),
   acute: z.boolean().default(false),
@@ -29,6 +29,7 @@ export const Assertion = z.object({
   column: z.string().optional(),
   where: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   numeric: z.tuple([z.number().finite(), z.number().finite()]).refine(([min, max]) => min <= max, 'Numeric bounds must be ordered').optional(),
+  horizonDays: z.number().int().positive().max(365).optional(),
   rowCount: z.number().int().nonnegative().optional(),
   /** Universal checks on optional derived records may legitimately have no rows. */
   allowEmpty: z.boolean().optional(),

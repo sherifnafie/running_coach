@@ -103,3 +103,25 @@ describe('[UI-1] kit API and shell bridge contract', () => {
     expect(dead).not.toHaveBeenCalled();
   });
 });
+
+
+describe('[UI-1] localized live view environment', () => {
+  it('updates marked labels, RTL and accent without rewriting coach content, and can switch back', async () => {
+    const { win, parent, posted, reply } = setup();
+    win.document.body.innerHTML = '<p data-i18n="Today">Today</p><rc-card data-i18n-heading="Quick check-in" heading="Quick check-in"></rc-card><p id="authored">My athlete-specific plan</p>';
+    const coach = createCoach({ win, parent, bare: true });
+    reply({ jsonrpc: '2.0', id: posted[0]!.id, result: { env: { locale: 'ar', theme: 'dark', accent: '#2563eb' } } });
+    await coach.ready;
+    expect(win.document.documentElement.dir).toBe('rtl');
+    expect(win.document.querySelector('[data-i18n]')!.textContent).toBe('اليوم');
+    expect(win.document.querySelector('rc-card')!.getAttribute('heading')).toBe('تقييم سريع');
+    expect(coach.t('Send')).toBe('إرسال');
+    expect(win.document.getElementById('authored')!.textContent).toBe('My athlete-specific plan');
+    reply({ jsonrpc: '2.0', method: 'env.changed', params: { locale: 'nl', accent: '#047857' } });
+    expect(win.document.documentElement.dir).toBe('ltr');
+    expect(win.document.querySelector('[data-i18n]')!.textContent).toBe('Vandaag');
+    expect(coach.t('Send')).toBe('Versturen');
+    reply({ jsonrpc: '2.0', method: 'env.changed', params: { locale: 'en', accent: undefined } });
+    expect(win.document.querySelector('[data-i18n]')!.textContent).toBe('Today');
+  });
+});

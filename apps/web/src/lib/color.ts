@@ -19,3 +19,16 @@ export function contrastRatio(a: string, b: string): number {
 export function contrastText(accent: string): '#ffffff' | '#111214' {
   return contrastRatio(accent, '#ffffff') >= contrastRatio(accent, '#111214') ? '#ffffff' : '#111214';
 }
+
+/** Keep accent-colored text readable, including very pale/dark custom colors. */
+export function accentText(accent: string, surface: string): string {
+  if (contrastRatio(accent, surface) >= 4.5) return accent;
+  const target = relativeLuminance(surface) > .4 ? '#111214' : '#ffffff';
+  const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const from = rgb(accent), to = rgb(target);
+  for (let step = 1; step <= 20; step++) {
+    const hex = '#' + from.map((value, i) => Math.round(value + (to[i]! - value) * step / 20).toString(16).padStart(2, '0')).join('');
+    if (contrastRatio(hex, surface) >= 4.5) return hex;
+  }
+  return target;
+}

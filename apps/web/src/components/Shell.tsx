@@ -1,3 +1,4 @@
+import { t, useI18n } from '../lib/i18n';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { appStore } from '../lib/appState';
 import { dismissToast } from '../lib/controller';
@@ -18,6 +19,7 @@ import { SafetyBanner } from './SafetyBanner';
  * offline indicator are written only by the harness.
  */
 export function Shell() {
+  const t = useI18n();
   const shellRef = useRef<HTMLDivElement>(null);
   const route = useRoute();
   const app = useStore(appStore, (s) => s.app);
@@ -50,15 +52,14 @@ export function Shell() {
   return (
     <div ref={shellRef} className={`shell route-${route.name}`}>
       <a className="skip-link" href="#main">
-        Skip to content
-      </a>
+        {t("Skip to content")}</a>
       <div className="shell-col">
       <Header route={route} viewTitle={activeView?.manifest.title} />
       <SafetyBanner />
       <ConnectionBar />
       <CallBar />
       <main id="main" className="shell-main" tabIndex={-1}>
-        <section className="screen" hidden={!chatVisible} aria-label="Chat">
+        <section className="screen" hidden={!chatVisible} aria-label={t("Chat")}>
           <ChatScreen visible={chatVisible} />
         </section>
         {Object.entries(visited).map(([id, params]) => {
@@ -72,17 +73,17 @@ export function Shell() {
           );
         })}
         {route.name === 'view' && !activeView && (
-          <section className="screen" aria-label="View unavailable">
+          <section className="screen" aria-label={t("View unavailable")}>
             <MissingView viewId={route.viewId} />
           </section>
         )}
         {route.name === 'settings' && (
-          <section className="screen scroll" aria-label="Settings">
+          <section className="screen scroll" aria-label={t("Settings")}>
             <SettingsScreen />
           </section>
         )}
         {route.name === 'call' && (
-          <section className="screen call-screen" aria-label="Call">
+          <section className="screen call-screen" aria-label={t("Call")}>
             <CallScreen />
           </section>
         )}
@@ -95,12 +96,13 @@ export function Shell() {
 }
 
 function Header({ route, viewTitle }: { route: Route; viewTitle?: string }) {
+  const t = useI18n();
   const me = useStore(appStore, (s) => s.me);
   const presence = useStore(appStore, (s) => s.presence);
   const progress = useStore(appStore, (s) => s.progress);
   const callsAvailable = !!me && (me.features.calls.realtime || me.features.calls.cascaded);
   const coachName = me?.settings.profile.coachName ?? 'Coach';
-  const sub = presenceLabel(coachName, progress?.label, presence);
+  const sub = presenceLabel(coachName, progress?.label, presence, me?.settings.profile.locale);
 
   if (route.name === 'chat') {
     return (
@@ -112,7 +114,7 @@ function Header({ route, viewTitle }: { route: Route; viewTitle?: string }) {
           <div>
             <h1>{coachName}</h1>
             <p className={`presence${sub ? ' on' : ''}`} role="status" aria-live="polite">
-              {sub || 'Your running coach'}
+              {sub || t('Your running coach')}
             </p>
           </div>
         </div>
@@ -129,11 +131,11 @@ function Header({ route, viewTitle }: { route: Route; viewTitle?: string }) {
     <header className="app-header">
       <div className="coach-id">
         {route.name !== 'settings' && (
-          <button type="button" className="icon-btn" aria-label="Back to chat" onClick={() => navigate({ name: 'chat' })}>
+          <button type="button" className="icon-btn" aria-label={t("Back to chat")} onClick={() => navigate({ name: 'chat' })}>
             <Icon name="back" />
           </button>
         )}
-        <h1>{title}</h1>
+        <h1>{t(title)}</h1>
       </div>
       {route.name === 'view' && sub && <p className="presence on small">{sub}</p>}
     </header>
@@ -141,6 +143,7 @@ function Header({ route, viewTitle }: { route: Route; viewTitle?: string }) {
 }
 
 function ConnectionBar() {
+  const t = useI18n();
   const online = useStore(appStore, (s) => s.online);
   const ws = useStore(appStore, (s) => s.ws);
   const queued = useStore(appStore, (s) => s.queued);
@@ -149,7 +152,7 @@ function ConnectionBar() {
   if (!online)
     return (
       <div className="conn-bar offline" role="status">
-        <Icon name="wifi-off" size={16} /> You're offline. Showing saved data{queued > 0 ? `, ${queued} item${queued === 1 ? '' : 's'} waiting to send` : ''}.
+        <Icon name="wifi-off" size={16} /> {t("You're offline. Showing saved data")}{queued > 0 ? `, ${queued} item${queued === 1 ? '' : 's'} waiting to send` : ''}.
       </div>
     );
   if (ws !== 'open')
@@ -162,13 +165,14 @@ function ConnectionBar() {
   if (queued > 0)
     return (
       <div className="conn-bar" role="status">
-        Sending {queued} queued item{queued === 1 ? '' : 's'}…
+        {t("Sending")}{queued} {t("queued item")}{queued === 1 ? '' : 's'}…
       </div>
     );
   return null;
 }
 
 function BottomNav({ route, nav, moreOpen, setMoreOpen }: { route: Route; nav: ReturnType<typeof computeNav>; moreOpen: boolean; setMoreOpen: (v: boolean) => void }) {
+  const t = useI18n();
   const unseen = useStore(appStore, (s) => s.unseen);
   const updated = useStore(appStore, (s) => s.updated);
   const badge = (item: NavItem): string | undefined => {
@@ -181,7 +185,7 @@ function BottomNav({ route, nav, moreOpen, setMoreOpen }: { route: Route; nav: R
     <>
       {moreOpen && (
         <div className="sheet-backdrop" onClick={() => setMoreOpen(false)}>
-          <div className="sheet" role="menu" aria-label="More" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && setMoreOpen(false)}>
+          <div className="sheet" role="menu" aria-label={t("More")} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && setMoreOpen(false)}>
             {nav.overflow.map((o, i) => (
               <button
                 key={o.key}
@@ -194,13 +198,13 @@ function BottomNav({ route, nav, moreOpen, setMoreOpen }: { route: Route; nav: R
                   if (o.route) navigate(o.route);
                 }}
               >
-                <Icon name={o.icon} /> {o.label}
+                <Icon name={o.icon} /> {t(o.label)}
               </button>
             ))}
           </div>
         </div>
       )}
-      <nav className="bottom-nav" aria-label="Main">
+      <nav className="bottom-nav" aria-label={t("Main")}>
         {nav.slots.map((item) => {
           const active = isActive(item, route, nav.overflow);
           const b = badge(item);
@@ -221,7 +225,7 @@ function BottomNav({ route, nav, moreOpen, setMoreOpen }: { route: Route; nav: R
                 <Icon name={item.icon} />
                 {b && <span className="nav-badge" aria-label={b === '•' ? 'updated' : `${b} new`}>{b}</span>}
               </span>
-              <span className="nav-label">{item.label}</span>
+              <span className="nav-label">{t(item.label)}</span>
             </button>
           );
         })}
@@ -231,13 +235,14 @@ function BottomNav({ route, nav, moreOpen, setMoreOpen }: { route: Route; nav: R
 }
 
 function Toasts() {
+  const t = useI18n();
   const toasts = useStore(appStore, (s) => s.toasts);
   return (
     <div className="toasts" role="status" aria-live="polite">
-      {toasts.map((t) => (
-        <div key={t.id} className={`toast ${t.kind}`}>
-          <span>{t.text}</span>
-          <button type="button" className="icon-btn small" aria-label="Dismiss" onClick={() => dismissToast(t.id)}>
+      {toasts.map((entry) => (
+        <div key={entry.id} className={`toast ${entry.kind}`}>
+          <span>{entry.text}</span>
+          <button type="button" className="icon-btn small" aria-label={t("Dismiss")} onClick={() => dismissToast(entry.id)}>
             <Icon name="x" size={14} />
           </button>
         </div>

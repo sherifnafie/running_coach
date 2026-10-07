@@ -13,14 +13,19 @@ providers:
         User-Agent: OpenCoach/0.1.0
       sessionHeader: x-opencode-session
       replayReasoningContent: true
+      # DeepSeek Chat Completions extensions; explicit thinking was observed live.
+      thinking: true
+      reasoningEfforts: [low, high, max]
+      # Thinking and emitted tool arguments share this output budget.
+      maxOutputTokens: 16384
       # This is the text model, not DeepSeek V4 Flash Vision Exp.
       # Image input has not been verified for this integration.
       vision: false
 models:
   tiers:
-    coach: { provider: opencode-go, model: deepseek-v4.1-flash }
-    deep: { provider: opencode-go, model: deepseek-v4.1-flash }
-    fast: { provider: opencode-go, model: deepseek-v4.1-flash }
+    coach: { provider: opencode-go, model: deepseek-v4.1-flash, effort: low }
+    deep: { provider: opencode-go, model: deepseek-v4.1-flash, effort: high }
+    fast: { provider: opencode-go, model: deepseek-v4.1-flash, effort: low }
   # GO documents peak/off-peak token-equivalent prices. Use peak rates as a
   # conservative local budget estimate; this is not the provider's billing ledger.
   # USD per 1M tokens, checked 2026-10-06: https://opencode.ai/docs/go/

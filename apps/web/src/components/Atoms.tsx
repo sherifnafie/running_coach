@@ -3,12 +3,13 @@ import { clock } from '../lib/clock';
 import { formatDuration } from '../lib/format';
 import { renderMarkdown } from '../lib/markdown';
 import { Icon } from './Icon';
+import { useI18n } from '../lib/i18n';
 
 /** Sanitized markdown (see lib/markdown.ts). */
 export const Markdown = memo(function Markdown({ text }: { text: string }) {
   const html = useMemo(() => renderMarkdown(text), [text]);
   // Content is sanitized by DOMPurify with a strict allow-list.
-  return <div className="md" dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className="md" dir="auto" dangerouslySetInnerHTML={{ __html: html }} />;
 });
 
 /** Full-screen image viewer. */
@@ -175,10 +176,11 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
 }
 
 export function Section({ title, children, hint }: { title: string; children: ReactNode; hint?: string }) {
+  const t = useI18n();
   return (
     <section className="settings-section">
-      <h2>{title}</h2>
-      {hint && <p className="hint">{hint}</p>}
+      <h3>{t(title)}</h3>
+      {hint && <p className="hint">{t(hint)}</p>}
       <div className="card">{children}</div>
     </section>
   );

@@ -1,3 +1,4 @@
+import { t, useI18n } from '../lib/i18n';
 import { appStore } from '../lib/appState';
 import { dismissSafety } from '../lib/controller';
 import { guidanceFor } from '../lib/safety';
@@ -9,22 +10,22 @@ import { Icon } from './Icon';
  * views, messages and markdown cannot reach this component or hide it. Dismissal is "for now" (per notice).
  */
 export function SafetyBanner() {
+  const t = useI18n();
   const safety = useStore(appStore, (s) => s.safety);
   if (!safety) return null;
   const lines = guidanceFor(safety.categories);
   return (
-    <section className={`safety-banner${safety.acute ? ' acute' : ''}`} role="alert" aria-label="Safety notice">
+    <section className={`safety-banner${safety.acute ? ' acute' : ''}`} role="alert" aria-label={t("Safety notice")}>
       <Icon name="alert" size={22} />
       <div className="safety-body">
-        <p className="safety-title">{safety.acute ? 'This may be urgent' : 'Please look after yourself first'}</p>
-        {safety.text && <p>{safety.text}</p>}
+        <p className="safety-title">{safety.acute ? t("This may be urgent") : t("Please look after yourself first")}</p>
+        {safety.text && <p>{t(safety.text)}</p>}
         {lines.map((l) => (
-          <p key={l}>{l}</p>
+          <p key={l}>{t(l)}</p>
         ))}
       </div>
       <button className="btn small" type="button" onClick={dismissSafety}>
-        Dismiss for now
-      </button>
+        {t("Dismiss for now")}</button>
     </section>
   );
 }

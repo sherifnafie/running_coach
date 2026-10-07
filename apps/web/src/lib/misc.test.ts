@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AnyEvent, AppInfo, PublishedView } from '@opencoach/protocol';
-import { contrastRatio, contrastText } from './color';
+import { accentText, contrastRatio, contrastText } from './color';
 import { classifyExportResponse } from './exportJob';
 import { presenceLabel } from './format';
 import { computeNav, isActive } from './nav';
@@ -235,4 +235,11 @@ describe('misc', () => {
     expect(providerCallIdFrom('/v1/realtime/calls/rtc_x?foo=1')).toBe('rtc_x');
     expect(providerCallIdFrom(null)).toBeUndefined();
   });
+});
+
+
+it('[UI-1] keeps arbitrary accent text readable on light and dark surfaces', () => {
+  for (const color of ['#ffffff', '#000000', '#ffff00', '#2563eb', '#047857']) {
+    for (const surface of ['#ffffff', '#1a1b1e']) expect(contrastRatio(accentText(color, surface), surface)).toBeGreaterThanOrEqual(4.5);
+  }
 });

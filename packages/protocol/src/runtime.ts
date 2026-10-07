@@ -28,6 +28,8 @@ export type StreamMessage =
   /** Any other athlete-visible event (own messages echoed to other devices, uploads, ui_published, calls, notices). */
   | { t: 'event'; event: AnyEvent }
   | { t: 'ui.published'; viewId: string; version: string; summary: string }
+  /** Re-fetch this athlete's settings; the signal contains no settings or credentials. */
+  | { t: 'settings.changed' }
   | { t: 'notice'; kind: NoticeKind; text: string; detail?: unknown }
   /** Harness-owned safety banner (SPEC [SAFE-2]); the coach cannot hide it. */
   | { t: 'safety'; categories: SafetyCategory[]; acute: boolean; text: string }

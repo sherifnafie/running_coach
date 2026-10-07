@@ -15,11 +15,11 @@ The app opens into chat. A navigation bar switches between chat and training scr
 | **Calendar** | Browse planned workouts, recorded activities, and races; move a planned workout to another date. |
 | **Plan** | Read the current training block, planned weekly volume, key sessions, race goal, and a plain-language "Why this plan" explanation. Ask in chat to change the plan. |
 | **Progress** | See recorded distance, longest runs, easy-run pace, and consistency over time. |
-| **Settings** | Change units, time zone, quiet hours, pause mode, message/cost limits, and privacy preferences; manage devices, export data, and delete your account. |
+| **Settings** | Personalize language, light/dark mode and colors; change units, time zone, quiet hours, pause mode, message/cost limits, and privacy preferences; manage devices, export data, and delete your account. |
 
 These are the four bundled training screens. A real coach can also propose changes to its screens; publication must pass static, browser, accessibility, and performance checks. Chat and Settings belong to the app and remain available independently of those changes.
 
-Older accounts may still have a Plan screen showing the coach's working notes. Updating preserves existing views; use the [existing-account repair instructions](docs/self-hosting.md#updating-an-existing-coachs-plan-view) to replace that text with an explanation written for you.
+In **Settings → Appearance**, choose English, Dutch or Arabic (including right-to-left layout), a theme and an accent color. These preferences follow your account across devices. You can also ask the coach, for example: “Use Arabic and a green dark theme.” The saved language guides its replies. The shell and current starter views translate their controls; ask the coach to translate its own training explanations or custom views. Other languages currently use English shell labels.
 
 <p>
   <img src="docs/images/demo-chat.png" alt="The mobile chat screen with the scripted demo coach's welcome message and goal quick replies" width="260">
@@ -28,6 +28,11 @@ Older accounts may still have a Plan screen showing the coach's working notes. U
 </p>
 
 The first two screenshots come from the running demo. The third shows the actual Today view with **test data**, to illustrate a populated screen. New accounts start with empty training data. Demo mode does not populate a training plan or activity charts.
+
+<p>
+  <img src="docs/images/settings-phone.png" alt="Personalization controls in the mobile Settings screen" width="260">
+  <img src="docs/images/settings-arabic.png" alt="Arabic Settings with right-to-left layout and a green accent" width="260">
+</p>
 
 On a computer, Enter sends and Shift + Enter adds a line. On a phone, Enter adds a line; tap the send arrow to send. The **+** button adds photos or files. The microphone records a **voice note**: tap it, stop recording, listen if you want, then send or discard. It does not send while you grant microphone permission. Unsent text drafts survive tab switches and reloads; signing out clears them.
 
@@ -132,7 +137,7 @@ export OPENCODE_GO_API_KEY
 OPENCOACH_DEMO=0 pnpm start
 ```
 
-Both the configuration path and key are required. The example selects **DeepSeek V4.1 Flash** (`deepseek-v4.1-flash`) for all three tiers at the [official GO endpoint](https://opencode.ai/docs/go/), enables reasoning replay for tool continuations, and supplies peak token prices for conservative local budget estimates. No private key is included in the repository.
+Both the configuration path and key are required. The example selects **DeepSeek V4.1 Flash** (`deepseek-v4.1-flash`) for all three tiers at the [official GO endpoint](https://opencode.ai/docs/go/), enables thinking and reasoning replay, uses low effort for ordinary conversation and high effort for deep work, and supplies peak token prices for conservative local budget estimates. No private key is included in the repository.
 
 **Live smoke testing passed on 6 October 2026:** streamed tool calls and continuation, account creation, delivered coach replies, saved intake, a recorded run, training plan, and data displayed in all four screens. The check-in was saved for the requested local time. These bounded tests use synthetic athlete data and do not certify coaching quality or full model conformance. The example keeps image input disabled; this text model is distinct from DeepSeek V4 Flash Vision Exp. See the [verification record](docs/verification/opencode-go-smoke.md) for observed behavior and limits.
 

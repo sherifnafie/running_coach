@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ModelsConfig } from './model';
 import { VoiceConfig } from './voice';
+import { Effort } from './common';
 
 export const HARNESS_VERSION = '0.1.0';
 export const UI_KIT_MAJOR = '1';
@@ -25,6 +26,10 @@ export const CompatibleProviderConfig = z.object({
   maxOutputTokens: z.number().int().positive().default(8192),
   /** Some providers (DeepSeek thinking mode) want reasoning_content echoed back within a tool loop. */
   replayReasoningContent: z.boolean().default(false),
+  /** Opt in only for endpoints/models that accept Chat Completions reasoning_effort. */
+  reasoningEfforts: z.array(Effort).optional(),
+  /** DeepSeek-style thinking toggle. Omitted for endpoints without this extension. */
+  thinking: z.boolean().optional(),
 });
 export type CompatibleProviderConfig = z.infer<typeof CompatibleProviderConfig>;
 

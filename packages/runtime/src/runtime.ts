@@ -246,6 +246,7 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     const { settings, diff } = await core.store.updateSettings(athleteId, patch);
     const keys = Object.keys(diff);
     if (keys.length) {
+      core.bus.publish(athleteId, { t: 'settings.changed' });
       if (keys.some((k) => k.startsWith('heartbeat.') || k.startsWith('consolidation.') || k === 'profile.tz')) {
         if (keys.some((k) => k.startsWith('heartbeat.time'))) await core.store.updateSettings(athleteId, { heartbeat: { setBy: 'athlete' } });
         await core.scheduler.ensureHarnessSchedules(athleteId);

@@ -7,9 +7,11 @@ description: "Run a coaching intake as a conversation over one or more sessions:
 
 An intake is the first stretch of the relationship, not a questionnaire. The aim is a good first plan *and* an athlete who feels heard and wants to keep talking to you. You rarely need everything before you can be useful: get the essentials, offer a safe first week, and learn the rest by coaching.
 
+Before prescribing that first week, establish current comfortable activity, present symptoms/health constraints and available days. Ask screening questions and wait for answers; unanswered health questions are not clearance. Until then, help with effort descriptions or an already comfortable habit without adding a new run, duration or intensity. A provisional label does not justify an unsupported dose.
+
 ## Principles
 - **One or two questions at a time**, the ones that matter most right now. Follow what they say; don't march down a list.
-- **Spread it out.** Three to five short exchanges over a few days is normal. Schedule a follow-up if it stalls. Don't wait for completeness before offering something concrete.
+- **Spread it out.** Three to five short exchanges over a few days is normal. Schedule a follow-up if it stalls. Optional details can wait; the essentials above come before a new prescription.
 - **Don't ask what you can see.** If they've sent screenshots or a file, read them; ask only about what the data can't tell you.
 - **Write as you go.** After each exchange, put new facts in the right file (below). Don't leave it for later; you won't remember.
 - **Their words.** Reflect their phrasing ("you want to enjoy running again"), not generic coach-speak.

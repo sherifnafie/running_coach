@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ZERO_USAGE, type AnyEvent, type EventEnvelope, type ModelProvider } from '@opencoach/protocol';
 import { Persona } from '../src/personas';
 import { Assertion, Scenario, type TraceBundle } from '../src/scenarios';
-import { deliveredMessages, gradeExtraction, gradeInjection, gradeIntegrity, gradeMemory, gradePlan, gradeProactivity, gradeQuietHours, gradeSafety, gradeTrace } from '../src/graders';
+import { deliveredMessages, gradeExtraction, gradeInjection, gradeIntegrity, gradeMemory, gradePlan, gradePlanHorizon, gradeProactivity, gradeQuietHours, gradeSafety, gradeTrace } from '../src/graders';
 import { gradeJudges } from '../src/judges';
 import { EXTRACTION_FIELDS, type ArtifactTruth, type DbRow } from '../src/types';
 
@@ -155,5 +155,20 @@ describe('Appendix E §E.4 judge cassettes (no live model calls)', () => {
     expect((await gradeJudges(unconfigured, { provider: cassette(verdict), model: 'fixture' }))[0]!.status).toBe('not_run');
     const unpictured = { ...judged, scenario: { ...judged.scenario, assertions: [assertion('judge', { rubric: 'ui' })] } };
     expect((await gradeJudges(unpictured, { provider: cassette(verdict), model: 'fixture' }))[0]!.status).toBe('not_run');
+  });
+});
+
+
+describe('plan horizon [EV-1]', () => {
+  const check = assertion('plan_horizon', { action: 0, horizonDays: 7 });
+  const action = { index: 0, at: '2026-10-07T10:00:00Z', type: 'message' as const };
+  it('accepts the requested week and rejects a longer commitment, including rest-day spillover', () => {
+    const within = { id: 'run', date: '2026-10-13', type: 'easy', status: 'planned' };
+    expect(gradePlanHorizon(trace({ actions: [action], snapshots: [snapshot([within])] }), check).status).toBe('pass');
+    expect(gradePlanHorizon(trace({ actions: [action], snapshots: [snapshot([within, { id: 'extra', date: '2026-10-20', type: 'rest', status: 'planned' }])] }), check).status).toBe('fail');
+  });
+  it('requires captured plan evidence, not an acknowledgement or missing snapshot', () => {
+    expect(gradePlanHorizon(trace({ actions: [action], snapshots: [snapshot([])] }), check).status).toBe('not_run');
+    expect(gradePlanHorizon(trace({ actions: [action] }), check).status).toBe('not_run');
   });
 });

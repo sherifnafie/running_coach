@@ -3,6 +3,7 @@
  * transport (bridge.ts) plus env/theme handling, error capture, render reporting and auto-resize.
  */
 import type { ViewEnv } from '@opencoach/protocol';
+import { languageDirection, translate } from '@opencoach/protocol/presentation';
 import { Bridge, type ParentLike } from './bridge';
 import { dates, weekStartsOnFor, type DateHelpers } from './dates';
 import { createFormat, type Formatters } from './format';
@@ -43,6 +44,8 @@ export interface Coach {
   toast(text: string): void;
   report(level: 'error' | 'warn' | 'info', message: string, detail?: unknown): void;
   format: Formatters;
+  /** Built-in labels only. Coach/athlete prose remains authored content. */
+  t(text: string): string;
   dates: DateHelpers;
   /** A new time-ordered row id (ULID) for direct inserts, e.g. coach.db.write('checkins', 'insert', { id: coach.id(), ... }). */
   id(): string;
@@ -143,6 +146,20 @@ export function createCoach(opts: CreateCoachOptions): Coach {
     root.setAttribute('data-theme', env.theme);
     root.style.colorScheme = env.theme;
     root.setAttribute('lang', env.locale);
+    root.setAttribute('dir', languageDirection(env.locale));
+    // Explicitly marked starter-view labels retain their source keys for later language changes.
+    for (const element of doc.querySelectorAll('[data-i18n], [data-i18n-heading], [data-i18n-subheading], [data-i18n-label], [data-i18n-empty], [data-i18n-submit-label], [data-i18n-hint], [data-i18n-aria-label], [data-i18n-options], [data-i18n-delta-label]')) {
+      if (element.hasAttribute('data-i18n')) element.textContent = translate(element.getAttribute('data-i18n')!, env.locale);
+      for (const attr of ['heading', 'subheading', 'label', 'empty', 'submit-label', 'hint', 'aria-label', 'delta-label']) {
+        const source = element.getAttribute(`data-i18n-${attr}`);
+        if (source) element.setAttribute(attr, translate(source, env.locale));
+      }
+      const options = element.getAttribute('data-i18n-options');
+      if (options) {
+        const parsed = parseJson<Array<{ label: string; value: string }>>(options);
+        if (Array.isArray(parsed)) element.setAttribute('options', JSON.stringify(parsed.map((option) => ({ ...option, label: translate(option.label, env.locale) }))));
+      }
+    }
     const sa = env.safeArea;
     root.style.setProperty('--rc-safe-top', `${sa.top}px`);
     root.style.setProperty('--rc-safe-right', `${sa.right}px`);
@@ -288,6 +305,7 @@ export function createCoach(opts: CreateCoachOptions): Coach {
     toast: (text) => bridge.send('toast', { text: String(text).slice(0, 200) }),
     report,
     format,
+    t: (text) => translate(text, env.locale),
     dates,
     id: () => ulid(env.now().getTime(), randomBytes),
     json: (v, fallback) => parseJson(v, fallback),

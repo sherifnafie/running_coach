@@ -48,7 +48,7 @@ const denied = (what: string) => () => {
 /** Side effects are replayed by (turn, call), including calls made by helpers [RT-6]. */
 const SIDE_EFFECTS = new Set<string>([
   'write', 'edit', 'bash', 'send_message', 'no_reply', 'schedule', 'cancel_schedule', 'set_heartbeat',
-  'spawn_agent', 'cancel_task', 'publish_ui', 'rollback_ui',
+  'spawn_agent', 'cancel_task', 'publish_ui', 'rollback_ui', 'set_preferences',
 ]);
 
 export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & { allowed: ToolName[] } {
@@ -63,7 +63,7 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
     : { upsert: denied('Scheduling'), list: denied('Scheduling'), cancel: denied('Scheduling'), setHeartbeat: denied('Scheduling') };
 
   const helpers: HelperPort = {
-    spawn: (input) => core.helpers.spawn(o.spawnParent ?? { athleteId: o.athleteId, turnId: o.turnId, depth: o.agent.depth }, input),
+    spawn: (input, signal) => core.helpers.spawn(o.spawnParent ?? { athleteId: o.athleteId, turnId: o.turnId, depth: o.agent.depth }, input, signal),
     status: (taskId) => core.helpers.status(o.athleteId, taskId),
     cancel: (taskId) => core.helpers.cancel(o.athleteId, taskId),
   };
@@ -148,6 +148,20 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
         scheduler,
         helpers,
         ui,
+        preferences: isCoach ? { update: async (input) => {
+          const { settings, diff } = await core.store.updateSettings(o.athleteId, {
+            ...(input.locale === undefined ? {} : { profile: { locale: input.locale } }),
+            appearance: {
+              ...(input.theme === undefined ? {} : { theme: input.theme }),
+              ...(input.accent === undefined ? {} : { accent: input.accent }),
+            },
+          });
+          if (Object.keys(diff).length) {
+            await core.store.audit({ athleteId: o.athleteId, at: core.clock.now().toISOString(), actor: 'coach', action: 'presentation.updated', detail: { turnId: o.turnId, diff } });
+            core.bus.publish(o.athleteId, { t: 'settings.changed' });
+          }
+          return { locale: settings.profile.locale, ...settings.appearance };
+        } } : undefined,
         web: core.web,
         history,
         log: core.log.child({ athleteId: o.athleteId, turnId: o.turnId, tool: call.name }),

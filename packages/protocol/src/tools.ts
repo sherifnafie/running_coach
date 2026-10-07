@@ -3,6 +3,7 @@ import { AgentKind, Effort, IsoDateTime, LocalTime, Tier, TriggerClass, type Log
 import type { Clock } from './clock';
 import type { ContentPart } from './conversation';
 import { MicroUI } from './microui';
+import { PresentationPatch } from './settings';
 import { ScheduleSpec, type ScheduleRecord } from './schedule';
 import type { PreviewReport } from './views';
 import type { ExecResult } from './sandbox';
@@ -71,10 +72,12 @@ export const ToolInputs = {
   list_schedules: z.object({}),
   cancel_schedule: z.object({ id: z.string() }),
   set_heartbeat: z.object({ time: LocalTime.optional(), enabled: z.boolean().optional() }),
+  set_preferences: PresentationPatch,
   spawn_agent: z.object({
     task: z.string().min(1).max(20_000),
     profile: z.string().max(64).optional().describe('Helper profile name in /workspace/agents/<profile>.md'),
     tier: Tier.optional(),
+    effort: Effort.optional().describe('Requested reasoning effort. Used only where the selected provider supports it.'),
     inputs: z.array(z.string()).max(50).optional(),
     write_scope: z.array(z.string()).max(20).optional().describe('Globs under /workspace the helper may modify. Default: read-only.'),
     tools: z.array(z.string()).max(20).optional(),
@@ -108,7 +111,7 @@ export type ToolInput<N extends ToolName> = z.infer<(typeof ToolInputs)[N]>;
 export const COACH_TOOLS: ToolName[] = [
   'read', 'write', 'edit', 'glob', 'grep', 'bash',
   'send_message', 'no_reply',
-  'schedule', 'list_schedules', 'cancel_schedule', 'set_heartbeat',
+  'schedule', 'list_schedules', 'cancel_schedule', 'set_heartbeat', 'set_preferences',
   'spawn_agent', 'task_status', 'cancel_task',
   'preview_ui', 'publish_ui', 'rollback_ui',
   'web_search', 'web_fetch', 'search_history',
@@ -217,7 +220,7 @@ export type SpawnAgentResult =
   | { ok: false; code: ToolErrorCode; message: string };
 
 export interface HelperPort {
-  spawn(input: ToolInput<'spawn_agent'>): Promise<SpawnAgentResult>;
+  spawn(input: ToolInput<'spawn_agent'>, signal?: AbortSignal): Promise<SpawnAgentResult>;
   status(taskId: string): Promise<{ state: 'running' | 'done' | 'failed' | 'cancelled'; summary?: string; outputs?: string[]; error?: string } | null>;
   cancel(taskId: string): Promise<boolean>;
 }
@@ -275,6 +278,7 @@ export interface ToolContext {
   scheduler: SchedulerPort;
   helpers: HelperPort;
   ui: UiPort;
+  preferences?: { update(input: import('./settings').PresentationPatch): Promise<{ locale: string; theme: string; accent: string | null }> };
   web: WebPort;
   history: HistoryPort;
   voice?: VoiceCallPort;

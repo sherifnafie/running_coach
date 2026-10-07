@@ -99,18 +99,31 @@ export const setHeartbeatTool: ToolDef<'set_heartbeat'> = {
 
 // ------------------------------------------------------------------ helpers
 
+export const setPreferencesTool: ToolDef<'set_preferences'> = {
+  name: 'set_preferences',
+  description: 'Change the athlete\'s persistent OpenCoach presentation preferences when requested: locale (BCP-47, e.g. ar or nl, also your reply language), theme (system/light/dark), accent (#RRGGBB, or null to reset). Applies across devices immediately. Built-in UI supports English, Dutch and Arabic; other languages use English shell labels. Custom views receive the locale and may need translation and publication. Cannot change privacy, consent, spending, notifications or security.',
+  input: ToolInputs.set_preferences,
+  availableTo: ['coach'],
+  execute: (input, ctx) => guard(async () => {
+    if (!ctx.preferences) return fail('NOT_CONFIGURED', 'Presentation preferences are unavailable.');
+    const result = await ctx.preferences.update(input);
+    return ok(`Presentation preferences saved: ${JSON.stringify(result)}. Reply in the requested language.`, [], result);
+  }),
+};
+
 export const spawnAgentTool: ToolDef<'spawn_agent'> = {
   name: 'spawn_agent',
   description:
     'Delegate focused work to a helper agent (profiles live in /workspace/agents/<profile>.md: extractor, analyst, planner, reviewer, ' +
     'researcher (quick lookups), deep-researcher (evidence reviews), ui-builder, or ones you wrote). Helpers cannot message the athlete or schedule. Give a clear task and the input paths. ' +
     'write_scope = globs under /workspace the helper may change (default read-only). background:true returns a task id immediately; ' +
-    'you will be woken with task.completed when it finishes — tell the athlete if they are waiting.',
+    'you will be woken with task.completed or task.failed — tell the athlete if they are waiting. ' +
+    'Foreground work shares your current turn wall-clock limit. Use background:true for substantial design, research or review so it can finish across turns.',
   input: ToolInputs.spawn_agent,
   availableTo: ['coach', 'helper'],
   execute: (input, ctx) =>
     guard(async () => {
-      const r = await ctx.helpers.spawn(input);
+      const r = await ctx.helpers.spawn(input, ctx.signal);
       if (!r.ok) return fail(r.code, r.message);
       if (r.background) return ok(`Started background task ${r.taskId}. You'll be woken when it completes.`, [], r);
       const lines = [`Helper task ${r.taskId} finished ($${r.costUsd.toFixed(3)}).`, `Summary:\n${r.summary || '(no summary)'}`];

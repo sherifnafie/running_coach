@@ -2,10 +2,13 @@
 // parameters for the chosen range and fills the two things SQL alone doesn't format well.
 import { coach } from '/kit/1/kit.js';
 
+const t = (text) => coach.t(text);
 const $ = (id) => document.getElementById(id);
 const { format, dates } = coach;
 
 await coach.ready;
+let renderedLocale = coach.env.locale;
+coach.onEnv((env) => { if (env.locale !== renderedLocale) { renderedLocale = env.locale; coach.track(extras(Number($('range').value))); } });
 const today = dates.todayIn(coach.env.now().getTime(), coach.env.tz);
 const thisWeek = dates.startOfWeek(today, 1); // weeks are Monday-based, matching the SQL
 const lastWeek = dates.addDays(thisWeek, -7);
@@ -52,8 +55,8 @@ async function extras(weeks) {
   const c = $('consistency');
   if (finished.length === 0) c.setAttribute('value', '–');
   else {
-    c.setAttribute('value', `${consistent} of ${finished.length}`);
-    c.setAttribute('unit', 'weeks');
+    c.setAttribute('value', `${format.number(consistent)} ${t('of')} ${format.number(finished.length)}`);
+    c.setAttribute('unit', t("weeks"));
   }
 
   $('races').data = races.map((r) => {

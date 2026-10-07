@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useI18n } from '../../lib/i18n';
 
 /** Save status shared by the settings controls ("Saving…" / "Saved"). */
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -6,13 +7,14 @@ export const SaveContext = createContext<{ commit: (patch: unknown) => Promise<b
 export const useCommit = () => useContext(SaveContext).commit;
 
 export function Row({ label, hint, children, htmlFor }: { label: string; hint?: string; children: ReactNode; htmlFor?: string }) {
+  const t = useI18n();
   return (
     <div className="row">
       <div className="row-text">
         <label htmlFor={htmlFor} className="row-label">
-          {label}
+          {t(label)}
         </label>
-        {hint && <p className="row-hint">{hint}</p>}
+        {hint && <p className="row-hint">{t(hint)}</p>}
       </div>
       <div className="row-control">{children}</div>
     </div>
@@ -42,12 +44,13 @@ export function SelectRow<T extends string | number>({
   onChange: (v: T) => void;
 }) {
   const id = useId();
+  const t = useI18n();
   return (
     <Row label={label} hint={hint} htmlFor={id}>
       <select id={id} value={String(value)} onChange={(e) => onChange((typeof value === 'number' ? Number(e.target.value) : e.target.value) as T)}>
         {options.map((o) => (
           <option key={String(o.value)} value={String(o.value)}>
-            {o.label}
+            {t(o.label)}
           </option>
         ))}
       </select>
@@ -190,6 +193,7 @@ export function ConfirmButton({
   disabled?: boolean;
 }) {
   const [armed, setArmed] = useState(false);
+  const t = useI18n();
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => timer.current && clearTimeout(timer.current), []);
   return armed ? (
@@ -202,10 +206,10 @@ export function ConfirmButton({
           onConfirm();
         }}
       >
-        {confirmLabel}
+        {t(confirmLabel)}
       </button>
       <button type="button" className="btn" onClick={() => setArmed(false)}>
-        Cancel
+        {t('Cancel')}
       </button>
     </span>
   ) : (
@@ -218,7 +222,7 @@ export function ConfirmButton({
         timer.current = setTimeout(() => setArmed(false), 6000);
       }}
     >
-      {label}
+      {t(label)}
     </button>
   );
 }

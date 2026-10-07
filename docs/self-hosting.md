@@ -30,6 +30,8 @@ The example uses **DeepSeek V4.1 Flash** (`deepseek-v4.1-flash`) for coach, deep
 
 The example's `models.pricing` uses GO's peak USD-per-million-token values, checked on 6 October 2026: input $0.30, output $1.20, cache reads $0.006. GO also documents off-peak rates. OpenCoach uses these fixed peak rates for a conservative token-equivalent budget estimate; it does not read subscription allowances or the provider's billing ledger. Unknown models otherwise report zero cost, so update pricing when changing models and check current official rates.
 
+The example explicitly enables thinking, with low effort for conversation and high effort for deep helpers. Thinking and emitted tool arguments share the output budget; the example allows 16,384 tokens. `reasoningEfforts` and `thinking` are opt-in compatible-provider settings; use only values supported by your endpoint. Existing configuration copies need these additions and a server restart. All three GO tiers use the same model, so a helper review is a separate execution rather than an independent model family.
+
 Bounded live checks on 6 October 2026 passed authentication/model availability, streamed tools, reasoning replay, usage/cache reporting, and the real app's signup → delivered welcome/intake → saved run/plan → all four views. The requested 08:00 local check-in was persisted; future scheduled delivery was not exercised. See [the verification record](verification/opencode-go-smoke.md). This is smoke evidence, not the full [MOD-2] conformance suite or coaching-quality certification.
 
 The supplied Compose file does not automatically pass the GO key or mount its configuration. For GO in Compose, add an override that passes `OPENCODE_GO_API_KEY` and `OPENCOACH_CONFIG: /config/go.yaml`, and bind-mount your secret-free YAML read-only at `/config/go.yaml`. Keep the key in the server environment and retain the separate app/views origins. The recorded live GO run used the host server; Docker browser verification used the scripted demo.
@@ -84,13 +86,7 @@ The Compose file binds ports to loopback. It sets `seccomp=unconfined`, `apparmo
 
 ## Export, import and maintenance
 
-### Updating an existing coach's Plan view
-
-The corrected starter Plan screen displays a separate "Why this plan" explanation. Older versions displayed the coach's working notes, which could include database and tool bookkeeping. Updates preserve each coach's existing workspace and published views, so pulling and rebuilding alone does not replace that screen. Back up your data, update the code, rebuild and restart the server as usual, then send this in your existing coach's Chat:
-
-> Please fix my Plan screen so it shows a concise explanation written for me under "Why this plan", rather than your working notes. Create and maintain `plan/athlete-summary.md`, switch the Plan view and its declared file read to that file, and remove its read of `plan/current.md`. Keep my workouts, schedule and useful screen customizations unchanged. Preview and publish the corrected view. Explain the training purpose, reasons and relevant uncertainty without database, file or tool bookkeeping.
-
-Verify the published Plan screen afterward; a chat acknowledgement or saved file alone is not a published repair. The server needs Chromium for preview/publication. This repair uses the configured model and can incur provider usage. New accounts start with the corrected view. No database migration or account reset is needed. The updated constitution takes effect at the next epoch; the explicit repair request also works in a current epoch. These notes remain part of your workspace export, rather than being deleted or made secret.
+Upgrades preserve each athlete's workspace and published screens. New starter files do not overwrite customizations. Ask your coach to adopt a newer view or translate existing content; it must preview and publish changes. Harness prompts refresh at the next epoch. Back up your data before upgrading.
 
 Settings offers export, view history/revert, calendar feed rotation and account deletion. Exports include committed workspace files, a consistent coach database, raw uploads and events; sessions and deployment secrets are excluded. Import creates an athlete without administrator privileges. To run the CLI from the repository root:
 

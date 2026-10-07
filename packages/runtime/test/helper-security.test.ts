@@ -96,3 +96,41 @@ describe('helper worktree isolation [SUB-3] [SEC-2]', () => {
     expect(await readFile(join(h!.runtime.core.paths(id).workspace, 'athlete/profile.md'), 'utf8')).not.toBe('HIJACKED');
   });
 });
+
+
+it('[RT-6] [SUB-1] reports a capped helper as incomplete and does not adopt its partial draft', async () => {
+  h = await makeHarness({ config: { limits: { helperMaxSteps: 1 } } });
+  const { id } = await h.runtime.createAthlete({ displayName: 'Sam', tz: 'UTC', locale: 'en', isAdmin: false });
+  h.setHandler(() => ({ toolCalls: [{ name: 'write', input: { path: 'plan/drafts/partial.md', content: 'Unreviewed partial output' } }] }));
+  const result = await h.runtime.core.helpers.spawn({ athleteId: id, turnId: 'limited-parent', depth: 0 }, { task: 'Write a draft', tools: ['write'], write_scope: ['plan/drafts/**'] });
+  expect(result).toMatchObject({ ok: false, code: 'LIMIT', message: expect.stringContaining('max_steps') });
+  await expect(readFile(join(h.runtime.core.paths(id).workspace, 'plan/drafts/partial.md'))).rejects.toMatchObject({ code: 'ENOENT' });
+  const tasks = await h.runtime.core.store.listTasks(id);
+  expect(tasks[0]).toMatchObject({ state: 'failed', error: expect.stringContaining('Incomplete helper') });
+});
+
+it.each([false, true])('[RT-3] [SUB-1] parent cancellation stops foreground work but preserves background work (background=%s)', async (background) => {
+  const id = await athlete();
+  let started!: () => void;
+  const entered = new Promise<void>(resolve => { started = resolve; });
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  h!.setHandler(async req => {
+    if (!lastUserText(req).includes('ABORT_PROBE')) return { text: 'No follow-up needed.' };
+    if (lastItemKind(req) !== 'tool_results') return { toolCalls: [{ name: 'write', input: { path: 'plan/drafts/cancel.md', content: 'Scoped result' } }] };
+    started();
+    await pending;
+    return { text: 'Finished.' };
+  });
+  const parent = new AbortController();
+  const job = h!.runtime.core.helpers.spawn({ athleteId: id, turnId: 'cancelled-parent', depth: 0 }, { task: 'ABORT_PROBE', tools: ['write'], write_scope: ['plan/drafts/**'], background }, parent.signal);
+  await entered;
+  parent.abort();
+  release();
+  const result = await job;
+  if (!background) expect(result).toMatchObject({ ok: false, message: expect.stringContaining('cancelled') });
+  await vi.waitFor(async () => expect((await h!.runtime.core.store.listTasks(id))[0]!.state).toBe(background ? 'done' : 'cancelled'));
+  const path = join(h!.runtime.core.paths(id).workspace, 'plan/drafts/cancel.md');
+  if (background) expect(await readFile(path, 'utf8')).toBe('Scoped result');
+  else await expect(readFile(path)).rejects.toMatchObject({ code: 'ENOENT' });
+});

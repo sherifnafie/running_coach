@@ -1,3 +1,4 @@
+import { t, useI18n } from '../../lib/i18n';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Section } from '../../components/Atoms';
 import { describeError } from '../../lib/api';
@@ -5,6 +6,7 @@ import { defaultHealthConnectRange, getHealthConnectPlugin, isHealthConnectAvail
 import { Row } from './Controls';
 
 export function HealthConnectSection() {
+  const t = useI18n();
   const [plugin] = useState(getHealthConnectPlugin);
   const [available, setAvailable] = useState(false);
   const [days, setDays] = useState(30);
@@ -42,18 +44,18 @@ export function HealthConnectSection() {
   };
 
   return (
-    <Section title="Health Connect" hint="Import workouts from this device. Android will ask for permission, and imported workouts are sent to your coach.">
+    <Section title={t("Health Connect")} hint="Import workouts from this device. Android will ask for permission, and imported workouts are sent to your coach.">
       <Row label="Import period" htmlFor={id}>
         <select id={id} value={days} disabled={busy} onChange={(e) => {
           setDays(Number(e.target.value));
           setError(undefined);
           setMessage(undefined);
         }}>
-          {[7, 14, 30].map((period) => <option key={period} value={period}>Last {period} days</option>)}
+          {[7, 14, 30].map((period) => <option key={period} value={period}>{t("Last")}{period} {t("days")}</option>)}
         </select>
       </Row>
       <button type="button" className="btn block" disabled={busy} onClick={() => void sync()}>
-        {busy ? 'Importing workouts…' : 'Import workouts'}
+        {busy ? t("Importing workouts…") : t("Import workouts")}
       </button>
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="hint" role="status">{message}</p>}

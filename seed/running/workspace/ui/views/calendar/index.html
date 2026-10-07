@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Calendar</title>
+  <title data-i18n="Calendar">Calendar</title>
   <link rel="stylesheet" href="/kit/1/kit.css">
   <link rel="stylesheet" href="view.css">
   <script type="module" src="/kit/1/kit.js"></script>
@@ -11,9 +11,9 @@
 </head>
 <body>
 <rc-page wide>
-  <rc-header heading="Calendar">
+  <rc-header heading="Calendar" data-i18n-heading="Calendar">
     <!-- Children of <rc-header> become its action area. -->
-    <rc-segmented id="mode" label="Calendar layout" value="month" options='[{"value":"month","label":"Month"},{"value":"week","label":"Week"}]'></rc-segmented>
+    <rc-segmented id="mode" label="Calendar layout" data-i18n-label="Calendar layout" value="month" options='[{"value":"month","label":"Month"},{"value":"week","label":"Week"}]' data-i18n-options='[{"value":"month","label":"Month"},{"value":"week","label":"Week"}]'></rc-segmented>
   </rc-header>
 
   <!--
@@ -25,7 +25,7 @@
     Only planned workouts are movable: activities and races are history/fixed (source = 'activity' | 'race').
   -->
   <rc-calendar id="cal" movable write-target="planned_workouts" write-status="moved" act-name="workout_moved"
-    empty="Nothing here yet. Your coach will fill this in after your first chat."
+    empty="Nothing here yet. Your coach will fill this in after your first chat." data-i18n-empty="Nothing here yet. Your coach will fill this in after your first chat."
     sql="SELECT id, date, type, title, status, 'planned' AS source, target_distance_m, target_duration_s FROM planned_workouts
          UNION ALL
          SELECT id, substr(started_at, 1, 10), sport, coalesce(title, 'Run'), 'done', 'activity', distance_m, duration_s
@@ -36,7 +36,7 @@
   <!-- Details of the tapped item, filled by view.js -->
   <rc-card id="detail" hidden></rc-card>
 
-  <rc-card heading="Key" subheading="Colour and letter show the type. Solid means done.">
+  <rc-card heading="Key" data-i18n-heading="Key" subheading="Colour and letter show the type. Solid means done." data-i18n-subheading="Colour and letter show the type. Solid means done.">
     <ul class="key" id="key"></ul>
   </rc-card>
 </rc-page>

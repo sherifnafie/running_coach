@@ -45,6 +45,10 @@ with con:  # one transaction
 ```
 The blob hashes are the sha256 values in the attachment paths (`/raw/3f2a…e1.png`). Take `now_iso` from the situation report's time, with the athlete's offset.
 
+## `set_preferences`
+
+Persist requested presentation changes: `locale` (`en`, `nl`, `ar`, or another valid BCP-47 tag), `theme` (`system`, `light`, `dark`), and `accent` (six-digit hex, or `null` to reset). Reply in the chosen language. English, Dutch and Arabic shell/starter labels update across devices; coach-authored content needs review and possibly translation/publication. This tool cannot alter privacy, consent, spending, notifications or security.
+
 ## `send_message` and `no_reply`
 
 Remember: this is the *only* way to reach the athlete. The end-of-turn text is a private note.

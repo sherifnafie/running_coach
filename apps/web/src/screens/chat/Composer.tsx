@@ -1,3 +1,4 @@
+import { t, useI18n } from '../../lib/i18n';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { Icon } from '../../components/Icon';
 import { appStore } from '../../lib/appState';
@@ -17,6 +18,7 @@ export function isAcceptedFile(f: File): boolean {
 }
 
 export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: File[]) => void) => void; visible?: boolean }) {
+  const t = useI18n();
   const prefill = useStore(appStore, (s) => s.composerPrefill);
   const online = useStore(appStore, (s) => s.online);
   const athleteId = useStore(appStore, (s) => s.me?.athlete.id);
@@ -139,12 +141,12 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
   const feedback = voice.error ?? hint;
 
   return (
-    <div className="composer" role="group" aria-label="Message composer">
-      {!online && <p className="composer-offline"><Icon name="wifi-off" size={14} /> Your message will send when you’re back online.</p>}
+    <div className="composer" role="group" aria-label={t("Message composer")}>
+      {!online && <p className="composer-offline"><Icon name="wifi-off" size={14} /> {t("Your message will send when you’re back online.")}</p>}
       <div className="composer-box">
         {voice.phase !== 'idle' ? <VoiceComposer voice={voice} online={online} /> : <>
           {tray.length > 0 && (
-            <ul className="tray" aria-label="Attachments to send">
+            <ul className="tray" aria-label={t("Attachments to send")}>
               {tray.map(({ file, id }) => (
                 <li key={id}>
                   <AttachmentPreview file={file} />
@@ -156,35 +158,36 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
               ))}
             </ul>
           )}
-          <textarea ref={taRef} value={text} rows={1} placeholder="Message your coach…" aria-label="Message"
+          <textarea ref={taRef} value={text} rows={1} placeholder={t("Message your coach…")} aria-label={t("Message")}
             enterKeyHint="enter" spellCheck autoCapitalize="sentences"
             onChange={(e) => { setText(e.target.value); if (e.target.value) sendTyping(); }} onKeyDown={onKeyDown} onPaste={onPaste} />
           <div className="composer-toolbar">
             <div className="attach" ref={attachRef}>
-              <button ref={attachButton} type="button" className="icon-btn attach-btn" aria-label="Attach" title="Add photos or files" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
+              <button ref={attachButton} type="button" className="icon-btn attach-btn" aria-label={t("Attach")} title={t("Add photos or files")} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
                 <Icon name="plus" />
               </button>
-              {menu && <div className="menu up" role="menu" aria-label="Add an attachment">
-                <button type="button" role="menuitem" autoFocus onClick={() => { setMenu(false); fileRef.current?.click(); }}><Icon name="paperclip" size={19} /> Photos & files</button>
-                <button type="button" role="menuitem" onClick={() => { setMenu(false); cameraRef.current?.click(); }}><Icon name="camera" size={19} /> Take a photo</button>
+              {menu && <div className="menu up" role="menu" aria-label={t("Add an attachment")}>
+                <button type="button" role="menuitem" autoFocus onClick={() => { setMenu(false); fileRef.current?.click(); }}><Icon name="paperclip" size={19} /> {t("Photos & files")}</button>
+                <button type="button" role="menuitem" onClick={() => { setMenu(false); cameraRef.current?.click(); }}><Icon name="camera" size={19} /> {t("Take a photo")}</button>
               </div>}
             </div>
-            <span className="composer-key-hint">Enter to send <span aria-hidden="true">·</span> Shift + Enter for a new line</span>
+            <span className="composer-key-hint">{t("Enter to send")}<span aria-hidden="true">·</span> {t("Shift + Enter for a new line")}</span>
             <div className="composer-actions">
-              <button type="button" className="icon-btn mic" aria-label="Record a voice note" title={voiceAvailable ? 'Record a voice note' : 'Voice notes aren’t configured'} onClick={record}><Icon name="mic" size={21} /></button>
-              <button type="button" className="icon-btn send" aria-label="Send" title="Send message" disabled={!canSend} onClick={send}><Icon name="arrow-up" size={23} /></button>
+              <button type="button" className="icon-btn mic" aria-label={t("Record a voice note")} title={voiceAvailable ? t("Record a voice note") : t("Voice notes aren’t configured")} onClick={record}><Icon name="mic" size={21} /></button>
+              <button type="button" className="icon-btn send" aria-label={t("Send")} title={t("Send message")} disabled={!canSend} onClick={send}><Icon name="arrow-up" size={23} /></button>
             </div>
           </div>
         </>}
       </div>
       <input ref={fileRef} type="file" hidden multiple accept={ACCEPT} onChange={(e) => { addFiles([...(e.target.files ?? [])]); e.target.value = ''; }} />
       <input ref={cameraRef} type="file" hidden accept="image/*" capture="environment" onChange={(e) => { addFiles([...(e.target.files ?? [])]); e.target.value = ''; }} />
-      {feedback && <div className="composer-hint" role="status"><span>{feedback}</span><button type="button" className="icon-btn small" aria-label="Dismiss message" onClick={() => { setHint(undefined); voice.clearError(); }}><Icon name="x" size={16} /></button></div>}
+      {feedback && <div className="composer-hint" role="status"><span>{feedback}</span><button type="button" className="icon-btn small" aria-label={t("Dismiss message")} onClick={() => { setHint(undefined); voice.clearError(); }}><Icon name="x" size={16} /></button></div>}
     </div>
   );
 }
 
 function AttachmentPreview({ file }: { file: File }) {
+  const t = useI18n();
   const [url, setUrl] = useState<string>();
   useEffect(() => {
     if (!file.type.startsWith('image/')) return;

@@ -1,0 +1,855 @@
+/** Shell-only labels are excluded from the isolated-view kit bundle. */
+export const shellLabels: Record<string, [string, string]> = {
+  "Main": [
+    "Hoofdnavigatie",
+    "التنقل الرئيسي"
+  ],
+  "Your running coach": [
+    "Je hardloopcoach",
+    "مدربك للجري"
+  ],
+  "Back to chat": [
+    "Terug naar chat",
+    "العودة إلى الدردشة"
+  ],
+  "Skip to content": [
+    "Naar inhoud",
+    "انتقل إلى المحتوى"
+  ],
+  "Dismiss": [
+    "Sluiten",
+    "إغلاق"
+  ],
+  "Call": [
+    "Bellen",
+    "مكالمة"
+  ],
+  "Connecting…": [
+    "Verbinden…",
+    "جارٍ الاتصال…"
+  ],
+  "Reconnecting…": [
+    "Opnieuw verbinden…",
+    "جارٍ إعادة الاتصال…"
+  ],
+  "Profile": [
+    "Profiel",
+    "الملف الشخصي"
+  ],
+  "Your name": [
+    "Je naam",
+    "اسمك"
+  ],
+  "Coach name": [
+    "Naam van je coach",
+    "اسم المدرب"
+  ],
+  "Units": [
+    "Eenheden",
+    "الوحدات"
+  ],
+  "Metric (km)": [
+    "Metrisch (km)",
+    "متري (كم)"
+  ],
+  "Imperial (mi)": [
+    "Imperiaal (mi)",
+    "ميل"
+  ],
+  "Time zone": [
+    "Tijdzone",
+    "المنطقة الزمنية"
+  ],
+  "Quiet hours and your coach's schedule follow this.": [
+    "Je stille uren en coachplanning gebruiken deze tijdzone.",
+    "تعتمد ساعات الهدوء ومواعيد مدربك على هذه المنطقة الزمنية."
+  ],
+  "Unknown time zone": [
+    "Onbekende tijdzone",
+    "منطقة زمنية غير معروفة"
+  ],
+  "Appearance": [
+    "Weergave",
+    "المظهر"
+  ],
+  "Theme": [
+    "Thema",
+    "السمة"
+  ],
+  "Match my device": [
+    "Volg mijn apparaat",
+    "حسب الجهاز"
+  ],
+  "Language": [
+    "Taal",
+    "اللغة"
+  ],
+  "App and coach language": [
+    "Taal van app en coach",
+    "لغة التطبيق والمدرب"
+  ],
+  "Your coach replies in this language. Saved across your devices.": [
+    "Je coach antwoordt in deze taal. Opgeslagen voor al je apparaten.",
+    "يرد مدربك بهذه اللغة. تُحفظ على جميع أجهزتك."
+  ],
+  "Accent color": [
+    "Accentkleur",
+    "اللون المميز"
+  ],
+  "Choose a color": [
+    "Kies een kleur",
+    "اختر لونًا"
+  ],
+  "Saved across your devices. You can also ask your coach in chat.": [
+    "Opgeslagen voor al je apparaten. Je kunt het ook in de chat aan je coach vragen.",
+    "تُحفظ على جميع أجهزتك. يمكنك أيضًا طلب ذلك من مدربك في الدردشة."
+  ],
+  "Your coach, your way": [
+    "Je coach, op jouw manier",
+    "مدربك، بطريقتك"
+  ],
+  "Make OpenCoach feel like you. Changes save automatically.": [
+    "Maak OpenCoach persoonlijk. Wijzigingen worden automatisch opgeslagen.",
+    "اجعل OpenCoach يناسبك. تُحفظ التغييرات تلقائيًا."
+  ],
+  "Personalize": [
+    "Personaliseren",
+    "التخصيص"
+  ],
+  "Coaching": [
+    "Coaching",
+    "التدريب"
+  ],
+  "Account & data": [
+    "Account en gegevens",
+    "الحساب والبيانات"
+  ],
+  "Manage your coach": [
+    "Beheer je coach",
+    "إدارة مدربك"
+  ],
+  "Advanced": [
+    "Geavanceerd",
+    "خيارات متقدمة"
+  ],
+  "Saving…": [
+    "Opslaan…",
+    "جارٍ الحفظ…"
+  ],
+  "Saved": [
+    "Opgeslagen",
+    "تم الحفظ"
+  ],
+  "Could not save": [
+    "Opslaan mislukt",
+    "تعذر الحفظ"
+  ],
+  "Notifications": [
+    "Meldingen",
+    "الإشعارات"
+  ],
+  "Your limits. Your coach cannot change them: messages are held during quiet hours and capped by these budgets.": [
+    "Jij bepaalt deze grenzen. Je coach kan ze niet wijzigen: berichten wachten tijdens stille uren en blijven binnen deze limieten.",
+    "أنت تحدد هذه الحدود ولا يستطيع المدرب تغييرها. تُؤجَّل الرسائل خلال ساعات الهدوء وتخضع لهذه الحدود."
+  ],
+  "Quiet hours": [
+    "Stille uren",
+    "ساعات الهدوء"
+  ],
+  "Messages written during this window wait until it ends.": [
+    "Berichten wachten tot de stille uren voorbij zijn.",
+    "تنتظر الرسائل المكتوبة خلال هذه الفترة حتى تنتهي."
+  ],
+  "From": [
+    "Van",
+    "من"
+  ],
+  "Until": [
+    "Tot",
+    "إلى"
+  ],
+  "Proactive messages per day": [
+    "Coachberichten per dag",
+    "رسائل المدرب الاستباقية يوميًا"
+  ],
+  "Messages your coach starts, not replies. 0 means only replies.": [
+    "Berichten die je coach zelf begint. Bij 0 stuurt je coach alleen antwoorden.",
+    "الرسائل التي يبدأها مدربك. القيمة 0 تعني الردود فقط."
+  ],
+  "Proactive messages per week": [
+    "Coachberichten per week",
+    "رسائل المدرب الاستباقية أسبوعيًا"
+  ],
+  "Minimum gap between them": [
+    "Minimale tijd ertussen",
+    "أقل فترة بين الرسائل"
+  ],
+  "No minimum": [
+    "Geen minimum",
+    "بلا حد أدنى"
+  ],
+  "Pause until": [
+    "Pauzeren tot",
+    "الإيقاف حتى"
+  ],
+  "Vacation mode: your coach stays quiet until this date.": [
+    "Vakantiemodus: je coach blijft stil tot deze datum.",
+    "وضع الإجازة: لا يبادر مدربك بالرسائل حتى هذا التاريخ."
+  ],
+  "Resume now": [
+    "Nu hervatten",
+    "استئناف الآن"
+  ],
+  "Push notifications": [
+    "Pushmeldingen",
+    "الإشعارات الفورية"
+  ],
+  "This browser does not support push notifications.": [
+    "Deze browser ondersteunt geen pushmeldingen.",
+    "هذا المتصفح لا يدعم الإشعارات الفورية."
+  ],
+  "On iPhone and iPad, add OpenCoach to your Home Screen first.": [
+    "Voeg OpenCoach op iPhone en iPad eerst toe aan je beginscherm.",
+    "على iPhone وiPad، أضف OpenCoach إلى الشاشة الرئيسية أولًا."
+  ],
+  "Blocked in your browser settings.": [
+    "Geblokkeerd in je browserinstellingen.",
+    "محظورة في إعدادات المتصفح."
+  ],
+  "On this device.": [
+    "Op dit apparaat.",
+    "على هذا الجهاز."
+  ],
+  "Voice": [
+    "Spraak",
+    "الصوت"
+  ],
+  "Call mode": [
+    "Gespreksmodus",
+    "وضع المكالمات"
+  ],
+  "Realtime is the most natural. Cascaded works with any model and keeps audio processing on the server.": [
+    "Realtime klinkt het natuurlijkst. Cascaded werkt met elk model en verwerkt audio op de server.",
+    "المحادثة الفورية هي الأكثر طبيعية. الوضع المتتابع يعمل مع أي نموذج ويعالج الصوت على الخادم."
+  ],
+  "Calls are not available on this server.": [
+    "Bellen is niet beschikbaar op deze server.",
+    "المكالمات غير متاحة على هذا الخادم."
+  ],
+  "Realtime": [
+    "Realtime",
+    "فوري"
+  ],
+  "Realtime (unavailable)": [
+    "Realtime (niet beschikbaar)",
+    "فوري (غير متاح)"
+  ],
+  "Cascaded": [
+    "Cascaded",
+    "متتابع"
+  ],
+  "Cascaded (unavailable)": [
+    "Cascaded (niet beschikbaar)",
+    "متتابع (غير متاح)"
+  ],
+  "Coach voice": [
+    "Stem van je coach",
+    "صوت المدرب"
+  ],
+  "Reply with voice notes": [
+    "Antwoord met spraakberichten",
+    "الرد برسائل صوتية"
+  ],
+  "Never": [
+    "Nooit",
+    "أبدًا"
+  ],
+  "When I send one": [
+    "Als ik er een stuur",
+    "عندما أرسل رسالة صوتية"
+  ],
+  "Always": [
+    "Altijd",
+    "دائمًا"
+  ],
+  "Privacy": [
+    "Privacy",
+    "الخصوصية"
+  ],
+  "Keep photo location": [
+    "Fotolocatie bewaren",
+    "الاحتفاظ بموقع الصور"
+  ],
+  "Off: GPS data is removed from photos before your coach sees them.": [
+    "Uit: gps-gegevens worden uit foto's verwijderd voordat je coach ze ziet.",
+    "عند الإيقاف، تُحذف بيانات الموقع من الصور قبل أن يراها مدربك."
+  ],
+  "Share feedback with developers": [
+    "Feedback delen met ontwikkelaars",
+    "مشاركة الملاحظات مع المطورين"
+  ],
+  "Off by default. Lets your coach's notes about the app reach its developers.": [
+    "Standaard uit. Deel appfeedback van je coach met de ontwikkelaars.",
+    "متوقف افتراضيًا. يسمح بوصول ملاحظات مدربك عن التطبيق إلى المطورين."
+  ],
+  "Spending limits": [
+    "Bestedingslimieten",
+    "حدود الإنفاق"
+  ],
+  "Caps on what your coach may spend on AI each day and month. When a limit is reached your coach pauses.": [
+    "Begrens dagelijks en maandelijks AI-gebruik. Je coach pauzeert zodra de limiet is bereikt.",
+    "حدد إنفاق مدربك على الذكاء الاصطناعي يوميًا وشهريًا. يتوقف المدرب عند بلوغ الحد."
+  ],
+  "Daily limit": [
+    "Daglimiet",
+    "الحد اليومي"
+  ],
+  "Monthly limit": [
+    "Maandlimiet",
+    "الحد الشهري"
+  ],
+  "Devices": [
+    "Apparaten",
+    "الأجهزة"
+  ],
+  "Sign in on another phone or computer with a one-time code, or add a passkey to this device.": [
+    "Log in op een ander apparaat met een eenmalige code, of voeg hier een passkey toe.",
+    "سجل الدخول على جهاز آخر برمز لمرة واحدة، أو أضف مفتاح مرور لهذا الجهاز."
+  ],
+  "Pair a new device": [
+    "Nieuw apparaat koppelen",
+    "ربط جهاز جديد"
+  ],
+  "Copy": [
+    "Kopiëren",
+    "نسخ"
+  ],
+  "Add a passkey": [
+    "Passkey toevoegen",
+    "إضافة مفتاح مرور"
+  ],
+  "Passkey added": [
+    "Passkey toegevoegd",
+    "تمت إضافة مفتاح المرور"
+  ],
+  "Subscribe in Google, Apple or Outlook calendar to see your coach's plan. Anyone with the link can see your schedule, so keep it private.": [
+    "Abonneer je in Google, Apple of Outlook om je plan te zien. Iedereen met de link kan je schema zien: houd de link privé.",
+    "اشترك عبر تقويم Google أو Apple أو Outlook لعرض خطتك. يستطيع أي شخص لديه الرابط رؤية جدولك، لذا حافظ على خصوصيته."
+  ],
+  "Show subscribe link": [
+    "Abonnementslink tonen",
+    "عرض رابط الاشتراك"
+  ],
+  "Calendar subscribe URL": [
+    "Kalenderabonnementslink",
+    "رابط الاشتراك بالتقويم"
+  ],
+  "Copy link": [
+    "Link kopiëren",
+    "نسخ الرابط"
+  ],
+  "Link copied": [
+    "Link gekopieerd",
+    "تم نسخ الرابط"
+  ],
+  "Select the link and copy it": [
+    "Selecteer de link en kopieer hem",
+    "حدد الرابط وانسخه"
+  ],
+  "About": [
+    "Over",
+    "حول"
+  ],
+  "Account": [
+    "Account",
+    "الحساب"
+  ],
+  "Features": [
+    "Functies",
+    "الميزات"
+  ],
+  "Demo mode.": [
+    "Demomodus.",
+    "وضع العرض التجريبي."
+  ],
+  "This server runs a scripted demo coach without an AI model. Replies are pre-written and nothing you say is analysed.": [
+    "Deze server gebruikt een demo zonder AI-model. Antwoorden zijn vooraf geschreven; je berichten worden niet geanalyseerd.",
+    "يعمل هذا الخادم بمدرب تجريبي دون نموذج ذكاء اصطناعي. الردود مكتوبة مسبقًا ولا تُحلل رسائلك."
+  ],
+  "Your coach is an AI. It is not a doctor and cannot diagnose. If something feels wrong, stop and see a professional.": [
+    "Je coach is AI, geen arts, en kan geen diagnose stellen. Stop bij klachten en raadpleeg een professional.",
+    "مدربك ذكاء اصطناعي، وليس طبيبًا ولا يمكنه التشخيص. إذا شعرت بمشكلة، توقف واستشر مختصًا."
+  ],
+  "Sign out of this device": [
+    "Uitloggen op dit apparaat",
+    "تسجيل الخروج من هذا الجهاز"
+  ],
+  "Your data": [
+    "Je gegevens",
+    "بياناتك"
+  ],
+  "Export": [
+    "Exporteren",
+    "تصدير"
+  ],
+  "Delete account": [
+    "Account verwijderen",
+    "حذف الحساب"
+  ],
+  "Delete my account": [
+    "Mijn account verwijderen",
+    "حذف حسابي"
+  ],
+  "Coach's changes": [
+    "Wijzigingen van je coach",
+    "تغييرات المدرب"
+  ],
+  "View history": [
+    "Schermgeschiedenis",
+    "سجل الواجهات"
+  ],
+  "Administrator": [
+    "Beheerder",
+    "المسؤول"
+  ],
+  "Message": [
+    "Bericht",
+    "رسالة"
+  ],
+  "Message your coach…": [
+    "Stuur je coach een bericht…",
+    "اكتب لمدربك…"
+  ],
+  "Attach": [
+    "Bijvoegen",
+    "إرفاق"
+  ],
+  "Add photos or files": [
+    "Foto's of bestanden toevoegen",
+    "إضافة صور أو ملفات"
+  ],
+  "Add an attachment": [
+    "Bijlage toevoegen",
+    "إضافة مرفق"
+  ],
+  "Photos & files": [
+    "Foto's en bestanden",
+    "صور وملفات"
+  ],
+  "Take a photo": [
+    "Foto maken",
+    "التقاط صورة"
+  ],
+  "Enter to send": [
+    "Enter om te versturen",
+    "Enter للإرسال"
+  ],
+  "Shift + Enter for a new line": [
+    "Shift + Enter voor een nieuwe regel",
+    "Shift + Enter لسطر جديد"
+  ],
+  "Record a voice note": [
+    "Spraakbericht opnemen",
+    "تسجيل رسالة صوتية"
+  ],
+  "Voice notes aren’t configured": [
+    "Spraakberichten zijn niet ingesteld",
+    "الرسائل الصوتية غير مهيأة"
+  ],
+  "Voice notes aren’t set up on this server yet. You can still dictate using the microphone on your keyboard.": [
+    "Spraakberichten zijn nog niet ingesteld. Je kunt de microfoon van je toetsenbord gebruiken.",
+    "الرسائل الصوتية غير مهيأة على هذا الخادم. يمكنك استخدام ميكروفون لوحة المفاتيح للإملاء."
+  ],
+  "Send message": [
+    "Bericht versturen",
+    "إرسال الرسالة"
+  ],
+  "Dismiss message": [
+    "Melding sluiten",
+    "إغلاق التنبيه"
+  ],
+  "Listen before sending": [
+    "Luister voor het versturen",
+    "استمع قبل الإرسال"
+  ],
+  "Recording…": [
+    "Opnemen…",
+    "جارٍ التسجيل…"
+  ],
+  "Stop recording": [
+    "Opname stoppen",
+    "إيقاف التسجيل"
+  ],
+  "Discard recording": [
+    "Opname verwijderen",
+    "حذف التسجيل"
+  ],
+  "Send voice note": [
+    "Spraakbericht versturen",
+    "إرسال الرسالة الصوتية"
+  ],
+  "Try again": [
+    "Opnieuw proberen",
+    "حاول مجددًا"
+  ],
+  "Close": [
+    "Sluiten",
+    "إغلاق"
+  ],
+  "Close image": [
+    "Afbeelding sluiten",
+    "إغلاق الصورة"
+  ],
+  "Unavailable": [
+    "Niet beschikbaar",
+    "غير متاح"
+  ],
+  "Voice note": [
+    "Spraakbericht",
+    "رسالة صوتية"
+  ],
+  "Build a plan together": [
+    "Samen een plan maken",
+    "ابنِ خطة مع مدربك"
+  ],
+  "Race goal": [
+    "Wedstrijddoel",
+    "هدف السباق"
+  ],
+  "Rest": [
+    "Rust",
+    "راحة"
+  ],
+  "Recovery": [
+    "Herstel",
+    "تعافٍ"
+  ],
+  "Partial": [
+    "Deels",
+    "جزئي"
+  ],
+  "No activities yet": [
+    "Nog geen activiteiten",
+    "لا أنشطة بعد"
+  ],
+  "What your coach changed": [
+    "Wat je coach heeft gewijzigd",
+    "ما غيره مدربك"
+  ],
+  "Every change your coach makes to your workspace and screens, newest first.": [
+    "Wijzigingen aan je gegevens en schermen, nieuwste eerst.",
+    "تغييرات المدرب في بياناتك وواجهاتك، من الأحدث إلى الأقدم."
+  ],
+  "Hide changes": [
+    "Wijzigingen verbergen",
+    "إخفاء التغييرات"
+  ],
+  "Show changes": [
+    "Wijzigingen tonen",
+    "عرض التغييرات"
+  ],
+  "Nothing yet.": [
+    "Nog niets.",
+    "لا شيء بعد."
+  ],
+  "Screen history": [
+    "Schermgeschiedenis",
+    "سجل الواجهات"
+  ],
+  "Don't like a change to one of your screens? Go back to an earlier version.": [
+    "Niet tevreden over een wijziging? Herstel een eerdere schermversie.",
+    "لا يعجبك تغيير في إحدى الواجهات؟ عد إلى إصدار سابق."
+  ],
+  "Your coach hasn't published any screens yet.": [
+    "Je coach heeft nog geen schermen gepubliceerd.",
+    "لم ينشر مدربك أي واجهات بعد."
+  ],
+  "No earlier versions.": [
+    "Geen eerdere versies.",
+    "لا إصدارات سابقة."
+  ],
+  "Version": [
+    "Versie",
+    "الإصدار"
+  ],
+  "No summary": [
+    "Geen samenvatting",
+    "لا ملخص"
+  ],
+  "Revert to this": [
+    "Deze herstellen",
+    "استعادة هذا الإصدار"
+  ],
+  "Take your coach with you: your workspace, uploads, message history and settings in one bundle.": [
+    "Neem alles mee: je coachgegevens, uploads, gesprekken en instellingen in één bestand.",
+    "خذ بياناتك معك: ملفاتك ومرفقاتك وسجل المحادثات والإعدادات في حزمة واحدة."
+  ],
+  "Export everything": [
+    "Alles exporteren",
+    "تصدير الكل"
+  ],
+  "Preparing export": [
+    "Export voorbereiden",
+    "إعداد التصدير"
+  ],
+  "Preparing your export. This can take a minute.": [
+    "Je export wordt voorbereid. Dit kan even duren.",
+    "جارٍ إعداد التصدير. قد يستغرق دقيقة."
+  ],
+  "Your export is ready.": [
+    "Je export is klaar.",
+    "تصديرك جاهز."
+  ],
+  "Download": [
+    "Downloaden",
+    "تنزيل"
+  ],
+  "Permanently deletes your coach, workspace, uploads and history. Backups are removed within 30 days. This cannot be undone.": [
+    "Verwijdert je coach, gegevens, uploads en geschiedenis permanent. Back-ups verdwijnen binnen 30 dagen. Dit kan niet ongedaan worden gemaakt.",
+    "يحذف مدربك وملفاتك ومرفقاتك وسجلك نهائيًا. تُحذف النسخ الاحتياطية خلال 30 يومًا. لا يمكن التراجع."
+  ],
+  "Type": [
+    "Typ",
+    "اكتب"
+  ],
+  "To confirm, type DELETE": [
+    "Typ DELETE om te bevestigen",
+    "للتأكيد، اكتب DELETE"
+  ],
+  "to confirm": [
+    "om te bevestigen",
+    "للتأكيد"
+  ],
+  "Delete my account and data": [
+    "Mijn account en gegevens verwijderen",
+    "حذف حسابي وبياناتي"
+  ],
+  "Health Connect": [
+    "Health Connect",
+    "Health Connect"
+  ],
+  "Import workouts from this device. Android will ask for permission, and imported workouts are sent to your coach.": [
+    "Importeer trainingen van dit apparaat. Android vraagt toestemming; je coach ontvangt de trainingen.",
+    "استورد التمارين من هذا الجهاز. سيطلب Android إذنك وتُرسل التمارين المستوردة لمدربك."
+  ],
+  "Import period": [
+    "Importperiode",
+    "فترة الاستيراد"
+  ],
+  "Last": [
+    "Laatste",
+    "آخر"
+  ],
+  "Importing workouts…": [
+    "Trainingen importeren…",
+    "جارٍ استيراد التمارين…"
+  ],
+  "Import workouts": [
+    "Trainingen importeren",
+    "استيراد التمارين"
+  ],
+  "Nothing to show.": [
+    "Niets om te tonen.",
+    "لا شيء للعرض."
+  ],
+  "Cost per day": [
+    "Kosten per dag",
+    "التكلفة يوميًا"
+  ],
+  "Trace": [
+    "Logboek",
+    "السجل"
+  ],
+  "Turn": [
+    "Beurt",
+    "الجولة"
+  ],
+  "Create invite code": [
+    "Uitnodigingscode maken",
+    "إنشاء رمز دعوة"
+  ],
+  "Admin": [
+    "Beheer",
+    "الإدارة"
+  ],
+  "Athletes": [
+    "Atleten",
+    "الرياضيون"
+  ],
+  "Invite someone": [
+    "Iemand uitnodigen",
+    "دعوة شخص"
+  ],
+  "Costs by day": [
+    "Kosten per dag",
+    "التكاليف يوميًا"
+  ],
+  "Recent turns": [
+    "Recente beurten",
+    "الجولات الأخيرة"
+  ],
+  "minutes": [
+    "minuten",
+    "دقائق"
+  ],
+  "hours": [
+    "uur",
+    "ساعات"
+  ],
+  "Photo": [
+    "Foto",
+    "صورة"
+  ],
+  "Audio": [
+    "Audio",
+    "صوت"
+  ],
+  "Hide transcript": [
+    "Transcript verbergen",
+    "إخفاء النص"
+  ],
+  "Transcript": [
+    "Transcript",
+    "النص"
+  ],
+  "Uploading": [
+    "Uploaden",
+    "جارٍ الرفع"
+  ],
+  "Sending…": [
+    "Versturen…",
+    "جارٍ الإرسال…"
+  ],
+  "Waiting for connection. It will send automatically.": [
+    "Wacht op verbinding. Wordt automatisch verstuurd.",
+    "بانتظار الاتصال. ستُرسل تلقائيًا."
+  ],
+  "Not sent": [
+    "Niet verstuurd",
+    "لم تُرسل"
+  ],
+  "Discard": [
+    "Verwijderen",
+    "تجاهل"
+  ],
+  "This card is no longer available.": [
+    "Deze kaart is niet meer beschikbaar.",
+    "هذه البطاقة لم تعد متاحة."
+  ],
+  "Voice reply": [
+    "Spraakantwoord",
+    "رد صوتي"
+  ],
+  "Message options": [
+    "Berichtopties",
+    "خيارات الرسالة"
+  ],
+  "Helpful": [
+    "Nuttig",
+    "مفيد"
+  ],
+  "Not helpful": [
+    "Niet nuttig",
+    "غير مفيد"
+  ],
+  "Copy text": [
+    "Tekst kopiëren",
+    "نسخ النص"
+  ],
+  "Coach is writing": [
+    "Je coach schrijft",
+    "المدرب يكتب"
+  ],
+  "Conversation": [
+    "Gesprek",
+    "المحادثة"
+  ],
+  "Loading messages": [
+    "Berichten laden",
+    "جارٍ تحميل الرسائل"
+  ],
+  "Say hello to your coach.": [
+    "Begroet je coach.",
+    "رحب بمدربك."
+  ],
+  "Tell them about your running, your goals, or just how today went.": [
+    "Vertel over je lopen, je doelen of hoe je dag was.",
+    "حدثه عن جريك أو أهدافك أو كيف كان يومك."
+  ],
+  "Show earlier messages": [
+    "Eerdere berichten tonen",
+    "عرض الرسائل السابقة"
+  ],
+  "New messages": [
+    "Nieuwe berichten",
+    "رسائل جديدة"
+  ],
+  "Safety notice": [
+    "Veiligheidsmelding",
+    "تنبيه السلامة"
+  ],
+  "This may be urgent": [
+    "Dit kan dringend zijn",
+    "قد يكون هذا عاجلًا"
+  ],
+  "Please look after yourself first": [
+    "Zorg eerst voor jezelf",
+    "اعتنِ بنفسك أولًا"
+  ],
+  "Dismiss for now": [
+    "Voorlopig sluiten",
+    "إغلاق مؤقتًا"
+  ],
+  "Updated by your coach": [
+    "Bijgewerkt door je coach",
+    "حدّثه مدربك"
+  ],
+  "Offline: showing what was last saved.": [
+    "Offline: laatst opgeslagen versie.",
+    "دون اتصال: يُعرض آخر ما حُفظ."
+  ],
+  "isn't available right now.": [
+    "is nu niet beschikbaar.",
+    "غير متاح الآن."
+  ],
+  "If this is an emergency, or you have chest pain, trouble breathing, fainting, confusion or severe pain, stop exercising and call your local emergency number now (for example 112, 911 or 999).": [
+    "Bij een noodgeval, pijn op de borst, ademnood, flauwvallen, verwardheid of ernstige pijn: stop met sporten en bel nu het lokale alarmnummer (bijvoorbeeld 112, 911 of 999).",
+    "إذا كانت هذه حالة طارئة، أو لديك ألم في الصدر أو صعوبة تنفس أو إغماء أو ارتباك أو ألم شديد، توقف عن التمرين واتصل برقم الطوارئ المحلي الآن (مثل 112 أو 911 أو 999)."
+  ],
+  "Chest pain or pressure, palpitations or fainting need medical attention. Stop training until a clinician has seen you.": [
+    "Pijn of druk op de borst, hartkloppingen of flauwvallen vragen medische aandacht. Stop met trainen totdat een zorgverlener je heeft onderzocht.",
+    "ألم الصدر أو الضغط عليه أو الخفقان أو الإغماء يحتاج إلى رعاية طبية. توقف عن التدريب حتى يفحصك مختص."
+  ],
+  "Confusion, vomiting or stopping sweating in the heat can be heat illness. Get out of the heat, cool down and seek urgent medical help.": [
+    "Verwardheid, braken of niet meer zweten in de hitte kunnen op hitteziekte wijzen. Zoek een koele plek, koel af en zoek dringend medische hulp.",
+    "الارتباك أو القيء أو توقف التعرق في الحر قد يدل على مرض مرتبط بالحرارة. ابتعد عن الحر، وبرّد جسمك، واطلب مساعدة طبية عاجلة."
+  ],
+  "Sharp bone pain, or pain at rest or at night, can mean a stress injury. Stop running and have it checked.": [
+    "Scherpe botpijn of pijn in rust of 's nachts kan op een stressblessure wijzen. Stop met lopen en laat het onderzoeken.",
+    "ألم العظام الحاد أو الألم أثناء الراحة أو ليلًا قد يدل على إصابة إجهادية. توقف عن الجري وافحصه طبيًا."
+  ],
+  "Numbness, weakness or a head injury needs prompt medical assessment.": [
+    "Gevoelloosheid, zwakte of hoofdletsel vraagt snelle medische beoordeling.",
+    "الخدر أو الضعف أو إصابة الرأس يحتاج إلى تقييم طبي سريع."
+  ],
+  "Dark urine and severe muscle pain after hard exercise need urgent medical care.": [
+    "Donkere urine en ernstige spierpijn na zware inspanning vragen dringende medische zorg.",
+    "البول الداكن والألم العضلي الشديد بعد تمرين شاق يحتاجان إلى رعاية طبية عاجلة."
+  ],
+  "A swollen, painful calf after travel or rest can be a clot. Seek medical care promptly.": [
+    "Een gezwollen, pijnlijke kuit na reizen of rust kan op een bloedstolsel wijzen. Zoek snel medische zorg.",
+    "قد يشير تورم ربلة الساق وألمها بعد السفر أو الراحة إلى جلطة. اطلب رعاية طبية سريعًا."
+  ],
+  "If food, weight or exercise feels out of control, talking to a doctor or an eating-disorder helpline can help. You deserve support.": [
+    "Als eten, gewicht of sport onbeheersbaar voelt, kan een arts of hulplijn voor eetstoornissen helpen. Je verdient steun.",
+    "إذا شعرت أن الأكل أو الوزن أو التمرين خارج سيطرتك، فقد يساعدك التحدث إلى طبيب أو خط دعم لاضطرابات الأكل. أنت تستحق الدعم."
+  ],
+  "If you are thinking about harming yourself, please contact your local emergency number or a crisis line in your country right now. You are not alone.": [
+    "Denk je eraan jezelf iets aan te doen? Bel nu het lokale alarmnummer of een crisislijn in je land. Je staat er niet alleen voor.",
+    "إذا كنت تفكر في إيذاء نفسك، اتصل برقم الطوارئ المحلي أو خط الأزمات في بلدك الآن. لست وحدك."
+  ],
+  "This may need medical attention. If you are unsure, contact a clinician or your local emergency number.": [
+    "Dit kan medische aandacht vereisen. Neem bij twijfel contact op met een zorgverlener of het lokale alarmnummer.",
+    "قد يحتاج هذا إلى رعاية طبية. إذا كنت غير متأكد، اتصل بمختص أو برقم الطوارئ المحلي."
+  ]
+};

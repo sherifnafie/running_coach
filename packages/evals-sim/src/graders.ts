@@ -188,6 +188,20 @@ export function gradePlan(trace: TraceBundle, a: Assertion = fallbackAssertion('
   return result(a, errors.length ? 'fail' : unknown.length ? 'not_run' : 'pass', [`Checked ${checked} active session rows across ${selected.length} snapshots.`, ...errors, ...unknown, ...flags, 'Training-shape flags are screening heuristics for the plan judge; availability constraints require zero violations.']);
 }
 
+/** A date-range check, not a coaching-quality or amount-of-thinking score. */
+export function gradePlanHorizon(trace: TraceBundle, a: Assertion): GraderResult {
+  if (!a.horizonDays || a.action === undefined) return result(a, 'not_run', ['Plan horizon requires days and an action.']);
+  const action = trace.actions.find(action => action.index === a.action);
+  const snapshot = trace.snapshots.find(snapshot => snapshot.action === a.action);
+  if (!action || !snapshot || !Object.hasOwn(snapshot.db.tables, 'planned_workouts')) return result(a, 'not_run', ['Requested action or plan snapshot is unavailable.']);
+  const start = action.at.slice(0, 10);
+  const end = addDays(start, a.horizonDays - 1);
+  const rows = activePlanRows(tableRows(snapshot.db, 'planned_workouts'));
+  if (!rows.length) return result(a, 'not_run', ['No saved plan rows; a requested committed plan is incomplete.']);
+  const outside = rows.filter(row => !/^\d{4}-\d\d-\d\d$/.test(text(row.date)) || text(row.date) < start || text(row.date) > end);
+  return result(a, outside.length ? 'fail' : 'pass', [`${rows.length} rows checked against ${start}–${end}.`, ...outside.map(row => `Workout ${text(row.id)} on ${text(row.date)} is outside the requested horizon.`)]);
+}
+
 function inboundText(event: AnyEvent): string {
   return event.type === 'user.message' ? event.payload.text : event.type === 'user.upload' ? event.payload.caption ?? '' : event.type === 'user.voice_note' ? event.payload.transcript : '';
 }
@@ -514,6 +528,7 @@ export function gradeTrace(trace: TraceBundle): GraderResult[] {
       case 'proactivity': return gradeProactivity(trace, a);
       case 'extraction': return gradeExtraction(trace, a);
       case 'plan': return gradePlan(trace, a);
+      case 'plan_horizon': return gradePlanHorizon(trace, a);
       case 'integrity': return gradeIntegrity(trace, a);
       case 'schedule': return gradeSchedule(trace, a);
       case 'db': return gradeDb(trace, a);

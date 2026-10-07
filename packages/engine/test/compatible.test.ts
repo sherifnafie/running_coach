@@ -38,6 +38,25 @@ describe('compatible: capabilities', () => {
   });
 });
 
+describe('compatible: configured reasoning controls [MOD-1]', () => {
+  it('forwards supported effort and an explicit thinking toggle, omitting unknown extensions by default', async () => {
+    const client = fakeClient([[chunk({ content: 'ok' }, 'stop')]]);
+    const provider = createCompatibleProvider(cfg({ reasoningEfforts: ['low', 'high', 'max'], thinking: true }), { client });
+    await drain(provider.stream(R('m', { effort: 'high' })));
+    await drain(provider.stream(R('m', { effort: 'medium' })));
+    expect(client.bodies[0]).toMatchObject({ reasoning_effort: 'high', thinking: { type: 'enabled' } });
+    expect(client.bodies[1]).not.toHaveProperty('reasoning_effort');
+    expect(provider.capabilities('m').efforts).toEqual(['low', 'high', 'max']);
+    const plain = fakeClient([[chunk({ content: 'ok' }, 'stop')]]);
+    await drain(createCompatibleProvider(cfg(), { client: plain }).stream(R('m', { effort: 'high' })));
+    expect(plain.bodies[0]).not.toHaveProperty('reasoning_effort');
+    expect(plain.bodies[0]).not.toHaveProperty('thinking');
+    const disabled = fakeClient([[chunk({ content: 'ok' }, 'stop')]]);
+    await drain(createCompatibleProvider(cfg({ thinking: false }), { client: disabled }).stream(R()));
+    expect(disabled.bodies[0]).toMatchObject({ thinking: { type: 'disabled' } });
+  });
+});
+
 describe('compatible: message mapping', () => {
   it('joins system blocks into one system message and maps harness to system role', () => {
     const msgs = buildCompatibleMessages(

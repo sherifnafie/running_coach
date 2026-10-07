@@ -2,14 +2,17 @@
 // "summary" view: a few focused queries, results handed to kit components via properties.
 import { coach, h } from '/kit/1/kit.js';
 
+const t = (text) => coach.t(text);
 const $ = (id) => document.getElementById(id);
 const { format, dates } = coach;
 
 await coach.ready;
+let renderedLocale = coach.env.locale;
+coach.onEnv((env) => { if (env.locale !== renderedLocale) { renderedLocale = env.locale; coach.track(refresh()); } });
 const today = dates.todayIn(coach.env.now().getTime(), coach.env.tz);
 coach.subscribe(['db:blocks', 'db:planned_workouts', 'db:races'], refresh);
-$('start-chat').onclick = () => coach.openChat({ prefill: 'Hi coach! Can you build my plan?' });
-$('discuss').onclick = () => coach.openChat({ prefill: 'I have a question about my plan: ', ref: { viewId: 'plan' } });
+$('start-chat').onclick = () => coach.openChat({ prefill: t("Hi coach! Can you build my plan?") });
+$('discuss').onclick = () => coach.openChat({ prefill: t("I have a question about my plan: "), ref: { viewId: 'plan' } });
 await refresh();
 
 async function refresh() {
@@ -69,7 +72,7 @@ function renderBlock(block, blocks) {
   $('phases').data = blocks.map((b) => ({
     title: b.name,
     subtitle: `${format.date(b.start_date, 'short')} – ${format.date(b.end_date, 'short')}${b.focus ? ` · ${b.focus}` : ''}`,
-    badge: b.id === block.id && b.start_date <= today && today <= b.end_date ? 'Now' : b.end_date < today ? 'Done' : '',
+    badge: b.id === block.id && b.start_date <= today && today <= b.end_date ? t("Now") : b.end_date < today ? t("Done") : '',
     tone: b.id === block.id ? 'accent' : 'default',
   }));
 }
@@ -77,9 +80,9 @@ function renderBlock(block, blocks) {
 function renderVolume(weeks) {
   $('volume').data = weeks.map((w) => ({ x: w.week, y: w.dist }));
   const thisWeek = dates.startOfWeek(today, 1);
-  $('weeks').replaceChildren(
-    h('caption', null, 'Planned volume by week'),
-    h('thead', null, h('tr', null, ...['Week of', 'Distance', 'Runs', 'Longest'].map((c) => h('th', { scope: 'col' }, c)))),
+  $(t("weeks")).replaceChildren(
+    h('caption', null, t("Planned volume by week")),
+    h('thead', null, h('tr', null, ...[t("Week of"), t("Distance"), t("Runs"), t("Longest")].map((c) => h('th', { scope: 'col' }, c)))),
     h('tbody', null, ...weeks.map((w) => h('tr', { class: w.week === thisWeek ? 'is-current' : '' }, h('th', { scope: 'row' }, format.date(w.week, 'short')), h('td', null, format.distance(w.dist)), h('td', null, String(w.sessions)), h('td', null, w.longest ? format.distance(w.longest) : '–')))),
   );
 }
@@ -99,6 +102,6 @@ function renderRace(race) {
   $('race').replaceChildren(
     h('p', { class: 'race-name' }, race.name),
     h('p', { class: 'rc-muted' }, [format.date(race.date, 'long'), race.distance_m ? format.distance(race.distance_m) : '', race.priority ? `${race.priority} race` : ''].filter(Boolean).join(' · ')),
-    h('p', null, `${weeksToGo === 0 ? 'Race week' : `${weeksToGo} ${weeksToGo === 1 ? 'week' : 'weeks'} to go`}${goal?.time_s ? ` · goal ${format.duration(goal.time_s)}` : ''}`),
+    h('p', null, `${weeksToGo === 0 ? t("Race week") : `${weeksToGo} ${weeksToGo === 1 ? 'week' : t("weeks")} to go`}${goal?.time_s ? ` · goal ${format.duration(goal.time_s)}` : ''}`),
   );
 }

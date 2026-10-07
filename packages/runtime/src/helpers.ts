@@ -8,6 +8,7 @@ import { parse as parseYaml } from 'yaml';
 import {
   HELPER_GRANTABLE_TOOLS,
   SpawnLimits,
+  ToolError,
   newId,
   type ContentPart,
   type ResolvedModel,
@@ -89,7 +90,7 @@ export class HelperManager {
     await Promise.all([...this.running.values()].filter((r) => !athleteId || r.athleteId === athleteId).map((r) => r.done.catch(() => {})));
   }
 
-  async spawn(parent: SpawnParent, input: ToolInput<'spawn_agent'>): Promise<SpawnAgentResult> {
+  async spawn(parent: SpawnParent, input: ToolInput<'spawn_agent'>, signal?: AbortSignal): Promise<SpawnAgentResult> {
     const core = this.core;
     if (parent.depth + 1 > SpawnLimits.maxDepth) {
       return { ok: false, code: 'LIMIT', message: `Helpers can nest at most ${SpawnLimits.maxDepth} levels deep.` };
@@ -193,6 +194,10 @@ export class HelperManager {
     }
 
     let resolveDone!: () => void;
+    // Background jobs deliberately outlive the originating turn; foreground jobs do not.
+    const onParentAbort = () => abort.abort();
+    if (signal?.aborted) abort.abort();
+    else signal?.addEventListener('abort', onParentAbort, { once: true });
     this.running.set(taskId, { athleteId: parent.athleteId, abort, done: new Promise<void>((r) => (resolveDone = r)), parentTaskId: parent.taskId });
     try {
       const r = await job();
@@ -201,8 +206,9 @@ export class HelperManager {
       return { ok: true, taskId, background: false, summary: r.summary, outputs: r.outputs, costUsd: r.costUsd, reverted: r.discarded };
     } catch (err) {
       await core.store.updateTask(taskId, { state: abort.signal.aborted ? 'cancelled' : 'failed', endedAt: core.clock.now().toISOString(), error: (err as Error).message });
-      return { ok: false, code: 'INTERNAL', message: `Helper failed: ${(err as Error).message}` };
+      return { ok: false, code: err instanceof ToolError ? err.code : 'INTERNAL', message: `Helper failed: ${(err as Error).message}` };
     } finally {
+      signal?.removeEventListener('abort', onParentAbort);
       this.running.delete(taskId);
       resolveDone();
     }
@@ -257,6 +263,10 @@ export class HelperManager {
     await mkdir(dirname(wt), { recursive: true });
     await exec('git', ['-C', parentDir, 'worktree', 'add', '--detach', '--force', wt, 'HEAD']);
     const cleanup = async () => {
+      // A failed/capped parent must not leave descendants using its disappearing worktree.
+      const children = [...this.running.values()].filter((r) => r.parentTaskId === taskId);
+      for (const child of children) child.abort.abort();
+      await Promise.all(children.map((child) => child.done));
       // Stop every process with this mount before unlinking its worktree files.
       await core.releaseSandbox(`${parent.athleteId}:${taskId}`);
       await exec('git', ['-C', parentDir, 'worktree', 'remove', '--force', wt]).catch(() => rm(wt, { recursive: true, force: true }));
@@ -354,7 +364,7 @@ export class HelperManager {
         items,
         tools: executor,
         limits: { maxSteps: core.config.limits.helperMaxSteps, maxWallMs: core.config.limits.helperMaxWallMs, maxCostUsd: a.input.budget_usd },
-        effort: a.profile?.effort ?? a.route[0]?.effort,
+        effort: a.input.effort ?? a.profile?.effort ?? a.route[0]?.effort,
         cacheKey: `${parent.athleteId}:helper`,
         signal: a.abort.signal,
       });
@@ -382,8 +392,12 @@ export class HelperManager {
         usage: result.usage,
         costUsd,
       });
+      await core.store.updateTask(taskId, { costUsd });
       if (result.stopReason === 'error') throw new Error(result.error ?? 'helper model error');
       if (result.stopReason === 'aborted') throw new Error('cancelled');
+      if (result.stopReason !== 'end_turn') {
+        throw new ToolError('LIMIT', `Incomplete helper (${result.stopReason}); no output was adopted. Use a smaller task or background work with appropriate limits. A draft or review is not complete merely because the helper stopped.`);
+      }
 
       // A nested background helper must finish copying into this worktree before it is merged/removed.
       await Promise.all([...this.running.values()].filter((r) => r.parentTaskId === taskId).map((r) => r.done));
@@ -434,8 +448,7 @@ export class HelperManager {
           await cleanup();
         }
       };
-      let summary = result.finalText.trim();
-      if (result.stopReason !== 'end_turn') summary = `${summary}\n(Helper stopped early: ${result.stopReason}.)`.trim();
+      const summary = result.finalText.trim();
       return { summary, outputs, discarded, costUsd, copyBack };
     } catch (e) {
       await cleanup();

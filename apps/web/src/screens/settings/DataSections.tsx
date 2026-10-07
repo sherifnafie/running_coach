@@ -1,3 +1,4 @@
+import { t, useI18n } from '../../lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEntry, UiVersionRecord } from '@opencoach/protocol';
 import { Section, Spinner } from '../../components/Atoms';
@@ -13,6 +14,7 @@ import { ConfirmButton } from './Controls';
 // ---- the coach's changes feed ---------------------------------------------------------------------------------
 
 export function ChangesSection() {
+  const t = useI18n();
   const tz = useStore(appStore, (s) => s.me?.settings.profile.tz);
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<{ loading: boolean; error?: string; changes?: ChangeEntry[] }>({ loading: false });
@@ -27,9 +29,9 @@ export function ChangesSection() {
   }, [open, state.changes]);
 
   return (
-    <Section title="What your coach changed" hint="Every change your coach makes to your workspace and screens, newest first.">
+    <Section title={t("What your coach changed")} hint="Every change your coach makes to your workspace and screens, newest first.">
       <button type="button" className="btn block" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        {open ? 'Hide changes' : 'Show changes'}
+        {open ? t("Hide changes") : t("Show changes")}
       </button>
       {open && (
         <div className="changes" aria-live="polite">
@@ -39,7 +41,7 @@ export function ChangesSection() {
               {state.error}
             </p>
           )}
-          {state.changes?.length === 0 && <p className="hint">Nothing yet.</p>}
+          {state.changes?.length === 0 && <p className="hint">{t("Nothing yet.")}</p>}
           <ul className="list">
             {state.changes?.map((c) => (
               <li key={c.commit}>
@@ -60,11 +62,12 @@ export function ChangesSection() {
 // ---- view history & revert ------------------------------------------------------------------------------------------
 
 export function ViewHistorySection() {
+  const t = useI18n();
   const appViews = useStore(appStore, (s) => s.app?.views);
   return (
-    <Section title="Screen history" hint="Don't like a change to one of your screens? Go back to an earlier version.">
+    <Section title={t("Screen history")} hint="Don't like a change to one of your screens? Go back to an earlier version.">
       {!appViews || appViews.length === 0 ? (
-        <p className="hint">Your coach hasn't published any screens yet.</p>
+        <p className="hint">{t("Your coach hasn't published any screens yet.")}</p>
       ) : (
         <ul className="list">
           {appViews.map((v) => (
@@ -77,6 +80,7 @@ export function ViewHistorySection() {
 }
 
 function ViewHistory({ id, title, current }: { id: string; title: string; current: string }) {
+  const t = useI18n();
   const tz = useStore(appStore, (s) => s.me?.settings.profile.tz);
   const [open, setOpen] = useState(false);
   const [versions, setVersions] = useState<UiVersionRecord[] | undefined>();
@@ -112,7 +116,7 @@ function ViewHistory({ id, title, current }: { id: string; title: string; curren
     <li>
       <button type="button" className="list-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <span className="list-title">{title}</span>
-        <span className="list-meta">version {current}</span>
+        <span className="list-meta">{t("version")}{current}</span>
       </button>
       {open && (
         <div className="history">
@@ -122,7 +126,7 @@ function ViewHistory({ id, title, current }: { id: string; title: string; curren
               {error}
             </p>
           )}
-          {versions && versions.length <= 1 && <p className="hint">No earlier versions.</p>}
+          {versions && versions.length <= 1 && <p className="hint">{t("No earlier versions.")}</p>}
           {versions && versions.length > 1 && (
             <ul className="list nested">
               {versions.map((v) => {
@@ -130,11 +134,11 @@ function ViewHistory({ id, title, current }: { id: string; title: string; curren
                 return (
                   <li key={v.version}>
                     <p className="list-title">
-                      Version {v.version}
+                      {t("Version")}{v.version}
                       {isCurrent ? ' (current)' : ''}
                     </p>
                     <p className="list-meta">
-                      {v.summary || 'No summary'} · {formatDateTime(v.publishedAt, tz)} · {v.publishedBy.replace('_', ' ')}
+                      {v.summary || t("No summary")} · {formatDateTime(v.publishedAt, tz)} · {v.publishedBy.replace('_', ' ')}
                     </p>
                     {!isCurrent && (
                       <ConfirmButton className="btn small" label="Revert to this" confirmLabel={`Revert to version ${v.version}`} disabled={busy} onConfirm={() => void revert(v.version)} />
@@ -153,6 +157,7 @@ function ViewHistory({ id, title, current }: { id: string; title: string; curren
 // ---- export & delete -----------------------------------------------------------------------------------------------------
 
 export function DataSection() {
+  const t = useI18n();
   const [phase, setPhase] = useState<'idle' | 'working' | 'ready' | 'error'>('idle');
   const [message, setMessage] = useState<string | undefined>();
   const [url, setUrl] = useState<string | undefined>();
@@ -176,35 +181,30 @@ export function DataSection() {
   };
 
   return (
-    <Section title="Your data" hint="Take your coach with you: your workspace, uploads, message history and settings in one bundle.">
+    <Section title={t("Your data")} hint="Take your coach with you: your workspace, uploads, message history and settings in one bundle.">
       <div className="row stack">
         {phase === 'idle' && (
           <button type="button" className="btn block" onClick={() => void start()}>
-            Export everything
-          </button>
+            {t("Export everything")}</button>
         )}
         {phase === 'working' && (
           <p role="status">
-            <Spinner label="Preparing export" /> Preparing your export. This can take a minute.
-          </p>
+            <Spinner label="Preparing export" /> {t("Preparing your export. This can take a minute.")}</p>
         )}
         {phase === 'ready' && url && (
           <p role="status">
-            Your export is ready.{' '}
+            {t("Your export is ready.")}{' '}
             <a className="btn primary small" href={url} download>
-              Download
-            </a>{' '}
+              {t("Download")}</a>{' '}
             <button type="button" className="btn link small" onClick={() => setPhase('idle')}>
-              Done
-            </button>
+              {t("Done")}</button>
           </p>
         )}
         {phase === 'error' && (
           <p role="alert" className="form-error">
             {message}{' '}
             <button type="button" className="btn link small" onClick={() => setPhase('idle')}>
-              Try again
-            </button>
+              {t("Try again")}</button>
           </p>
         )}
       </div>
@@ -213,17 +213,17 @@ export function DataSection() {
 }
 
 export function DeleteSection() {
+  const t = useI18n();
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const ok = typed.trim() === 'DELETE';
   return (
-    <Section title="Delete account" hint="Permanently deletes your coach, workspace, uploads and history. Backups are removed within 30 days. This cannot be undone.">
+    <Section title={t("Delete account")} hint="Permanently deletes your coach, workspace, uploads and history. Backups are removed within 30 days. This cannot be undone.">
       <div className="row stack">
         <label className="field">
           <span>
-            Type <strong>DELETE</strong> to confirm
-          </span>
+            {t("Type")}<strong>{t("DELETE")}</strong> {t("to confirm")}</span>
           <input value={typed} onChange={(e) => setTyped(e.target.value)} autoCapitalize="characters" autoComplete="off" name="confirm-delete" />
         </label>
         {error && (
@@ -246,7 +246,7 @@ export function DeleteSection() {
             }
           }}
         >
-          {busy ? 'Deleting…' : 'Delete my account and data'}
+          {busy ? 'Deleting…' : t("Delete my account and data")}
         </button>
       </div>
     </Section>
