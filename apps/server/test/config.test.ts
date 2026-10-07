@@ -27,12 +27,22 @@ describe('OpenCode GO compatible configuration [RT-7] [SEC-1]', () => {
     expect(JSON.stringify(loaded.warnings)).not.toContain(syntheticKey);
   });
 
-  it('keeps existing default precedence: a GO environment key alone does not select a new provider', async () => {
+  it('only an OpenRouter key selects default tiers; GO or OpenAI (voice) keys alone leave the demo on', async () => {
     const { dir } = await configFile('');
-    const demo = loadConfigDetailed({ cwd: dir, env: { OPENCODE_GO_API_KEY: 'synthetic-test-credential' } });
+    const demo = loadConfigDetailed({ cwd: dir, env: { OPENCODE_GO_API_KEY: 'synthetic-test-credential', OPENAI_API_KEY: 'synthetic-openai-credential' } });
     expect(demo.config.demo).toBe(true);
-    const existing = loadConfigDetailed({ cwd: dir, env: { OPENCODE_GO_API_KEY: 'synthetic-test-credential', OPENAI_API_KEY: 'synthetic-openai-credential' } });
-    expect(existing.config.models?.tiers.coach.provider).toBe('openai');
+    const openrouter = loadConfigDetailed({ cwd: dir, env: { OPENROUTER_API_KEY: 'sk-or-synthetic-credential' } });
+    expect(openrouter.config.demo).toBe(false);
+    expect(openrouter.config.providers.openrouter?.apiKey).toBe('sk-or-synthetic-credential');
+    expect(openrouter.config.providers.openrouter?.routing).toMatchObject({ dataCollection: 'deny', requireParameters: true });
+    expect(openrouter.config.models?.tiers).toEqual({
+      coach: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'low' },
+      deep: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'high' },
+      fast: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'low' },
+    });
+    const custom = await configFile('providers:\n  openrouter:\n    apiKeyEnv: MY_ROUTER_KEY\n    defaultModel: z-ai/glm-5.3-flash\n');
+    const renamed = loadConfigDetailed({ cwd: custom.dir, path: custom.path, env: { MY_ROUTER_KEY: 'sk-or-synthetic-other' } });
+    expect(renamed.config.models?.tiers.coach.model).toBe('z-ai/glm-5.3-flash');
   });
 
   it('rejects malformed headers and excludes credential/header values from configuration diagnostics', async () => {

@@ -81,7 +81,7 @@ export function send(text: string, extra: Record<string, unknown> = {}): Scripte
   return { toolCalls: [{ name: 'send_message', input: { text, ...extra } }] };
 }
 
-export async function makeHarness(opts: { start?: string; renderer?: UiRenderer | null; webSearch?: WebSearchBackend; imageProvider?: ImageProvider; capabilities?: Partial<ModelCapabilities>; config?: Record<string, unknown> } = {}): Promise<Harness> {
+export async function makeHarness(opts: { start?: string; renderer?: UiRenderer | null; webSearch?: WebSearchBackend; imageProvider?: ImageProvider; capabilities?: Partial<ModelCapabilities>; config?: Record<string, unknown>; billing?: (athleteId: string) => 'managed' | 'byok' } = {}): Promise<Harness> {
   const dataDir = await mkdtemp(join(tmpdir(), 'oc-rt-'));
   const clock = new VirtualClock(opts.start ?? '2026-10-07T08:00:00Z');
   const store = await openSqliteStore({ path: ':memory:', clock });
@@ -109,6 +109,7 @@ export async function makeHarness(opts: { start?: string; renderer?: UiRenderer 
     renderer: opts.renderer === null ? undefined : opts.renderer ?? passRenderer,
     webSearch: opts.webSearch,
     imageProvider: opts.imageProvider,
+    billing: opts.billing,
     manualScheduler: true,
   });
   await runtime.start();

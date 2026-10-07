@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { ServerConfig, type ModelsConfig } from '@opencoach/protocol';
+import { DEFAULT_OPENROUTER_MODEL } from '@opencoach/engine';
 
 /**
  * Server configuration loader (SPEC §4.4, docs/self-hosting.md).
@@ -9,8 +10,8 @@ import { ServerConfig, type ModelsConfig } from '@opencoach/protocol';
  *   YAML (OPENCOACH_CONFIG or ./opencoach.config.yaml, optional)  +  environment overrides  →  ServerConfig.parse
  *
  * Environment variables win over YAML. Secrets (API keys) are expected to come from the environment.
- * When `models` is absent, tiers are chosen from the API keys that are available; with no keys at all the
- * server falls back to the scripted demo coach and says so loudly.
+ * When `models` is absent and an OpenRouter key is available, every tier uses the default catalog model; with no
+ * key the server falls back to the scripted demo coach and says so loudly.
  */
 
 export class ConfigError extends Error {
@@ -112,19 +113,14 @@ function applyEnv(raw: Raw, env: Record<string, string | undefined>): void {
   if (demo !== undefined) raw.demo = demo;
 
   const providers = sub(raw, 'providers');
-  const anthropicKey = present(env.ANTHROPIC_API_KEY);
-  if (anthropicKey) sub(providers, 'anthropic').apiKey = anthropicKey;
+  // OpenRouter: chat models. The key env name can be changed in YAML (apiKeyEnv).
+  const openrouter = isObj(providers.openrouter) ? providers.openrouter : undefined;
+  const openrouterKeyEnv = typeof openrouter?.apiKeyEnv === 'string' ? openrouter.apiKeyEnv : 'OPENROUTER_API_KEY';
+  const openrouterKey = present(env[openrouterKeyEnv]);
+  if (openrouterKey) sub(providers, 'openrouter').apiKey = openrouterKey;
+  // OpenAI: voice only.
   const openaiKey = present(env.OPENAI_API_KEY);
   if (openaiKey) sub(providers, 'openai').apiKey = openaiKey;
-
-  const deepseekKey = present(env.DEEPSEEK_API_KEY);
-  if (deepseekKey) {
-    const list = Array.isArray(providers.compatible) ? (providers.compatible as unknown[]) : [];
-    const existing = list.find((p) => isObj(p) && p.id === 'deepseek') as Raw | undefined;
-    if (existing) existing.apiKey = deepseekKey;
-    else list.push({ id: 'deepseek', baseUrl: 'https://api.deepseek.com', vision: false, apiKey: deepseekKey });
-    providers.compatible = list;
-  }
 
   // Web search: an explicit provider in YAML wins (env only supplies its credentials); otherwise pick from env.
   const search = sub(sub(raw, 'web'), 'search');
@@ -183,58 +179,25 @@ const SCRIPTED_TIERS = {
   fast: { provider: 'scripted', model: 'scripted-fast' },
 } as const;
 
-/** Tier defaults chosen from the available API keys (SPEC §5.7). Undefined → no keys → demo mode. */
+/** Tier defaults when `models` is not configured (SPEC §5.7). Undefined → no OpenRouter key → demo mode. */
 export function defaultModels(config: ServerConfig): ModelsConfig | undefined {
-  const anthropic = !!config.providers.anthropic?.apiKey;
-  const openai = !!config.providers.openai?.apiKey;
-  const deepseek = config.providers.compatible.some((p) => p.id === 'deepseek' && !!p.apiKey);
-
-  if (anthropic) {
-    const fallbacks: Raw = openai
-      ? {
-          coach: [{ provider: 'openai', model: 'gpt-6.1-sol' }],
-          deep: [{ provider: 'openai', model: 'gpt-6-astra' }],
-          fast: [{ provider: 'openai', model: 'gpt-6-luna' }],
-        }
-      : {};
-    return {
-      tiers: {
-        coach: { provider: 'anthropic', model: 'claude-sonnet-5-5', effort: 'medium' },
-        deep: { provider: 'anthropic', model: 'claude-opus-5-5' },
-        fast: { provider: 'anthropic', model: 'claude-haiku-4-5' },
-      },
-      fallbacks: fallbacks as ModelsConfig['fallbacks'],
-      pricing: {},
-    };
-  }
-  if (openai) {
-    return {
-      tiers: {
-        coach: { provider: 'openai', model: 'gpt-6.1-sol' },
-        deep: { provider: 'openai', model: 'gpt-6-astra' },
-        fast: { provider: 'openai', model: 'gpt-6-luna' },
-      },
-      fallbacks: {},
-      pricing: {},
-    };
-  }
-  if (deepseek) {
-    return {
-      tiers: {
-        coach: { provider: 'deepseek', model: 'deepseek-v4-pro' },
-        deep: { provider: 'deepseek', model: 'deepseek-v4-pro' },
-        fast: { provider: 'deepseek', model: 'deepseek-v4-pro' },
-      },
-      fallbacks: {},
-      pricing: {},
-    };
-  }
-  return undefined;
+  const openrouter = config.providers.openrouter;
+  if (!openrouter?.apiKey) return undefined;
+  const model = openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL;
+  return {
+    tiers: {
+      coach: { provider: 'openrouter', model, effort: 'low' },
+      deep: { provider: 'openrouter', model, effort: 'high' },
+      fast: { provider: 'openrouter', model, effort: 'low' },
+    },
+    fallbacks: {},
+    pricing: {},
+  };
 }
 
 export const DEMO_WARNING =
   'DEMO MODE: no model API key is configured, so a scripted demo coach answers instead of a real model. ' +
-  'Set ANTHROPIC_API_KEY, OPENAI_API_KEY or DEEPSEEK_API_KEY (see docs/self-hosting.md) for the real coach.';
+  'Set OPENROUTER_API_KEY (see docs/self-hosting.md) for the real coach.';
 
 /** Load, merge and validate the server configuration. Pure apart from reading the YAML file. */
 function loadConfigDetailedUnchecked(opts: LoadConfigOptions, secrets: string[]): LoadedConfig {

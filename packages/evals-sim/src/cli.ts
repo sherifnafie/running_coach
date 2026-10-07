@@ -1,8 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ModelProvider } from '@opencoach/protocol';
-import { createAnthropicProvider, createOpenAIProvider, createCompatibleProvider } from '@opencoach/engine';
+import { ModelCatalogEntry, type ModelProvider } from '@opencoach/protocol';
+import { createCompatibleProvider, createOpenRouterProvider, DEFAULT_OPENROUTER_CATALOG } from '@opencoach/engine';
 import { runScenario, type RunScenarioOptions } from './runner';
 import { loadScenario, type TraceBundle } from './scenarios';
 import { cohortScenarios, fixtureScenarios, getSuite } from './suites';
@@ -21,13 +21,14 @@ function argument(args: string[], flag: string, fallback?: string): string | und
 /** Provider for a `provider:model` family, using that provider's key from the environment. */
 function providerFor(family: string | undefined): ModelProvider | undefined {
   const env = process.env;
-  if (family === 'openai' && env.OPENAI_API_KEY) return createOpenAIProvider({ apiKey: env.OPENAI_API_KEY });
-  if (family === 'anthropic' && env.ANTHROPIC_API_KEY) return createAnthropicProvider({ apiKey: env.ANTHROPIC_API_KEY });
-  if (family === 'deepseek' && env.DEEPSEEK_API_KEY) return createCompatibleProvider({ id: 'deepseek', baseUrl: 'https://api.deepseek.com', apiKey: env.DEEPSEEK_API_KEY, vision: false, contextTokens: 128000, maxOutputTokens: 8192, replayReasoningContent: true });
+  // `openrouter:<vendor>/<model>`, e.g. openrouter:deepseek/deepseek-v4.1-flash (same catalog and privacy routing as the server).
+  if (family === 'openrouter' && env.OPENROUTER_API_KEY) {
+    return createOpenRouterProvider({ apiKey: env.OPENROUTER_API_KEY, models: DEFAULT_OPENROUTER_CATALOG.map((m) => ModelCatalogEntry.parse(m)), routing: { dataCollection: 'deny', requireParameters: true } });
+  }
   if (family === 'opencode-go' && env.OPENCODE_GO_API_KEY) return createCompatibleProvider({ id: 'opencode-go', baseUrl: 'https://opencode.ai/zen/go/v1', apiKey: env.OPENCODE_GO_API_KEY, vision: false, contextTokens: 128000, maxOutputTokens: 16384, replayReasoningContent: true, thinking: true, reasoningEfforts: ['low', 'high', 'max'], sessionHeader: 'x-opencode-session' });
   return undefined;
 }
-const PROVIDERS = 'openai|anthropic|deepseek|opencode-go';
+const PROVIDERS = 'openrouter|opencode-go';
 
 export async function selftest(outDir: string): Promise<void> {
   const successes: TraceBundle[] = [];
@@ -62,7 +63,9 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   }
   const modeArg = argument(args, '--model', 'reference')!;
   const [family, ...modelParts] = modeArg.split(':');
-  const coachFamily = family;
+  // Through OpenRouter the model family is the vendor: openrouter:deepseek/x -> deepseek.
+  const familyOf = (provider: string | undefined, model: string) => (provider === 'openrouter' ? model.split('/')[0] : provider);
+  const coachFamily = familyOf(family, modelParts.join(':'));
   const mode = modelParts.length ? modelParts.join(':') : modeArg;
   let model: RunScenarioOptions['model'];
   if (mode === 'reference' || mode === 'bad') model = mode;
@@ -80,7 +83,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     if (!name) throw new Error('--judge must be provider:model');
     const provider = providerFor(family);
     if (!provider) throw new Error(`--judge requires one of ${PROVIDERS} and its API key`);
-    return { provider, model: name, judgeFamily: family, coachFamily };
+    return { provider, model: name, judgeFamily: familyOf(family, name), coachFamily };
   })() : undefined;
   const path = argument(args, '--scenario');
   const scenarios = path ? [await loadScenario(resolve(repo, path))] : suite === 'cohort' ? await cohortScenarios(join(repo, 'evals/personas')) : getSuite(suite);

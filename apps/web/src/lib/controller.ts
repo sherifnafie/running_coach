@@ -8,13 +8,13 @@ import { chatReducer, noticeText, type ChatAction, type LocalAnswer, type Pendin
 import { clock } from './clock';
 import { accentText, contrastText } from './color';
 import { languageDirection } from '@opencoach/protocol';
-import { account, auth, chat, me as meApi, settingsApi, views } from './endpoints';
+import { account, aiApi, auth, chat, me as meApi, settingsApi, views } from './endpoints';
 import { OfflineQueue, idbQueueStorage, type QueuedRequest, type SendResult } from './offlineQueue';
 import { extensionForMime, type Recording } from './recorder';
 import { disablePush } from './push';
 import { navigate } from './router';
 import { addDismissed, bannerFromEvent, bannerFromHistory, bannerFromStream, isDismissed } from './safety';
-import { lsClearApp, lsGet, lsGetJson, lsSet, lsSetJson } from './storage';
+import { lsClearApp, lsGet, lsGetJson, lsRemove, lsSet, lsSetJson } from './storage';
 import { StreamClient, defaultStreamUrl } from './stream';
 
 /**
@@ -196,6 +196,35 @@ async function startSession(me: MeResponse, opts: { offline?: boolean } = {}): P
   startStream();
   void sendDeviceContext();
   void queue?.flush();
+  void finishOpenRouterOAuth();
+}
+
+/** Set before leaving for OpenRouter's sign-in page; OpenRouter sends the browser back to `/?code=…`. */
+export const OPENROUTER_OAUTH_MARKER = 'oc.openrouter-oauth';
+
+async function finishOpenRouterOAuth(): Promise<void> {
+  const code = new URLSearchParams(location.search).get('code');
+  if (!code || lsGet(OPENROUTER_OAUTH_MARKER) !== '1') return;
+  lsRemove(OPENROUTER_OAUTH_MARKER);
+  history.replaceState(null, '', `${location.pathname}#/settings`);
+  try {
+    await aiApi.oauthFinish(code);
+    await refreshMe();
+    toast('Your OpenRouter account is connected. Your coach now runs on your own key.', 'info');
+  } catch (e) {
+    toast(`Could not connect OpenRouter: ${describeError(e)}`, 'error');
+  }
+}
+
+/** Reload /v1/me (billing and features change outside the settings patch flow). */
+export async function refreshMe(): Promise<void> {
+  try {
+    const next = await meApi.get();
+    void cacheSet(ME_CACHE_KEY, next);
+    patchApp({ me: next });
+  } catch {
+    /* keep the current state; the next boot refreshes it */
+  }
 }
 
 function teardownSession(): void {

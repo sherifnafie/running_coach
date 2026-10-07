@@ -4,46 +4,44 @@ import { DEFAULT_PRICES, createModelRouter, createScriptedProvider, priceFor } f
 
 const U = (over: Partial<Usage> = {}): Usage => ({ inputTokens: 0, cachedInputTokens: 0, cacheWriteTokens: 0, outputTokens: 0, ...over });
 
+const SONNET = { 'claude-sonnet-5-5': { inputPerMTok: 2, outputPerMTok: 10, cacheReadPerMTok: 0.2, cacheWritePerMTok: 2.5 } };
+
 describe('DEFAULT_PRICES', () => {
-  it('has the documented list prices', () => {
-    expect(DEFAULT_PRICES['claude-fable-5-1']).toEqual({ inputPerMTok: 10, outputPerMTok: 50, cacheReadPerMTok: 0.25, cacheWritePerMTok: 12.5 });
-    expect(DEFAULT_PRICES['claude-opus-5-5']).toEqual({ inputPerMTok: 4, outputPerMTok: 20, cacheReadPerMTok: 0.2, cacheWritePerMTok: 5 });
-    expect(DEFAULT_PRICES['claude-sonnet-5-5']).toEqual({ inputPerMTok: 2, outputPerMTok: 10, cacheReadPerMTok: 0.2, cacheWritePerMTok: 2.5 });
-    expect(DEFAULT_PRICES['claude-haiku-4-5']).toEqual({ inputPerMTok: 1, outputPerMTok: 5, cacheReadPerMTok: 0.1, cacheWritePerMTok: 1.25 });
-    expect(DEFAULT_PRICES['gpt-6-astra']).toMatchObject({ inputPerMTok: 10, outputPerMTok: 50, cacheReadPerMTok: 1 });
-    expect(DEFAULT_PRICES['gpt-6.1-sol']).toMatchObject({ inputPerMTok: 2, outputPerMTok: 10, cacheReadPerMTok: 0.2 });
-    expect(DEFAULT_PRICES['gpt-6-sol']).toMatchObject({ inputPerMTok: 2, outputPerMTok: 10, cacheReadPerMTok: 0.2 });
-    expect(DEFAULT_PRICES['gpt-6-luna']).toMatchObject({ inputPerMTok: 0.1, outputPerMTok: 0.5, cacheReadPerMTok: 0.01 });
-    expect(DEFAULT_PRICES['deepseek-v4-pro']).toMatchObject({ inputPerMTok: 0.5, outputPerMTok: 2, cacheReadPerMTok: 0.05 });
-    expect(DEFAULT_PRICES['gpt-6-luna']?.cacheWritePerMTok).toBeUndefined();
+  it('holds the catalog list prices as a fallback', () => {
+    expect(DEFAULT_PRICES['deepseek/deepseek-v4.1-flash']).toEqual({ inputPerMTok: 0.3, outputPerMTok: 1.2, cacheReadPerMTok: 0.006 });
+    expect(DEFAULT_PRICES['openai/gpt-6.1-sol']).toMatchObject({ inputPerMTok: 2, outputPerMTok: 10 });
+    expect(DEFAULT_PRICES['deepseek/deepseek-v4.1-flash']?.cacheWritePerMTok).toBeUndefined();
   });
 });
 
 describe('priceFor [COST-4]', () => {
   it('prices input, cache reads, cache writes and output per MTok', () => {
     const usage = U({ inputTokens: 100_000, cachedInputTokens: 1_000_000, cacheWriteTokens: 20_000, outputTokens: 10_000 });
-    // sonnet 5.5: 0.1*2 + 1.0*0.2 + 0.02*2.5 + 0.01*10
-    expect(priceFor('claude-sonnet-5-5', usage)).toBeCloseTo(0.2 + 0.2 + 0.05 + 0.1, 10);
-    // fable 5.1 (cache reads at 0.025x)
-    expect(priceFor('claude-fable-5-1', U({ cachedInputTokens: 4_000_000 }))).toBeCloseTo(1, 10);
+    // 0.1*2 + 1.0*0.2 + 0.02*2.5 + 0.01*10
+    expect(priceFor('claude-sonnet-5-5', usage, SONNET)).toBeCloseTo(0.2 + 0.2 + 0.05 + 0.1, 10);
+  });
+
+  it('prefers the cost the provider reported over any price table', () => {
+    expect(priceFor('claude-sonnet-5-5', U({ inputTokens: 1_000_000, costUsd: 0.0123 }), SONNET)).toBe(0.0123);
+    expect(priceFor('mystery-model', U({ outputTokens: 5, costUsd: 0 }))).toBe(0);
   });
 
   it('defaults cache read to 0.1x and cache write to 1.25x of input when the table omits them', () => {
     const overrides = { custom: { inputPerMTok: 4, outputPerMTok: 8 } };
     expect(priceFor('custom', U({ cachedInputTokens: 1_000_000 }), overrides)).toBeCloseTo(0.4, 10);
     expect(priceFor('custom', U({ cacheWriteTokens: 1_000_000 }), overrides)).toBeCloseTo(5, 10);
-    // gpt-6-luna has no cache-write price: falls back to 1.25 x 0.10
-    expect(priceFor('gpt-6-luna', U({ cacheWriteTokens: 1_000_000 }))).toBeCloseTo(0.125, 10);
+    // the default model has no cache-write price: falls back to 1.25 x 0.30
+    expect(priceFor('deepseek/deepseek-v4.1-flash', U({ cacheWriteTokens: 1_000_000 }))).toBeCloseTo(0.375, 10);
   });
 
   it('returns 0 for unknown models and lets overrides win', () => {
     expect(priceFor('mystery-model', U({ inputTokens: 1_000_000, outputTokens: 1_000_000 }))).toBe(0);
-    expect(priceFor('claude-sonnet-5-5', U({ outputTokens: 1_000_000 }), { 'claude-sonnet-5-5': { inputPerMTok: 1, outputPerMTok: 3 } })).toBeCloseTo(3, 10);
+    expect(priceFor('deepseek/deepseek-v4.1-flash', U({ outputTokens: 1_000_000 }), { 'deepseek/deepseek-v4.1-flash': { inputPerMTok: 1, outputPerMTok: 3 } })).toBeCloseTo(3, 10);
     expect(priceFor('mystery-model', U({ inputTokens: 1_000_000 }), { 'mystery-model': { inputPerMTok: 7, outputPerMTok: 1 } })).toBeCloseTo(7, 10);
   });
 
   it('matches dated model ids to their alias', () => {
-    expect(priceFor('claude-haiku-4-5-20251001', U({ inputTokens: 1_000_000 }))).toBeCloseTo(1, 10);
+    expect(priceFor('claude-haiku-4-5-20251001', U({ inputTokens: 1_000_000 }), { 'claude-haiku-4-5': { inputPerMTok: 1, outputPerMTok: 5 } })).toBeCloseTo(1, 10);
   });
 });
 
@@ -106,8 +104,16 @@ describe('createModelRouter [RT-7]', () => {
 
   it('prices with config overrides over the built-in table', () => {
     expect(router.cost('claude-sonnet-5-5', U({ inputTokens: 1_000_000 }))).toBeCloseTo(1, 10); // overridden: $1/MTok
-    expect(router.cost('gpt-6-luna', U({ inputTokens: 1_000_000 }))).toBeCloseTo(0.1, 10); // built-in
+    expect(router.cost('deepseek/deepseek-v4.1-flash', U({ inputTokens: 1_000_000 }))).toBeCloseTo(0.3, 10); // built-in
     expect(router.cost('nobody', U({ inputTokens: 1_000_000 }))).toBe(0);
+  });
+
+  it('uses an athlete-scoped provider when one exists for that athlete [SEC-1]', () => {
+    const own = provider('openai', { maxOutputTokens: 16_000 });
+    const scopedRouter = createModelRouter(config, providers, { scoped: (id, athleteId) => (id === 'openai' && athleteId === 'ath_byok' ? own : undefined) });
+    expect(scopedRouter.route('deep', undefined, { athleteId: 'ath_byok' })[0]?.provider).toBe(own);
+    expect(scopedRouter.route('deep', undefined, { athleteId: 'ath_other' })[0]?.provider).toBe(providers.openai);
+    expect(scopedRouter.route('deep')[0]?.provider).toBe(providers.openai);
   });
 
   it('lists registered providers', () => {

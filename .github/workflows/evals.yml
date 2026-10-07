@@ -9,10 +9,10 @@ on:
         default: gates
       model:
         description: Coach model, provider:model
-        default: anthropic:claude-sonnet-5-5
+        default: openrouter:deepseek/deepseek-v4.1-flash
       judge:
         description: Judge model, provider:model (different family recommended)
-        default: openai:gpt-6.1-sol
+        default: openrouter:openai/gpt-6.1-sol
       seeds:
         description: Seeds per scenario
         default: "3"
@@ -33,9 +33,7 @@ jobs:
       - run: npx --yes playwright@1.56.1 install --with-deps chromium
       - name: Run suites
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
           SUITE: ${{ inputs.suite }}
           MODEL: ${{ inputs.model }}

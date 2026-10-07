@@ -18,6 +18,7 @@ async function populate(store: Store, a: string, tag = ''): Promise<{ eventIds: 
   await store.createPairingCode({ code: `INVT-${a}${tag}`, purpose: 'invite', createdBy: a, expiresAt: '2099-01-01T00:00:00.000Z' }); // created by the athlete for someone else
   await store.createSession({ id: `ses_${a}`, athleteId: a, tokenHash: `hash_${a}`, kind: 'cookie', createdAt: T0, lastSeenAt: T0, expiresAt: '2099-01-01T00:00:00.000Z' });
   await store.addPasskey({ credentialId: `cred_${a}`, athleteId: a, publicKey: 'pk', counter: 1, createdAt: T0 });
+  await store.setCredential({ athleteId: a, provider: 'openrouter', owner: 'athlete', ciphertext: `v1:${a}`, hint: 'sk-or-…abcd', updatedAt: T0 });
   const e1 = await store.appendEvent({ athleteId: a, type: 'user.message', actor: 'athlete', payload: { text: `searchable zebra ${a}` } });
   const e2 = await store.appendEvent({
     athleteId: a,
@@ -93,6 +94,8 @@ describe('deleteAthlete', () => {
       expect(await store.listSessions('ath_gone')).toEqual([]);
       expect(await store.getSessionByTokenHash('hash_ath_gone')).toBeUndefined();
       expect(await store.listPasskeys('ath_gone')).toEqual([]);
+      expect(await store.listCredentials('ath_gone')).toEqual([]);
+      expect(await store.listCredentials('ath_kept')).toHaveLength(1);
       expect(await store.consumePairingCode('PAIR-ath_gone', T0)).toBeUndefined();
 
       // the other athlete is untouched

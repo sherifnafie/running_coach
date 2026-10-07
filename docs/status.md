@@ -9,13 +9,14 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 | Area | State |
 |---|---|
 | `packages/protocol` | Contracts (zod). Browser-safe. |
-| `packages/engine` | Agent loop. Anthropic, OpenAI and OpenAI-compatible providers (incl. OpenCode GO), scripted demo coach. |
+| `packages/engine` | Agent loop. OpenRouter for all chat models with a vetted model catalog ([ADR 0007](adr/0007-openrouter-only-chat.md)); OpenAI-compatible endpoints (Ollama, OpenCode GO); scripted demo coach. |
 | `packages/runtime`, `packages/tools` | Mind loop, epochs, situation report, messaging policy, scheduler, helpers in git worktrees, UI publish/revert, MCP, safety screen, web search/fetch. |
 | `packages/store`, `workspace`, `sandbox` | SQLite store; athlete workspace (git, coach.db, history, virtual FS, blobs, export/import/delete); local namespace sandbox and Docker sandbox. |
 | `packages/ui-kit` | Browser kit, bridge, Playwright preview renderer with publish gates, coach-facing docs. |
 | `packages/voice` | STT/TTS, realtime calls with server sideband, cascaded calls. |
 | `seed/` | Constitution and one general pack for any sport or combination ([ADR 0006](adr/0006-multi-discipline-coaching.md)): 18 skills (sport-neutral method skills plus `running`, `strength-training` and `disciplines`), helper profiles, a sport-agnostic workspace template and four starter views (Today, Calendar, Plan, Progress). |
-| `apps/server` | Gateway (HTTP, WebSocket, auth, passkeys, CSRF), separate views origin, push, Telegram, CLI, Docker packaging. |
+| `apps/server` | Gateway (HTTP, WebSocket, auth, passkeys, CSRF), separate views origin, push, Telegram, CLI, Docker packaging. Per-athlete encrypted OpenRouter keys: managed (hard monthly allowance) or bring-your-own (OAuth PKCE or pasted). Admin recovery codes. |
+| `ops/` | systemd user units, deploy with rollback, nightly consistent backups for a small home instance. |
 | `apps/web` | React PWA: chat (streaming, micro-UI, attachments, voice notes), coach views in sandboxed iframes, settings (incl. language/theme), calls. |
 | `packages/evals-sim`, `evals/` | Simulator with virtual time, personas, graders/judges, suites, CLI. See `evals/README.md`. |
 | `apps/native` | Capacitor Android shell and Health Connect plugin. **Never compiled** (no Android SDK yet). |
@@ -23,6 +24,12 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 ## Verified vs. unverified
 
 - **Verified live:** OpenCode GO with DeepSeek V4.1 Flash, using synthetic athletes. Covered: streaming tool calls, signup, delivered replies, saved intake, plan and activity, all four views showing the data, delegation to helpers, and the owner's own phone test. The server Docker image builds and runs the demo with isolated sandboxes.
+- **Verified live through OpenRouter (2026-10-07):**
+  - Streamed tool call with `reasoning_details` replayed within the tool loop.
+  - `usage.cost` reported on every call.
+  - Prompt cache hits with pinned hosts (5632 of 5643 input tokens cached).
+  - A workout screenshot read correctly by all five catalog models under `data_collection: deny`.
+  - The live instance runs from `~/opencoach-prod` through Tailscale Funnel, and both origins were reachable from the public internet.
 - **Not verified:**
   - Coaching quality: no real-model eval cohort and no human calibration.
   - Full provider conformance [MOD-2]; vision and screenshot extraction with a real model.
@@ -41,6 +48,10 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 4. Validate the external services live: Web Push, voice notes and calls, and Telegram.
 
 ## Known issues and cleanup backlog
+
+- **Bring-your-own OpenAI key for voice** is not implemented. Voice uses the server key. The credential store already supports `openai`; the voice services need per-athlete scoping.
+- **Claude through OpenRouter** is left out of the catalog until the adapter sends `cache_control` breakpoints; without them every call pays full input price.
+- **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting, "Small home instance"). Store them relative to the data directory.
 
 These are smaller findings from the code review on 2026-10-07 that haven't been fixed yet:
 - **Harness wording that coaches the model:** some harness strings tell the model how to behave and could move to `seed/` (the deletion test). Examples: the delegation advice in `runtime/src/capabilities.ts`, the helper LIMIT message in `helpers.ts`, and the `spawn_agent` and `set_preferences` tool descriptions.

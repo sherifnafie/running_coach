@@ -440,17 +440,17 @@ The coach can write new profiles. Using a different model family for `reviewer` 
 
 **Tiers, not models.** The runtime addresses models by tier. Deployment config maps tiers to concrete models. The IDs below are examples; verify them at build time (Appendix A §A.1).
 
+Chat models are reached through OpenRouter, one key for every vendor ([ADR 0007](docs/adr/0007-openrouter-only-chat.md)). Voice uses OpenAI. Any other OpenAI-compatible endpoint can serve a tier through the compatible adapter (P10).
+
 ```yaml
-# config/models.yaml (illustrative)
+# models (illustrative; the default when only OPENROUTER_API_KEY is set)
 tiers:
-  coach:      { provider: anthropic, model: claude-sonnet-5-5, effort: medium }
-  deep:       { provider: openai,    model: gpt-6.1-sol,       effort: high }
-  fast:       { provider: openai,    model: gpt-6-luna }
-  voice:      { provider: openai,    model: gpt-realtime-2.1 }
-  transcribe: { provider: openai,    model: gpt-realtime-whisper }   # or local Whisper/Parakeet
-  tts:        { provider: elevenlabs }                               # or provider/local TTS
+  coach: { provider: openrouter, model: deepseek/deepseek-v4.1-flash, effort: low }
+  deep:  { provider: openrouter, model: deepseek/deepseek-v4.1-flash, effort: high }
+  fast:  { provider: openrouter, model: deepseek/deepseek-v4.1-flash, effort: low }
 fallbacks:
-  coach: [ { provider: openai, model: gpt-6.1-sol }, { provider: deepseek, model: deepseek-v4-pro } ]
+  coach: [ { provider: openrouter, model: z-ai/glm-5.3-flash } ]
+voice: { realtime: gpt-realtime-2.1, stt: gpt-realtime-whisper }   # OpenAI, or local Whisper/Parakeet
 ```
 
 - `[MOD-1]` **Capability routing.** Each tier declares required capabilities: tool calling, image input, ≥ 200k context, streaming tool input. If the coach model lacks vision (some DeepSeek variants are text-only), the runtime MUST transparently route image understanding through a vision-capable `extractor` helper and tell the coach it did so.
@@ -458,6 +458,11 @@ fallbacks:
 - `[MOD-3]` **Switching.** A model change takes effect at the next epoch, or forces a new one. The new epoch's situation report names the model so the coach knows its own capabilities. No reasoning or thinking blocks cross model boundaries (provider constraint; Appendix A §A.1).
 - `[MOD-4]` **Provider features behind flags.** Prompt caching, native compaction, mid-conversation system messages, batch, effort and reasoning controls, progress notes, and refusal fallbacks are used where present and emulated or skipped where absent. Nothing in coaching behavior may *depend* on one provider's feature (P10).
 - `[MOD-5]` **Local models.** Any OpenAI-compatible endpoint (vLLM, Ollama, LM Studio) can be configured for any tier. Coach-tier quality must still pass conformance.
+- `[MOD-6]` **Model catalog and who pays.**
+  - The server offers a vetted catalog of OpenRouter models with known capabilities (vision, context, efforts), and the settings model picker draws from it.
+  - Each athlete is either *managed* (the deployment's key, or one an administrator assigned) or *bring-your-own-key* (their own OpenRouter account, connected through OAuth or by pasting a key).
+  - Per-athlete keys are encrypted at rest, held only by the gateway, never shown back, never in sandboxes or exports, and deleted with the account `[SEC-1]` `[SEC-6]`.
+  - Managed athletes cannot raise their own budgets or pick the model. Own-key athletes can.
 
 ### 5.8 Agent engine: build vs. adopt
 
@@ -808,7 +813,7 @@ The full text is in Appendix B. Summary:
 | Sandbox | Container with gVisor where available; no egress except an allowlisted package mirror (off by default); CPU, memory, disk and process quotas; separate per athlete. `[SEC-2]` |
 | View isolation | §9.2; served from a separate origin; never same-origin with the gateway. `[SEC-3]` |
 | Gateway | Auth on every route; WebSocket Origin checks and CSRF tokens (OpenClaw's cross-site WebSocket hijacking CVE is the cautionary tale); rate limits; no unauthenticated mode, even for self-host. `[SEC-4]` |
-| Auth | Passkeys (WebAuthn) plus an email magic link. Self-host single-user: device pairing codes. |
+| Auth | Passkeys (WebAuthn) plus an email magic link. Self-host: invites, device pairing codes, and administrator-issued recovery codes for an athlete who lost every device. |
 | Remote access (self-host) | Docs default to Tailscale or Cloudflare Tunnel; never port-forward raw. A startup check warns if the gateway binds publicly without TLS. |
 | Provider data handling | Settings show which provider(s) process the athlete's data and their retention terms. Prefer zero-data-retention configurations where available, noting which features are ineligible (e.g. Managed Agents, some frontier tiers; Appendix A §A.1). |
 | Export | One-click full export: workspace (git bundle), raw blobs, event log (JSONL), settings. Importable into another instance: "take your coach with you". `[SEC-5]` |
@@ -865,10 +870,11 @@ Cheaper models (GPT-6 Luna class at ~$0.10 / $0.50, DeepSeek V4 Flash class) can
 
 ### 16.2 Controls
 
-- `[COST-1]` Per-athlete daily and monthly budgets. At 80%, the situation report warns the coach. At 100%, scheduled and consolidation turns stop, reactive turns continue on the `fast` tier, and the athlete or admin is notified.
+- `[COST-1]` Per-athlete daily and monthly budgets. At 80%, the situation report warns the coach. At 100%, scheduled and consolidation turns stop, reactive turns continue on the `fast` tier, and the athlete or admin is notified. For managed athletes `[MOD-6]` the monthly budget is a hard allowance: once it is reached no model is called, and the athlete is told to ask the administrator or connect their own key.
 - `[COST-2]` Cache-friendly context ordering (§5.3); no volatile bytes before the last cache breakpoint; cache-hit rate is a tracked SLO (≥ 80%).
 - `[COST-3]` Effort per trigger class (§5.2); batch API for consolidation; images downscaled to provider-optimal dimensions; helper fan-out limits; a per-turn step cap.
 - `[COST-4]` Cost is recorded per turn, per tier and per athlete, and is visible in the admin view and (self-host) in settings.
+- `[COST-5]` A provider-reported charge (OpenRouter `usage.cost`) is recorded as the cost of a call; price tables are only a fallback.
 
 ---
 

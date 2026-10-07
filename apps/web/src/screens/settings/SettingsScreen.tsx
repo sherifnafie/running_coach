@@ -15,6 +15,7 @@ import { disablePush, enablePush, isStandalone, pushSupport } from '../../lib/pu
 import { useRoute } from '../../lib/router';
 import { useStore } from '../../lib/store';
 import { AdminSection } from './AdminSection';
+import { AiSection } from './AiSection';
 import { ChangesSection, DataSection, DeleteSection, ViewHistorySection } from './DataSections';
 import { HealthConnectSection } from './HealthConnectSection';
 import { NumberRow, Row, SaveContext, SelectRow, TextRow, TimeRow, Toggle, useCommit, type SaveStatus } from './Controls';
@@ -68,7 +69,7 @@ export function SettingsScreen() {
         <h2 className="settings-group" id="settings-coaching">{t('Coaching')}</h2>
         <NotificationsSection />
         <VoiceSection />
-        <BudgetSection />
+        <AiSection />
         <h2 className="settings-group" id="settings-account">{t('Account & data')}</h2>
         <PrivacySection />
         <DevicesSection />
@@ -343,18 +344,6 @@ function PrivacySection() {
         checked={s.privacy.shareFeedbackWithDevelopers}
         onChange={(v) => save({ privacy: { shareFeedbackWithDevelopers: v } })}
       />
-    </Section>
-  );
-}
-
-function BudgetSection() {
-  const t = useI18n();
-  const s = useSettings();
-  const save = useCommit();
-  return (
-    <Section title={t("Spending limits")} hint={t("Caps on what your coach may spend on AI each day and month. When a limit is reached your coach pauses.")}>
-      <NumberRow label={t("Daily limit")} unit="USD" value={s.budgets.dailyUsd} min={0} max={1000} step={0.5} onCommit={(v) => save({ budgets: { dailyUsd: v } })} />
-      <NumberRow label={t("Monthly limit")} unit="USD" value={s.budgets.monthlyUsd} min={0} max={10000} step={1} onCommit={(v) => save({ budgets: { monthlyUsd: v } })} />
     </Section>
   );
 }

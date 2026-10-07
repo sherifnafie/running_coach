@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { ZERO_USAGE, type EpochRecord, type ScheduleRecord, type Store, type TaskRecord, type TurnRecord, type UiVersionRecord } from '@opencoach/protocol';
-import { SHA_A, SHA_B, SHA_C, T0, memStore } from './test-helpers';
+import { SHA_A, SHA_B, SHA_C, T0, addAthlete, memStore } from './test-helpers';
 
 const stores: Store[] = [];
 async function open(...args: Parameters<typeof memStore>): ReturnType<typeof memStore> {
@@ -478,5 +478,21 @@ describe('published ui versions', () => {
     expect(await store.getCurrentUiVersions('ath_2')).toEqual([]);
     // history is kept after clearing
     expect(await store.getUiVersion('ath_1', 'plan', '1')).toBeDefined();
+  });
+});
+
+describe('credentials [SEC-1]', () => {
+  it('upserts per athlete and provider, lists and deletes', async () => {
+    const { store } = await open();
+    await addAthlete(store, 'ath_1');
+    await addAthlete(store, 'ath_2');
+    const rec = { athleteId: 'ath_1', provider: 'openrouter' as const, owner: 'admin' as const, ciphertext: 'v1:a', hint: 'sk-or-…aaaa', updatedAt: T0 };
+    await store.setCredential(rec);
+    await store.setCredential({ ...rec, owner: 'athlete', ciphertext: 'v1:b', hint: 'sk-or-…bbbb' });
+    await store.setCredential({ ...rec, athleteId: 'ath_2' });
+    expect(await store.listCredentials('ath_1')).toEqual([{ ...rec, owner: 'athlete', ciphertext: 'v1:b', hint: 'sk-or-…bbbb' }]);
+    expect((await store.listCredentials()).map((c) => c.athleteId)).toEqual(['ath_1', 'ath_2']);
+    await store.deleteCredential('ath_1', 'openrouter');
+    expect(await store.listCredentials('ath_1')).toEqual([]);
   });
 });

@@ -44,17 +44,14 @@ The demo coach is scripted, not a language model. Try a goal quick reply, "I ran
 
 ## Connect a real model
 
-Keep the same `OPENCOACH_DATA_DIR` to keep your account. Export one of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `DEEPSEEK_API_KEY` and restart with `OPENCOACH_DEMO=0`. Keys stay in the server process and never reach the coach's sandbox. For tier models, limits, search, speech and MCP servers, copy `opencoach.config.example.yaml` and point `OPENCOACH_CONFIG` at it. The server does not read `.env` files.
-
-**OpenCode GO** (DeepSeek V4.1 Flash) has a ready-made config:
+Keep the same `OPENCOACH_DATA_DIR` to keep your account. Export `OPENROUTER_API_KEY` (one key for every chat model, from [openrouter.ai](https://openrouter.ai)) and restart with `OPENCOACH_DEMO=0`:
 
 ```sh
-export OPENCOACH_CONFIG="$PWD/opencoach.config.opencode-go.example.yaml"
-export OPENCODE_GO_API_KEY=...   # use your shell or process manager
+export OPENROUTER_API_KEY=...   # use your shell or process manager
 OPENCOACH_DEMO=0 pnpm start
 ```
 
-This is the configuration that has been tested live. It is text-only, so screenshot reading needs a separate vision-capable model. Voice notes need a speech-to-text provider (see [self-hosting](docs/self-hosting.md#voice-notes)).
+The coach then runs on DeepSeek V4.1 Flash, which also reads screenshots. Settings → AI and costs shows what has been used, and lets an administrator, or someone who connects their own OpenRouter account, pick another model from the catalog (see [self-hosting](docs/self-hosting.md#models)). Keys stay in the server process and never reach the coach's sandbox. `OPENAI_API_KEY` adds voice notes and calls. For limits, search, speech and MCP servers, copy `opencoach.config.example.yaml` and point `OPENCOACH_CONFIG` at it. The server does not read `.env` files. Other OpenAI-compatible endpoints (Ollama, OpenCode GO: `opencoach.config.opencode-go.example.yaml`) also work.
 
 ## Phone access and Docker
 

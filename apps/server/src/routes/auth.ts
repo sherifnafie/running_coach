@@ -91,7 +91,8 @@ export function authRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     return {
       athlete: { id: athlete.id, displayName: athlete.displayName, isAdmin: athlete.isAdmin }, settings: await store.getSettings(athleteId),
       viewsOrigin: ctx.viewsOrigin, kitUrl: `${ctx.viewsOrigin}/kit/1/kit.js`, vapidPublicKey: ctx.deps.vapidPublicKey,
-      features: { voiceNotes: voice.voiceNotes, calls: { realtime: voice.realtime, cascaded: voice.cascaded }, passkeys: true, push: !!ctx.deps.vapidPublicKey, webSearch: ctx.deps.features?.webSearch ?? false, imageGeneration: ctx.deps.features?.imageGeneration ?? false, dictation: ctx.deps.dictation?.available() ?? false },
+      billing: ctx.deps.credentials?.billing(athleteId) ?? 'managed',
+      features: { voiceNotes: voice.voiceNotes, calls: { realtime: voice.realtime, cascaded: voice.cascaded }, passkeys: true, models: !!ctx.deps.models, push: !!ctx.deps.vapidPublicKey, webSearch: ctx.deps.features?.webSearch ?? false, imageGeneration: ctx.deps.features?.imageGeneration ?? false, dictation: ctx.deps.dictation?.available() ?? false },
       harnessVersion: HARNESS_VERSION, demoMode: ctx.deps.features?.demoMode ?? ctx.deps.config.demo,
     };
   });
@@ -99,6 +100,10 @@ export function authRoutes(app: FastifyInstance, ctx: GatewayContext): void {
   app.put('/v1/settings', { preHandler: auth }, async (request) => {
     if (!request.body || typeof request.body !== 'object' || Array.isArray(request.body)) throw badRequest('Settings patch must be an object.');
     if ('models' in request.body && !request.auth!.isAdmin) throw forbidden('Model overrides require administrator access.', 'admin_required');
+    // Managed billing: the monthly allowance is set by an administrator [COST-1]. Own-key athletes set their own budgets.
+    if ('budgets' in request.body && !request.auth!.isAdmin && ctx.deps.credentials && ctx.deps.credentials.billing(ctx.athleteId(request)) === 'managed') {
+      throw forbidden('Your AI allowance is set by your administrator. Connect your own OpenRouter key to set your own budget.', 'managed_billing');
+    }
     const profile = (request.body as { profile?: unknown }).profile;
     if (profile && typeof profile === 'object' && 'tz' in profile) IanaTimeZone.parse(profile.tz);
     return runtime.updateSettings(ctx.athleteId(request), request.body);

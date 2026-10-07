@@ -17,8 +17,8 @@ import { abortError, httpInfoFromSdkError, isAbortError, providerErrorFromHttp }
 import { dataUrl, errorMessage, isRecord, parseToolInput, stringifyInput, textOfParts } from './util';
 
 /**
- * Any OpenAI-compatible Chat Completions endpoint (DeepSeek, Ollama, vLLM, OpenRouter, ...) on the
- * official `openai` SDK with a custom baseURL.
+ * Any OpenAI-compatible Chat Completions endpoint (OpenRouter, Ollama, vLLM, ...) on the official `openai`
+ * SDK with a custom baseURL. OpenRouter-specific request fields live in ./openrouter.ts.
  */
 
 type Message = OpenAI.Chat.Completions.ChatCompletionMessageParam;
@@ -26,14 +26,21 @@ type Chunk = OpenAI.Chat.Completions.ChatCompletionChunk;
 type CreateParams = OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming;
 type UserPart = OpenAI.Chat.Completions.ChatCompletionContentPart;
 
-/** DeepSeek-style extensions the SDK types do not know about. */
-type AssistantWithReasoning = OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam & { reasoning_content?: string };
+/** One OpenRouter reasoning block; replayed unchanged within a tool loop. */
+export type ReasoningDetail = Record<string, unknown> & { type?: string; index?: number };
+
+/** DeepSeek and OpenRouter extensions the SDK types do not know about. */
+type AssistantWithReasoning = OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam & { reasoning_content?: string; reasoning_details?: ReasoningDetail[] };
 interface DeltaExt {
   reasoning_content?: string | null;
+  reasoning_details?: ReasoningDetail[] | null;
 }
 interface UsageExt {
   prompt_cache_hit_tokens?: number | null;
   prompt_cache_miss_tokens?: number | null;
+  /** OpenRouter: amount charged for this call. */
+  cost?: number | null;
+  prompt_tokens_details?: { cached_tokens?: number | null; cache_write_tokens?: number | null } | null;
 }
 
 export const NO_VISION_PLACEHOLDER = '[image omitted: model has no vision]';
@@ -100,11 +107,14 @@ export function buildCompatibleMessages(req: ModelRequest, cfg: Cfg): Message[] 
         if (!text && toolCalls.length === 0) break;
         const msg: AssistantWithReasoning = { role: 'assistant', content: text || (toolCalls.length > 0 ? null : '') };
         if (toolCalls.length > 0) msg.tool_calls = toolCalls;
-        // Reasoning is echoed only within a tool loop (assistant messages with tool calls), only to the model
-        // that produced it, and only for providers that ask for it (DeepSeek thinking mode).
-        if (cfg.replayReasoningContent && toolCalls.length > 0 && item.provider === cfg.id && item.model === req.model && isRecord(item.raw)) {
+        // Reasoning is echoed only within a tool loop (assistant messages with tool calls) and only to the model
+        // that produced it: DeepSeek-style reasoning_content when the provider asks for it, OpenRouter
+        // reasoning_details whenever the response carried them.
+        if (toolCalls.length > 0 && item.provider === cfg.id && item.model === req.model && isRecord(item.raw)) {
           const rc = item.raw.reasoning_content;
-          if (typeof rc === 'string' && rc !== '') msg.reasoning_content = rc;
+          if (cfg.replayReasoningContent && typeof rc === 'string' && rc !== '') msg.reasoning_content = rc;
+          const details = item.raw.reasoning_details;
+          if (Array.isArray(details) && details.length > 0) msg.reasoning_details = details as ReasoningDetail[];
         }
         messages.push(msg);
         break;
@@ -157,6 +167,23 @@ interface ToolAcc {
   started: boolean;
 }
 
+/**
+ * OpenRouter streams reasoning_details as fragments that share a type and index; join them back into the
+ * blocks the model produced (text, summary and data concatenated; the last id, format and signature kept).
+ */
+export function mergeReasoningDetails(into: ReasoningDetail[], fragments: ReasoningDetail[]): void {
+  for (const fragment of fragments) {
+    if (!isRecord(fragment)) continue;
+    const last = into.at(-1);
+    if (last && last.type === fragment.type && last.index === fragment.index) {
+      for (const key of ['text', 'summary', 'data'] as const) {
+        if (typeof fragment[key] === 'string') last[key] = `${typeof last[key] === 'string' ? last[key] : ''}${fragment[key]}`;
+      }
+      for (const key of ['id', 'format', 'signature'] as const) if (fragment[key] !== undefined && fragment[key] !== null) last[key] = fragment[key];
+    } else into.push({ ...fragment });
+  }
+}
+
 function mapFinish(finish: string | null, hasToolCalls: boolean): StopReason {
   switch (finish) {
     case 'length':
@@ -183,6 +210,7 @@ export async function* parseCompatibleStream(chunks: AsyncIterable<Chunk>, ctx: 
   const tools = new Map<number, ToolAcc>();
   let text = '';
   let reasoning = '';
+  const reasoningDetails: ReasoningDetail[] = [];
   let finish: string | null = null;
   let sawAnything = false;
   let usage: Usage | undefined;
@@ -190,19 +218,22 @@ export async function* parseCompatibleStream(chunks: AsyncIterable<Chunk>, ctx: 
   for await (const chunk of chunks) {
     sawAnything = true;
     if (chunk.usage) {
-      const u = chunk.usage as Chunk['usage'] & UsageExt;
+      const u = chunk.usage as Omit<NonNullable<Chunk['usage']>, 'prompt_tokens_details'> & UsageExt;
       const cached = u?.prompt_cache_hit_tokens ?? u?.prompt_tokens_details?.cached_tokens ?? 0;
+      const written = u?.prompt_tokens_details?.cache_write_tokens ?? 0;
       usage = {
-        inputTokens: Math.max(0, (u?.prompt_tokens ?? 0) - cached),
+        inputTokens: Math.max(0, (u?.prompt_tokens ?? 0) - cached - written),
         cachedInputTokens: cached,
-        cacheWriteTokens: 0,
+        cacheWriteTokens: written,
         outputTokens: u?.completion_tokens ?? 0,
+        ...(typeof u?.cost === 'number' && Number.isFinite(u.cost) && u.cost >= 0 ? { costUsd: u.cost } : {}),
       };
     }
     const choice = chunk.choices?.[0];
     if (!choice) continue;
     const delta = choice.delta as Chunk['choices'][number]['delta'] & DeltaExt;
     if (delta.reasoning_content) reasoning += delta.reasoning_content;
+    if (Array.isArray(delta.reasoning_details)) mergeReasoningDetails(reasoningDetails, delta.reasoning_details);
     if (delta.content) {
       text += delta.content;
       yield { type: 'text_delta', text: delta.content };
@@ -248,7 +279,9 @@ export async function* parseCompatibleStream(chunks: AsyncIterable<Chunk>, ctx: 
     parts,
     provider: ctx.providerId,
     model: ctx.model,
-    ...(reasoning ? { raw: { reasoning_content: reasoning } } : {}),
+    ...(reasoning || reasoningDetails.length > 0
+      ? { raw: { ...(reasoning ? { reasoning_content: reasoning } : {}), ...(reasoningDetails.length > 0 ? { reasoning_details: reasoningDetails } : {}) } }
+      : {}),
   };
   yield {
     type: 'message_end',
@@ -273,7 +306,7 @@ export function mapCompatibleError(e: unknown): ProviderError | Error {
 
 // ------------------------------------------------------------------ provider
 
-/** Any OpenAI-compatible Chat Completions endpoint (DeepSeek, Ollama, vLLM, OpenRouter, ...). */
+/** Any OpenAI-compatible Chat Completions endpoint (Ollama, vLLM, DeepSeek, ...). */
 export function createCompatibleProvider(cfg: CompatibleProviderConfig & { apiKey?: string }, deps: CompatibleProviderDeps = {}): ModelProvider {
   const apiKey = cfg.apiKey ?? (cfg.apiKeyEnv ? process.env[cfg.apiKeyEnv] : undefined) ?? 'not-needed';
   const client: CompatibleClientLike = deps.client ?? new OpenAI({ apiKey, baseURL: cfg.baseUrl, maxRetries: 0 });

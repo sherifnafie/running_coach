@@ -39,10 +39,26 @@ export interface MeResponse {
   viewsOrigin: string;
   kitUrl: string;
   vapidPublicKey?: string;
-  features: { voiceNotes: boolean; calls: { realtime: boolean; cascaded: boolean }; passkeys: boolean; push: boolean; webSearch: boolean; imageGeneration?: boolean; dictation?: boolean };
+  features: { voiceNotes: boolean; calls: { realtime: boolean; cascaded: boolean }; passkeys: boolean; push: boolean; webSearch: boolean; imageGeneration?: boolean; models?: boolean; dictation?: boolean };
+  /** Who pays for this athlete's model calls (see AiAccessSummary). */
+  billing?: 'managed' | 'byok';
   harnessVersion: string;
   /** Present when the server runs the scripted demo coach (no API keys). */
   demoMode: boolean;
+}
+
+/**
+ * GET /v1/ai and the /admin/athletes/:id/ai family. `managed`: the deployment or an administrator pays and the
+ * monthly budget is a hard allowance; `byok`: the athlete's own OpenRouter key. Keys are never returned, only a hint.
+ */
+export interface AiAccessSummary {
+  billing: 'managed' | 'byok';
+  openrouterKey: { owner: 'athlete' | 'admin'; hint: string; updatedAt: string } | null;
+  model: string;
+  defaultModel: string;
+  catalog: Array<{ id: string; label: string; description: string; vision: boolean }>;
+  budgets: { dailyUsd: number; monthlyUsd: number };
+  usage: { todayUsd: number; monthUsd: number };
 }
 
 // ---- messaging & events ----------------------------------------------------------------------

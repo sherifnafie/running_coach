@@ -1,0 +1,7 @@
+[Unit]
+Description=OpenCoach data backup
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/opencoach-prod/backup.env
+ExecStart=%h/opencoach-prod/app/ops/backup.sh

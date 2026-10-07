@@ -1,12 +1,12 @@
 import { mkdtemp, mkdir, rm, writeFile, symlink, stat } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket from 'ws';
 import {
-  ServerConfig, VirtualClock, defaultSettings, newId, type CoachRuntimeAPI, type StreamListener, type StreamMessage,
+  ModelCatalogEntry, ServerConfig, VirtualClock, defaultSettings, newId, type CoachRuntimeAPI, type StreamListener, type StreamMessage,
   type InboundEventInput, type Logger, type Store, type AnyEvent,
   athletePaths,
 } from '@opencoach/protocol';
@@ -14,6 +14,8 @@ import { openSqliteStore } from '@opencoach/store';
 import { createFsBlobStore } from '@opencoach/workspace';
 import type { CallService, DictationService } from '@opencoach/voice';
 import { createGateway } from '../src/gateway';
+import { CredentialService, CredentialVault, keyHint } from '../src/credentials';
+import { DEFAULT_OPENROUTER_CATALOG, DEFAULT_OPENROUTER_MODEL } from '@opencoach/engine';
 import { SetupCodeManager, issueSetupCode } from '../src/setup-code';
 import { SESSION_COOKIE, CSRF_COOKIE, sha256Hex } from '../src/http/auth';
 import { RESUMABLE_MAX_BYTES } from '../src/routes/resumable';
@@ -22,7 +24,7 @@ const logger: Logger = { debug() {}, info() {}, warn() {}, error() {}, child() {
 const cleanups: Array<() => Promise<unknown>> = [];
 afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
 
-async function fixture(opts: { dictation?: DictationService } = {}) {
+async function fixture(opts: { ai?: boolean; dictation?: DictationService } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'oc-gateway-'));
   cleanups.push(() => rm(dir, { recursive: true, force: true }));
   const clock = new VirtualClock('2026-10-06T10:00:00.000Z');
@@ -74,8 +76,10 @@ async function fixture(opts: { dictation?: DictationService } = {}) {
   const exportPath = join(dir, 'bundle.tar.gz');
   await writeFile(exportPath, 'archive');
   const strip = vi.fn(async (_data: Uint8Array): Promise<Uint8Array> => Buffer.from('stripped'));
+  const credentials = opts.ai ? new CredentialService({ store, vault: CredentialVault.fromKey(randomBytes(32)), clock, logger }) : undefined;
+  const models = opts.ai ? { catalog: DEFAULT_OPENROUTER_CATALOG.map((m) => ModelCatalogEntry.parse(m)), defaultModel: DEFAULT_OPENROUTER_MODEL, openrouterBaseUrl: 'https://openrouter.test/api/v1' } : undefined;
   const gateway = await createGateway({ config, clock, store, runtime, blobs, logger, setupCodes, callService: calls, dictation: opts.dictation,
-    kitDir, webDist, stripImageLocation: strip, exportAthlete: async () => exportPath, vapidPublicKey: 'vapid-test' });
+    kitDir, webDist, stripImageLocation: strip, exportAthlete: async () => exportPath, vapidPublicKey: 'vapid-test', credentials, models });
   cleanups.push(async () => { await gateway.app.close(); await gateway.views.close(); });
   async function setup(displayName = 'Athlete') {
     const code = await issueSetupCode(store, clock);
@@ -86,7 +90,7 @@ async function fixture(opts: { dictation?: DictationService } = {}) {
     return { ...response.json<{ athleteId: string; token: string; expiresAt: string }>(), cookie: response.cookies.find((c) => c.name === SESSION_COOKIE)!.value, csrf: response.cookies.find((c) => c.name === CSRF_COOKIE)!.value };
   }
   const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
-  return { ...gateway, dir, clock, store, runtime, blobs, calls, config, strip, setup, bearer, emit };
+  return { ...gateway, dir, clock, store, runtime, blobs, calls, config, strip, setup, bearer, emit, credentials };
 }
 
 function multipart(field: string, text = 'bytes', mime = 'application/octet-stream', metadata: Record<string, string> = {}) {
@@ -406,5 +410,83 @@ describe('WebSocket authentication, replay and session revocation [SEC-4]', () =
     expect((await f.app.inject({ method: 'POST', url: '/v1/auth/logout', headers: f.bearer(a.token) })).statusCode).toBe(204);
     expect(await close).toBe(4401);
     expect((await f.app.inject({ url: '/v1/me', headers: f.bearer(a.token) })).statusCode).toBe(401);
+  });
+});
+
+describe('model access: managed allowance, own keys, model choice and recovery [COST-1] [SEC-1] [SEC-4]', () => {
+  const KEY = 'sk-or-v1-' + 'a'.repeat(40);
+  const OTHER = 'sk-or-v1-' + 'b'.repeat(40);
+  afterEach(() => { vi.unstubAllGlobals(); });
+  function stubOpenRouter() {
+    const fetch = vi.fn(async (url: string, init?: { headers?: Record<string, string> }) => {
+      const auth = init?.headers?.Authorization ?? '';
+      if (url.endsWith('/key')) return new Response(JSON.stringify({ data: { limit_remaining: 4 } }), { status: auth.includes('bad') ? 401 : 200 });
+      return new Response('{}', { status: 404 });
+    });
+    vi.stubGlobal('fetch', fetch);
+    return fetch;
+  }
+
+  it('encrypts keys bound to athlete and provider, and only shows a masked hint', () => {
+    const vault = CredentialVault.fromKey(randomBytes(32));
+    const sealed = vault.encrypt(KEY, 'ath_1:openrouter');
+    expect(sealed).not.toContain(KEY.slice(10));
+    expect(vault.decrypt(sealed, 'ath_1:openrouter')).toBe(KEY);
+    expect(() => vault.decrypt(sealed, 'ath_2:openrouter')).toThrow();
+    expect(keyHint(KEY)).toBe('sk-or-…aaaa');
+  });
+
+  it('managed athletes cannot raise budgets or pick models; admins set allowance, keys and recovery codes', async () => {
+    stubOpenRouter();
+    const f = await fixture({ ai: true });
+    const admin = await f.setup('Admin');
+    const adminHeaders = f.bearer(admin.token);
+    const invite = (await f.app.inject({ method: 'POST', url: '/admin/invites', headers: adminHeaders })).json().code;
+    const mom = (await f.app.inject({ method: 'POST', url: '/v1/auth/setup', payload: { code: invite, displayName: 'Mom', tz: 'UTC', locale: 'en', consents: { healthData: true, aiDisclosure: true, ageConfirmed18: true } } })).json();
+    const momHeaders = f.bearer(mom.token);
+
+    const ai = (await f.app.inject({ url: '/v1/ai', headers: momHeaders })).json();
+    expect(ai).toMatchObject({ billing: 'managed', openrouterKey: null, model: DEFAULT_OPENROUTER_MODEL });
+    expect(ai.catalog.length).toBeGreaterThan(1);
+    expect((await f.app.inject({ method: 'PUT', url: '/v1/settings', headers: momHeaders, payload: { budgets: { monthlyUsd: 500 } } })).statusCode).toBe(403);
+    expect((await f.app.inject({ method: 'PUT', url: '/v1/ai/model', headers: momHeaders, payload: { model: 'openai/gpt-6.1-sol' } })).statusCode).toBe(403);
+    expect((await f.app.inject({ method: 'PUT', url: `/admin/athletes/${mom.athleteId}/budgets`, headers: momHeaders, payload: { dailyUsd: 9, monthlyUsd: 99 } })).statusCode).toBe(403);
+
+    const budgets = await f.app.inject({ method: 'PUT', url: `/admin/athletes/${mom.athleteId}/budgets`, headers: adminHeaders, payload: { dailyUsd: 0.5, monthlyUsd: 3 } });
+    expect(budgets.json().budgets).toEqual({ dailyUsd: 0.5, monthlyUsd: 3 });
+    expect((await f.app.inject({ method: 'PUT', url: `/admin/athletes/${mom.athleteId}/model`, headers: adminHeaders, payload: { model: 'nobody/unknown' } })).statusCode).toBe(400);
+    const managedKey = await f.app.inject({ method: 'PUT', url: `/admin/athletes/${mom.athleteId}/openrouter-key`, headers: adminHeaders, payload: { key: KEY } });
+    expect(managedKey.json()).toMatchObject({ billing: 'managed', openrouterKey: { owner: 'admin', hint: 'sk-or-…aaaa' } });
+    expect(managedKey.body).not.toContain(KEY);
+    expect(f.credentials!.key(mom.athleteId, 'openrouter')).toBe(KEY);
+    expect((await f.store.listCredentials(mom.athleteId))[0]?.ciphertext).not.toContain(KEY.slice(10));
+    expect((await f.app.inject({ method: 'DELETE', url: '/v1/ai/openrouter-key', headers: momHeaders })).statusCode).toBe(403);
+
+    const recovery = await f.app.inject({ method: 'POST', url: `/admin/athletes/${mom.athleteId}/recovery-code`, headers: adminHeaders });
+    const paired = await f.app.inject({ method: 'POST', url: '/v1/auth/pair', payload: { code: recovery.json().code, deviceName: 'New phone' } });
+    expect(paired.json().athleteId).toBe(mom.athleteId);
+    expect((await f.app.inject({ method: 'POST', url: '/v1/auth/pair', payload: { code: recovery.json().code } })).statusCode).toBe(401);
+  });
+
+  it('an athlete who brings their own key controls budgets and model; bad keys are rejected', async () => {
+    const fetch = stubOpenRouter();
+    const f = await fixture({ ai: true });
+    const admin = await f.setup('Admin');
+    const invite = (await f.app.inject({ method: 'POST', url: '/admin/invites', headers: f.bearer(admin.token) })).json().code;
+    const sis = (await f.app.inject({ method: 'POST', url: '/v1/auth/setup', payload: { code: invite, displayName: 'Sis', tz: 'UTC', locale: 'en', consents: { healthData: true, aiDisclosure: true, ageConfirmed18: true } } })).json();
+    const headers = f.bearer(sis.token);
+    expect((await f.app.inject({ method: 'PUT', url: '/v1/ai/openrouter-key', headers, payload: { key: 'not-a-key' } })).statusCode).toBe(400);
+    expect((await f.app.inject({ method: 'PUT', url: '/v1/ai/openrouter-key', headers, payload: { key: 'sk-or-v1-bad' + 'c'.repeat(30) } })).statusCode).toBe(400);
+    const connected = await f.app.inject({ method: 'PUT', url: '/v1/ai/openrouter-key', headers, payload: { key: OTHER } });
+    expect(connected.json()).toMatchObject({ billing: 'byok', openrouterKey: { owner: 'athlete', hint: 'sk-or-…bbbb' } });
+    expect(fetch).toHaveBeenCalledWith('https://openrouter.test/api/v1/key', expect.anything());
+    expect((await f.app.inject({ method: 'PUT', url: '/v1/settings', headers, payload: { budgets: { monthlyUsd: 50 } } })).statusCode).toBe(200);
+    const picked = await f.app.inject({ method: 'PUT', url: '/v1/ai/model', headers, payload: { model: 'z-ai/glm-5.3-flash' } });
+    expect(picked.json().model).toBe('z-ai/glm-5.3-flash');
+    expect((await f.store.getSettings(sis.athleteId)).models.deep).toEqual({ provider: 'openrouter', model: 'z-ai/glm-5.3-flash', effort: 'high' });
+    const start = (await f.app.inject({ method: 'POST', url: '/v1/ai/openrouter/oauth/start', headers })).json().url as string;
+    expect(new URL(start).origin).toBe('https://openrouter.test');
+    expect(new URL(start).searchParams.get('code_challenge_method')).toBe('S256');
+    expect((await f.app.inject({ method: 'DELETE', url: '/v1/ai/openrouter-key', headers })).json()).toMatchObject({ billing: 'managed', openrouterKey: null });
   });
 });

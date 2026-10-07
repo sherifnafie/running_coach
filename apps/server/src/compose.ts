@@ -1,8 +1,11 @@
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { SystemClock, consoleLogger, type Clock, type Logger, type ModelProvider, type ServerConfig, type UiRenderer, type ImageProvider } from '@opencoach/protocol';
-import { createAgentLoop, createAnthropicProvider, createCompatibleProvider, createImageProvider, createModelRouter, createOpenAIProvider, createScriptedProvider, demoCoachHandler } from '@opencoach/engine';
+import { ModelCatalogEntry, SystemClock, consoleLogger, type Clock, type Logger, type ModelProvider, type ServerConfig, type UiRenderer, type ImageProvider } from '@opencoach/protocol';
+import {
+  DEFAULT_OPENROUTER_CATALOG, DEFAULT_OPENROUTER_MODEL, createAgentLoop, createCompatibleProvider, createImageProvider, createModelRouter, createOpenRouterProvider,
+  createScriptedProvider, demoCoachHandler, type OpenRouterProviderOptions,
+} from '@opencoach/engine';
 import { createCoachRuntime, createSafetyScreen, createWebSearchBackend, localDayStartIso, localMonthStartIso } from '@opencoach/runtime';
 import { createSandboxProvider } from '@opencoach/sandbox';
 import { openSqliteStore } from '@opencoach/store';
@@ -14,6 +17,7 @@ import { createGateway } from './gateway';
 import { DEFAULT_SEED_ROOT, DEFAULT_WEB_DIST } from './paths';
 import { createPushDelivery, createWebPushProvider } from './push';
 import { SetupCodeManager } from './setup-code';
+import { CredentialService, CredentialVault, keyFingerprint } from './credentials';
 import { createTelegramAdapter } from './telegram';
 
 export interface ComposeOptions {
@@ -46,15 +50,37 @@ export async function composeServer(opts: ComposeOptions = {}) {
     const sandbox = await createSandboxProvider(config.sandbox);
     cleanup.unshift(() => sandbox.dispose());
     const providers: Record<string, ModelProvider> = {};
+    const credentials = new CredentialService({ store, vault: await CredentialVault.open(config.dataDir), clock, logger });
+    await credentials.load();
+    const openrouter = config.providers.openrouter;
+    const catalog = (openrouter?.models ?? DEFAULT_OPENROUTER_CATALOG).map((m) => ModelCatalogEntry.parse(m));
+    const openrouterOptions = (apiKey: string): OpenRouterProviderOptions => ({
+      apiKey, baseUrl: openrouter?.baseUrl, appTitle: openrouter?.appTitle, appUrl: openrouter?.appUrl, routing: openrouter?.routing, models: catalog, maxOutputTokens: openrouter?.maxOutputTokens,
+    });
     if (isDemoConfig(config)) providers.scripted = createScriptedProvider({ handler: demoCoachHandler() });
     else {
-      if (config.providers.anthropic?.apiKey) providers.anthropic = createAnthropicProvider({ ...config.providers.anthropic, apiKey: config.providers.anthropic.apiKey });
-      if (config.providers.openai?.apiKey) providers.openai = createOpenAIProvider({ ...config.providers.openai, apiKey: config.providers.openai.apiKey });
+      if (openrouter?.apiKey) providers.openrouter = createOpenRouterProvider(openrouterOptions(openrouter.apiKey));
       for (const provider of config.providers.compatible) providers[provider.id] = createCompatibleProvider(provider);
       if (config.providers.scripted) providers.scripted = createScriptedProvider({ handler: demoCoachHandler() });
     }
     if (!config.models) throw new Error('No model tiers configured; load configuration through loadConfig()');
-    const router = createModelRouter(config.models, providers);
+    // Athletes with their own (or an admin-assigned) OpenRouter key get a client bound to that key [SEC-1].
+    const scopedClients = new Map<string, ModelProvider>();
+    const scoped = (providerId: string, athleteId: string): ModelProvider | undefined => {
+      if (providerId !== 'openrouter' || !openrouter || isDemoConfig(config)) return undefined;
+      const key = credentials.key(athleteId, 'openrouter');
+      if (!key) return undefined;
+      const cacheKey = `${athleteId}:${keyFingerprint(key)}`;
+      let client = scopedClients.get(cacheKey);
+      if (!client) {
+        for (const k of scopedClients.keys()) if (k.startsWith(`${athleteId}:`)) scopedClients.delete(k);
+        client = createOpenRouterProvider(openrouterOptions(key));
+        scopedClients.set(cacheKey, client);
+      }
+      return client;
+    };
+    const pricing = { ...Object.fromEntries(catalog.filter((m) => m.pricing).map((m) => [m.id, m.pricing!])), ...config.models.pricing };
+    const router = createModelRouter({ ...config.models, pricing }, providers, { scoped });
     for (const tier of ['coach', 'deep', 'fast'] as const) router.route(tier);
     const kitDir = await kitDistDir();
     const docs = kitDocsDir();
@@ -76,7 +102,7 @@ export async function composeServer(opts: ComposeOptions = {}) {
       loop: createAgentLoop({ price: (model, usage) => router.cost(model, usage) }),
       seedRoot: opts.seedRoot ?? DEFAULT_SEED_ROOT, pack: 'general', kitDir, extraSystemDocs, renderer,
       webSearch, safety: createSafetyScreen({ router, useModel: config.safety.modelScreen }), synthesizer,
-      imageProvider,
+      imageProvider, billing: (athleteId) => credentials.billing(athleteId),
       delivery: async (athleteId, message, context) => {
         await pushDelivery(athleteId, message, context);
         await telegram?.delivery(athleteId, message);
@@ -104,7 +130,8 @@ export async function composeServer(opts: ComposeOptions = {}) {
     const gateway = await createGateway({ config, clock, logger, store, blobs, runtime, callService: calls, dictation,
       setupCodes, kitDir, webDist: opts.webDist ?? DEFAULT_WEB_DIST, features: { demoMode: isDemoConfig(config), webSearch: !!webSearch, imageGeneration: !!imageProvider },
       vapidPublicKey: push.publicKey?.(), exportAthlete, stripImageLocation,
-      telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); },
+      telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); credentials.forget(athleteId); },
+      credentials, models: openrouter && !isDemoConfig(config) ? { catalog, defaultModel: openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL, openrouterBaseUrl: openrouter.baseUrl } : undefined,
     });
     cleanup.unshift(() => gateway.views.close(), () => gateway.app.close());
     await runtime.start();

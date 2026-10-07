@@ -39,6 +39,7 @@ import {
   type MessageStateRecord,
   type NewEvent,
   type PairingCodeRecord,
+  type CredentialRecord,
   type PasskeyRecord,
   type PushSubscriptionRecord,
   type ScheduleRecord,
@@ -62,6 +63,7 @@ const PAIRING: Field[] = [req('code'), req('purpose'), opt('athleteId'), opt('cr
 
 const SESSION: Field[] = [req('id'), req('athleteId'), req('tokenHash'), req('kind'), opt('deviceName'), req('createdAt'), req('lastSeenAt'), req('expiresAt')];
 
+const CREDENTIAL: Field[] = [req('athleteId'), req('provider'), req('owner'), req('ciphertext'), req('hint'), req('updatedAt')];
 const PASSKEY: Field[] = [req('credentialId'), req('athleteId'), req('publicKey'), req('counter', 'int'), opt('transports', 'json'), opt('deviceName'), req('createdAt')];
 
 const MESSAGE_STATE: Field[] = [
@@ -365,7 +367,7 @@ export class SqliteStore implements Store {
       }
       for (const key of [
         `view-token:${id}`, `app-manifest:${id}`, `harness-version:${id}`, `last-head:${id}`,
-        `turns-since-pinned-write:${id}`, `telegram-athlete:${id}`, `upload-drafts:${id}`,
+        `turns-since-pinned-write:${id}`, `telegram-athlete:${id}`, `upload-drafts:${id}`, `oauth-openrouter:${id}`,
       ]) this.run('DELETE FROM kv WHERE key = ?', key);
       this.run("DELETE FROM kv WHERE substr(key, 1, 7) = 'notice:' AND substr(key, -length(?)) = ?", `:${id}`, `:${id}`);
       this.run(`DELETE FROM kv WHERE value = ? AND (
@@ -390,6 +392,7 @@ export class SqliteStore implements Store {
       this.run('DELETE FROM audit WHERE athlete_id = ?', id);
       this.run('DELETE FROM sessions WHERE athlete_id = ?', id);
       this.run('DELETE FROM passkeys WHERE athlete_id = ?', id);
+      this.run('DELETE FROM credentials WHERE athlete_id = ?', id);
       this.run('DELETE FROM pairing_codes WHERE athlete_id = ?', id);
       this.run('UPDATE pairing_codes SET created_by = NULL WHERE created_by = ?', id);
       this.run('DELETE FROM idempotency WHERE expires_at <= ?', this.nowIso());
@@ -483,6 +486,22 @@ export class SqliteStore implements Store {
 
   async updatePasskeyCounter(credentialId: string, counter: number): Promise<void> {
     this.run('UPDATE passkeys SET counter = ? WHERE credential_id = ?', counter, credentialId);
+  }
+
+  // ------------------------------------------------------------------------------ credentials
+
+  async setCredential(r: CredentialRecord): Promise<void> {
+    this.run(insertSql('credentials', CREDENTIAL, { upsertOn: ['athlete_id', 'provider'] }), ...toParams(CREDENTIAL, r));
+  }
+
+  async listCredentials(athleteId?: string): Promise<CredentialRecord[]> {
+    return athleteId === undefined
+      ? this.many<CredentialRecord>('credentials', CREDENTIAL, 'ORDER BY athlete_id, provider')
+      : this.many<CredentialRecord>('credentials', CREDENTIAL, 'WHERE athlete_id = ? ORDER BY provider', athleteId);
+  }
+
+  async deleteCredential(athleteId: string, provider: CredentialRecord['provider']): Promise<void> {
+    this.run('DELETE FROM credentials WHERE athlete_id = ? AND provider = ?', athleteId, provider);
   }
 
   // ----------------------------------------------------------------------------------- events

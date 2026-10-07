@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ModelsConfig } from './model';
+import { ModelsConfig, Pricing } from './model';
 import { VoiceConfig } from './voice';
 import { Effort } from './common';
 import { ImageGenerationConfig } from './image-generation';
@@ -10,10 +10,10 @@ const HeaderName = z.string().regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/, 'invalid HT
 
 /**
  * Server configuration. Loaded from YAML (opencoach.config.yaml) + environment overrides by
- * apps/server. Secrets come from env (ANTHROPIC_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY, ...).
+ * apps/server. Secrets come from env (OPENROUTER_API_KEY, OPENAI_API_KEY, ...).
  */
 export const CompatibleProviderConfig = z.object({
-  /** Provider id used in tier config, e.g. "deepseek", "ollama", "openrouter". */
+  /** Provider id used in tier config, e.g. "ollama", "vllm". */
   id: z.string(),
   baseUrl: z.string().url(),
   apiKey: z.string().optional(),
@@ -33,6 +33,59 @@ export const CompatibleProviderConfig = z.object({
   thinking: z.boolean().optional(),
 });
 export type CompatibleProviderConfig = z.infer<typeof CompatibleProviderConfig>;
+
+/** OpenRouter provider routing preferences (https://openrouter.ai/docs/features/provider-routing). */
+export const OpenRouterRouting = z.object({
+  /** Provider slugs to try in order, e.g. ["deepinfra/fp8", "together"]. */
+  order: z.array(z.string()).optional(),
+  allowFallbacks: z.boolean().optional(),
+  /** Only route to providers that support every request parameter (tools, reasoning). */
+  requireParameters: z.boolean().optional(),
+  /** "deny" excludes providers that store or train on prompts. */
+  dataCollection: z.enum(['allow', 'deny']).optional(),
+  /** Zero-data-retention endpoints only. */
+  zdr: z.boolean().optional(),
+  quantizations: z.array(z.enum(['int4', 'int8', 'fp4', 'fp6', 'fp8', 'fp16', 'bf16', 'fp32', 'unknown'])).optional(),
+  ignore: z.array(z.string()).optional(),
+  sort: z.enum(['price', 'throughput', 'latency']).optional(),
+});
+export type OpenRouterRouting = z.infer<typeof OpenRouterRouting>;
+
+/** A model offered through OpenRouter: the picker shows these, and capabilities come from here [MOD-1] [MOD-2]. */
+export const ModelCatalogEntry = z.object({
+  /** OpenRouter model id, e.g. "deepseek/deepseek-v4.1-flash". */
+  id: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().default(''),
+  vision: z.boolean().default(false),
+  contextTokens: z.number().int().positive().default(128_000),
+  maxOutputTokens: z.number().int().positive().default(16_384),
+  /** Reasoning efforts the model accepts; empty = no reasoning control. */
+  efforts: z.array(Effort).default([]),
+  /** List price, used only when a response carries no provider-reported cost. */
+  pricing: Pricing.optional(),
+  /** Per-model routing, merged over the provider-wide preferences. */
+  routing: OpenRouterRouting.optional(),
+});
+export type ModelCatalogEntry = z.infer<typeof ModelCatalogEntry>;
+export type ModelCatalogEntryInput = z.input<typeof ModelCatalogEntry>;
+
+export const OpenRouterConfig = z.object({
+  apiKey: z.string().optional(),
+  apiKeyEnv: z.string().default('OPENROUTER_API_KEY'),
+  baseUrl: z.string().url().default('https://openrouter.ai/api/v1'),
+  /** Sent as X-Title so usage is attributed to this app in the OpenRouter dashboard. */
+  appTitle: z.string().default('OpenCoach'),
+  /** Optional HTTP-Referer for attribution. Not sent when unset. */
+  appUrl: z.string().url().optional(),
+  routing: OpenRouterRouting.default({ dataCollection: 'deny', requireParameters: true }),
+  /** Models the server offers. Omit to use the built-in vetted catalog. */
+  models: z.array(ModelCatalogEntry).optional(),
+  /** Catalog id used for every tier when `models.tiers` is not configured. */
+  defaultModel: z.string().optional(),
+  maxOutputTokens: z.number().int().positive().default(16_384),
+});
+export type OpenRouterConfig = z.infer<typeof OpenRouterConfig>;
 
 export const LimitsConfig = z
   .object({
@@ -72,16 +125,8 @@ export const ServerConfig = z.object({
   models: ModelsConfig.optional(),
   providers: z
     .object({
-      anthropic: z
-        .object({
-          apiKey: z.string().optional(),
-          baseUrl: z.string().optional(),
-          /** Server-side refusal fallbacks (beta) — on by default per Anthropic guidance. */
-          serverSideFallbacks: z.boolean().default(true),
-          /** "updates" streams short progress notes between tool calls (beta). */
-          thinkingDisplay: z.enum(['omitted', 'summarized', 'updates']).default('updates'),
-        })
-        .optional(),
+      openrouter: OpenRouterConfig.optional(),
+      /** OpenAI: voice (speech, realtime calls) only. Chat models go through OpenRouter. */
       openai: z.object({ apiKey: z.string().optional(), baseUrl: z.string().optional(), organization: z.string().optional() }).optional(),
       compatible: z.array(CompatibleProviderConfig).default([]),
       /** Path to a scripted cassette (tests/evals); "demo" for the built-in demo coach. */

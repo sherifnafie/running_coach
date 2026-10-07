@@ -243,6 +243,7 @@ export type TimelineItem =
 const NOTICE_TEXT: Record<string, string> = {
   budget_warning: 'You are close to your usage budget. You can change it in Settings.',
   budget_exhausted: 'Your usage budget is used up, so your coach is paused. You can raise it in Settings.',
+  allowance_exhausted: 'Your monthly AI allowance is used up, so your coach is paused. Ask your administrator to raise it, or connect your own OpenRouter key in Settings.',
   held_quiet_hours: 'A message is waiting until quiet hours end.',
   delivery_failed: 'A message could not be delivered.',
   fallback_used: 'Your coach switched to a backup model for a moment.',

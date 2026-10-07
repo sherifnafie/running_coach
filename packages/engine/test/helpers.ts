@@ -81,7 +81,7 @@ export async function* fromArray<T>(events: T[]): AsyncGenerator<T> {
 }
 
 export function req(over: Partial<ModelRequest> = {}): ModelRequest {
-  return { model: 'claude-sonnet-5-5', system: [], items: [user('hi')], tools: [], maxOutputTokens: 4096, ...over };
+  return { model: 'openai/gpt-6.1-sol', system: [], items: [user('hi')], tools: [], maxOutputTokens: 4096, ...over };
 }
 
 export const kinds = (items: ConvItem[]): string[] => items.map((i) => i.kind);

@@ -200,7 +200,7 @@ export function SignInScreen() {
           <label className="field">
             <span>Pairing code from another device</span>
             <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="ABCD-2345" autoCapitalize="characters" autoComplete="one-time-code" name="pairing-code" />
-            <small>On a signed-in device, open Settings → Devices → Pair a new device.</small>
+            <small>On a signed-in device, open Settings → Devices → Pair a new device. Lost every device? Ask your administrator for a recovery code.</small>
           </label>
           {error && (
             <p role="alert" className="form-error">

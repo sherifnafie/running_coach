@@ -22,18 +22,18 @@ describe('agent loop: basic flow', () => {
   it('runs a single text step', async () => {
     const p = scripted([{ text: 'Hello there, runner.', usage: { inputTokens: 100, outputTokens: 10 } }]);
     const { events, onEvent } = collect();
-    const r = await loop.runTurn(baseInput({ route: [resolved(p, 'claude-sonnet-5-5')], onEvent }));
+    const r = await loop.runTurn(baseInput({ route: [resolved(p, 'openai/gpt-6.1-sol')], onEvent }));
 
     expect(r.stopReason).toBe('end_turn');
     expect(r.finalText).toBe('Hello there, runner.');
     expect(r.steps).toBe(1);
     expect(r.newItems).toHaveLength(1);
-    expect(r.newItems[0]).toMatchObject({ kind: 'assistant', provider: 'scripted', model: 'claude-sonnet-5-5' });
+    expect(r.newItems[0]).toMatchObject({ kind: 'assistant', provider: 'scripted', model: 'openai/gpt-6.1-sol' });
     expect(r.usage).toMatchObject({ inputTokens: 100, outputTokens: 10 });
     // default price table: sonnet 5.5 = $2 in / $10 out per MTok
     expect(r.costUsd).toBeCloseTo((100 * 2 + 10 * 10) / 1e6, 10);
     expect(r.provider).toBe('scripted');
-    expect(r.model).toBe('claude-sonnet-5-5');
+    expect(r.model).toBe('openai/gpt-6.1-sol');
     expect(r.fallbacks).toEqual([]);
 
     const types = events.map((e) => e.type);
@@ -41,7 +41,7 @@ describe('agent loop: basic flow', () => {
     expect(types.indexOf('item')).toBeGreaterThan(types.lastIndexOf('text_delta'));
     expect(types.indexOf('step_end')).toBeGreaterThan(types.indexOf('item'));
     const stepEnd = events.find((e) => e.type === 'step_end');
-    expect(stepEnd).toMatchObject({ step: 1, provider: 'scripted', model: 'claude-sonnet-5-5' });
+    expect(stepEnd).toMatchObject({ step: 1, provider: 'scripted', model: 'openai/gpt-6.1-sol' });
     expect(events.filter((e) => e.type === 'text_delta').map((e) => (e.type === 'text_delta' ? e.text : '')).join('')).toBe('Hello there, runner.');
   });
 
@@ -238,7 +238,7 @@ describe('agent loop: steering and beforeStep [RT-3]', () => {
     const infos: Array<{ step: number; items: number; cost: number }> = [];
     const r = await loop.runTurn(
       baseInput({
-        route: [resolved(p, 'claude-sonnet-5-5')],
+        route: [resolved(p, 'openai/gpt-6.1-sol')],
         tools: fakeTools({ echo: () => 'ok' }),
         beforeStep: ({ step, items, costUsd }) => {
           infos.push({ step, items: items.length, cost: costUsd });
@@ -599,7 +599,7 @@ describe('agent loop: max_tokens, refusal', () => {
 
   it('stops with refusal when the only model refuses', async () => {
     const p = scripted([{ stopReason: 'refusal', refusalCategory: 'cyber', text: 'partial', usage: { inputTokens: 1000, outputTokens: 10 } }]);
-    const r = await loop.runTurn(baseInput({ route: [resolved(p, 'claude-sonnet-5-5')] }));
+    const r = await loop.runTurn(baseInput({ route: [resolved(p, 'openai/gpt-6.1-sol')] }));
     expect(r.stopReason).toBe('refusal');
     expect(r.error).toContain('cyber');
     expect(r.newItems).toEqual([]); // the refused message is not part of the transcript

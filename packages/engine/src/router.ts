@@ -12,9 +12,14 @@ const DEFAULT_OUTPUT_CAP = 32_000;
  * - Entries whose provider is not registered are skipped; duplicates (same provider+model) are dropped.
  * - Throws if nothing is routable.
  */
-export function createModelRouter(config: ModelsConfig, providers: Record<string, ModelProvider>): ModelRouter {
-  const resolve = (tier: Tier, cfg: TierConfig): ResolvedModel | undefined => {
-    const provider = providers[cfg.provider];
+export interface ModelRouterOptions {
+  /** A provider bound to this athlete's own credentials, if they have one for `providerId`. */
+  scoped?: (providerId: string, athleteId: string) => ModelProvider | undefined;
+}
+
+export function createModelRouter(config: ModelsConfig, providers: Record<string, ModelProvider>, opts: ModelRouterOptions = {}): ModelRouter {
+  const resolve = (tier: Tier, cfg: TierConfig, athleteId?: string): ResolvedModel | undefined => {
+    const provider = (athleteId !== undefined ? opts.scoped?.(cfg.provider, athleteId) : undefined) ?? providers[cfg.provider];
     if (!provider) return undefined;
     const capabilities = provider.capabilities(cfg.model);
     return {
@@ -28,7 +33,7 @@ export function createModelRouter(config: ModelsConfig, providers: Record<string
   };
 
   return {
-    route(tier, override) {
+    route(tier, override, scope) {
       const own = config.tiers[tier];
       const primary = override ?? own ?? config.tiers.coach;
       const explicitFallbacks = config.fallbacks[tier];
@@ -39,7 +44,7 @@ export function createModelRouter(config: ModelsConfig, providers: Record<string
         const key = `${cfg.provider}:${cfg.model}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        const r = resolve(tier, cfg);
+        const r = resolve(tier, cfg, scope?.athleteId);
         if (r) out.push(r);
       }
       if (out.length === 0) {
