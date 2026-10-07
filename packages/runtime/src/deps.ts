@@ -37,6 +37,11 @@ export interface CoachRuntimeDeps {
   synthesizer?: Synthesizer;
   imageProvider?: ImageProvider;
   delivery?: DeliveryHook;
+  /**
+   * Who pays for an athlete's model calls: `managed` (the deployment's or an administrator-assigned key, with a hard
+   * monthly allowance) or `byok` (the athlete's own key; their budgets are soft limits they control). Without this hook every budget is soft.
+   */
+  billing?: (athleteId: string) => 'managed' | 'byok';
   /** Tests/evals: don't run the background scheduler loop; call tickScheduler() explicitly. */
   manualScheduler?: boolean;
 }

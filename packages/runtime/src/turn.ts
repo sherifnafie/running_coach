@@ -122,6 +122,14 @@ export class TurnRunner {
     const dayCost = (await store.sumUsage(athleteId, localDayStartIso(now, tz))).costUsd;
     const monthCost = (await store.sumUsage(athleteId, localMonthStartIso(now, tz))).costUsd;
     const overBudget = dayCost >= settings.budgets.dailyUsd || monthCost >= settings.budgets.monthlyUsd;
+    const managed = core.deps.billing?.(athleteId) === 'managed';
+    if (managed && monthCost >= settings.budgets.monthlyUsd) {
+      // Managed keys: the monthly budget is a hard allowance set by an administrator. No model call at all [COST-1].
+      if (replyRequired) {
+        await this.noticeOnce(athleteId, 'allowance_exhausted', `Your monthly AI allowance is used up ($${monthCost.toFixed(2)} of $${settings.budgets.monthlyUsd.toFixed(2)}), so your coach is paused until next month. Ask your administrator to raise it, or connect your own OpenRouter key in Settings.`);
+      }
+      return skipped;
+    }
     if (overBudget && !replyRequired && cls !== 'followup') {
       await this.noticeOnce(athleteId, 'budget_exhausted', `Daily or monthly AI budget reached ($${dayCost.toFixed(2)} today, $${monthCost.toFixed(2)} this month). Scheduled check-ins are paused until the budget resets; replies continue on a smaller model.`);
       return skipped;
@@ -132,7 +140,7 @@ export class TurnRunner {
     if (overBudget) tier = 'fast';
     let route: ResolvedModel[];
     try {
-      route = core.deps.router.route(tier, settings.models[tier]);
+      route = core.deps.router.route(tier, settings.models[tier], { athleteId });
     } catch (e) {
       core.log.error('no model route', { athleteId, tier, error: (e as Error).message });
       if (replyRequired) await this.replyFallback(athleteId, triggers, 'No AI model is configured or reachable.');
@@ -531,7 +539,7 @@ export class TurnRunner {
     await this.core.store.setKv(key, String(touched ? 0 : n + 1));
   }
 
-  private async noticeOnce(athleteId: string, kind: 'budget_exhausted', text: string): Promise<void> {
+  private async noticeOnce(athleteId: string, kind: 'budget_exhausted' | 'allowance_exhausted', text: string): Promise<void> {
     const settings = await this.core.store.getSettings(athleteId);
     const day = epochDate(this.core.clock.now(), settings.profile.tz, '00:00');
     const key = `notice:${kind}:${athleteId}`;

@@ -12,6 +12,7 @@ import { SocketRegistry } from './http/sockets';
 import { authRoutes } from './routes/auth';
 import { clientRoutes } from './routes/client';
 import { accountRoutes } from './routes/account';
+import { aiRoutes } from './routes/ai';
 import { streamRoutes } from './routes/stream';
 import { resumableRoutes } from './routes/resumable';
 import { DEFAULT_WEB_DIST } from './paths';
@@ -51,6 +52,7 @@ export async function createGateway(deps: GatewayDeps) {
   authRoutes(app, context);
   clientRoutes(app, context);
   accountRoutes(app, context);
+  aiRoutes(app, context);
   streamRoutes(app, context);
   await resumableRoutes(app, context);
   app.setNotFoundHandler(async (request, reply) => {

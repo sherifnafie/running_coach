@@ -9,7 +9,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.131.0",
     "@opencoach/protocol": "workspace:*",
     "openai": "^7.28.0",
     "partial-json": "^0.1.7"

@@ -26,6 +26,7 @@ export type NotifyLevel = z.infer<typeof NotifyLevel>;
 export const NoticeKind = z.enum([
   'budget_warning',
   'budget_exhausted',
+  'allowance_exhausted',
   'held_quiet_hours',
   'delivery_failed',
   'safety_flag',

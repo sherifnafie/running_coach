@@ -2,10 +2,10 @@ import { SpawnLimits, type AthleteSettings, type ResolvedModel, type Tier, type 
 import type { Core } from './core';
 
 /** Configuration facts, not a claim that an external service has passed a live health check. */
-export function capabilityLines(core: Core, settings: AthleteSettings, model: ResolvedModel, tools: ToolName[]): string[] {
+export function capabilityLines(core: Core, athleteId: string, settings: AthleteSettings, model: ResolvedModel, tools: ToolName[]): string[] {
   const tiers = (['fast', 'coach', 'deep'] as Tier[]).map((tier) => {
     try {
-      const route = core.deps.router.route(tier, settings.models[tier]);
+      const route = core.deps.router.route(tier, settings.models[tier], { athleteId });
       return { tier, model: route[0] };
     } catch {
       return { tier, model: undefined };

@@ -263,4 +263,16 @@ export const MIGRATIONS: readonly string[] = [
     value TEXT NOT NULL
   );
   `,
+  // ---------------------------------------------------------------------- v2: provider credentials
+  `
+  CREATE TABLE credentials (
+    athlete_id TEXT NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    provider   TEXT NOT NULL CHECK (provider IN ('openrouter', 'openai')),
+    owner      TEXT NOT NULL CHECK (owner IN ('athlete', 'admin')),
+    ciphertext TEXT NOT NULL,
+    hint       TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (athlete_id, provider)
+  );
+  `,
 ];

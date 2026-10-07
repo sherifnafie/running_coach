@@ -77,7 +77,7 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   lines.push(
     `context: epoch ${s.epoch.localDate} #${s.epoch.seq} · pinned ${(s.pinned.tokens / 1000).toFixed(1)}k/${(s.pinned.cap / 1000).toFixed(0)}k tokens${pinnedNote ? ` (${pinnedNote})` : ''} · model ${s.model.model} (${s.model.provider.id}, ${s.model.tier} tier, vision ${s.model.capabilities.vision ? 'yes' : 'NO'})`,
   );
-  lines.push(...capabilityLines(core, s.settings, s.model, s.tools));
+  lines.push(...capabilityLines(core, s.athleteId, s.settings, s.model, s.tools));
 
   const dayCost = (await store.sumUsage(s.athleteId, localDayStartIso(now, tz))).costUsd;
   const monthCost = (await store.sumUsage(s.athleteId, localMonthStartIso(now, tz))).costUsd;

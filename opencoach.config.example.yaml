@@ -10,6 +10,11 @@ sandbox:
   provider: local
   allowUnsafe: false
 # With no model keys the scripted demo is selected automatically.
+# OPENROUTER_API_KEY alone selects the default catalog model for every tier.
+# providers:
+#   openrouter:
+#     defaultModel: deepseek/deepseek-v4.1-flash
+#     routing: { dataCollection: deny, requireParameters: true }
 # Override models.tiers to use another model or an OpenAI-compatible endpoint.
 # providers:
 #   compatible:

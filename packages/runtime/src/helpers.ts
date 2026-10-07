@@ -115,7 +115,7 @@ export class HelperManager {
     const settings = await core.store.getSettings(parent.athleteId);
     let route: ResolvedModel[];
     try {
-      route = core.deps.router.route(tier, settings.models[tier]);
+      route = core.deps.router.route(tier, settings.models[tier], { athleteId: parent.athleteId });
     } catch (e) {
       return { ok: false, code: 'NOT_CONFIGURED', message: (e as Error).message };
     }
@@ -123,7 +123,7 @@ export class HelperManager {
     if (needsVision && !route[0]?.capabilities.vision) {
       for (const t of ['fast', 'coach', 'deep'] as Tier[]) {
         try {
-          const r = core.deps.router.route(t, settings.models[t]);
+          const r = core.deps.router.route(t, settings.models[t], { athleteId: parent.athleteId });
           if (r[0]?.capabilities.vision) {
             route = r;
             break;
@@ -290,7 +290,7 @@ export class HelperManager {
             '',
             '## Your environment',
             `now: ${core.clock.now().toISOString()} · athlete local time: ${formatLocal(core.clock.now(), settings.profile.tz)} (${settings.profile.tz})`,
-            ...capabilityLines(core, settings, a.route[0]!, a.tools),
+            ...capabilityLines(core, parent.athleteId, settings, a.route[0]!, a.tools),
             '- /workspace is a private copy of the coach\'s workspace. /raw (athlete uploads), /history and /system are read-only.',
             a.writeScope.length
               ? `- Only changes to these paths will be kept: ${a.writeScope.join(', ')}. Everything else you change is discarded.`

@@ -10,7 +10,7 @@ import {
   parseCompatibleStream,
   type CompatibleClientLike,
 } from '../src/compatible';
-import { createAgentLoop } from '../src';
+import { createAgentLoop, priceFor } from '../src';
 import { baseInput, drain, fakeTools, fromArray, req, resolved, user } from './helpers';
 
 type Chunk = Parameters<typeof parseCompatibleStream>[0] extends AsyncIterable<infer E> ? E : never;
@@ -340,11 +340,12 @@ describe('compatible: errors and provider', () => {
       [chunk({ content: 'done' }, 'stop'), usageChunk({ prompt_tokens: 150, completion_tokens: 3 })],
     ]);
     const provider = createCompatibleProvider(cfg({ replayReasoningContent: true }), { client });
-    const result = await createAgentLoop().runTurn(baseInput({ route: [resolved(provider, 'deepseek-v4-pro')], tools: fakeTools({ echo: () => 'ok' }) }));
+    const price = (model: string, usage: Parameters<typeof priceFor>[1]) => priceFor(model, usage, { 'deepseek-v4-pro': { inputPerMTok: 0.5, outputPerMTok: 2, cacheReadPerMTok: 0.05 } });
+    const result = await createAgentLoop({ price }).runTurn(baseInput({ route: [resolved(provider, 'deepseek-v4-pro')], tools: fakeTools({ echo: () => 'ok' }) }));
     expect(result.stopReason).toBe('end_turn');
     expect(result.finalText).toBe('done');
-    // deepseek-v4-pro is priced (estimate): 100 in (50 cached) + 10 out, then 150 in + 3 out
-    expect(result.costUsd).toBeGreaterThan(0);
+    // priced from the table (no reported cost): 50 in + 50 cached + 10 out, then 150 in + 3 out
+    expect(result.costUsd).toBeCloseTo((50 * 0.5 + 50 * 0.05 + 10 * 2 + 150 * 0.5 + 3 * 2) / 1e6, 12);
     const body2 = client.bodies[1] as { messages: Array<Record<string, unknown>> };
     expect(body2.messages.map((m) => m.role)).toEqual(['system', 'user', 'assistant', 'tool']);
     expect(body2.messages[2]).toMatchObject({ role: 'assistant', reasoning_content: 'plan the call', tool_calls: [{ id: 'call_1' }] });

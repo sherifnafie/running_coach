@@ -51,6 +51,20 @@ export interface PasskeyRecord {
   createdAt: string;
 }
 
+/**
+ * An athlete's provider API key, encrypted at rest by the gateway [SEC-1]. `owner` says who supplied it:
+ * the athlete (bring your own key) or an administrator (a managed per-athlete key).
+ */
+export interface CredentialRecord {
+  athleteId: string;
+  provider: 'openrouter' | 'openai';
+  owner: 'athlete' | 'admin';
+  ciphertext: string;
+  /** Masked display form, e.g. "sk-or-…9a1f". Never the key. */
+  hint: string;
+  updatedAt: string;
+}
+
 export type BlobOrigin = 'athlete' | 'coach' | 'sync' | 'call' | 'system';
 
 export interface BlobRecord extends BlobRef {
@@ -227,6 +241,11 @@ export interface Store {
   listPasskeys(athleteId: string): Promise<PasskeyRecord[]>;
   getPasskey(credentialId: string): Promise<PasskeyRecord | undefined>;
   updatePasskeyCounter(credentialId: string, counter: number): Promise<void>;
+
+  // provider credentials (encrypted by the caller)
+  setCredential(r: CredentialRecord): Promise<void>;
+  listCredentials(athleteId?: string): Promise<CredentialRecord[]>;
+  deleteCredential(athleteId: string, provider: CredentialRecord['provider']): Promise<void>;
 
   // events (append-only; FTS5 over text-bearing payloads)
   appendEvent<T extends EventType>(e: NewEvent<T>): Promise<EventEnvelope<T>>;

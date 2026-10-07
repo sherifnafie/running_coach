@@ -1,8 +1,11 @@
 import { useI18n } from '../../lib/i18n';
 import { useEffect, useState } from 'react';
+import type { AiAccessSummary } from '@opencoach/protocol';
 import { Section, Spinner } from '../../components/Atoms';
 import { describeError } from '../../lib/api';
-import { admin } from '../../lib/endpoints';
+import { admin, type AdminAthlete } from '../../lib/endpoints';
+import { AiAccessPanel, KeyInput } from './AiSection';
+import { Row } from './Controls';
 
 /**
  * Admin (self-host owner / hosted operator; only shown when `me.athlete.isAdmin`).
@@ -78,11 +81,6 @@ function Block({ title, children }: { title: string; children: (open: boolean) =
   );
 }
 
-function Athletes({ open }: { open: boolean }) {
-  const s = useLoad(admin.athletes, open);
-  return s.loading ? <Spinner /> : s.error ? <p className="form-error">{s.error}</p> : <GenericTable rows={asRows(s.data, ['athletes'])} />;
-}
-
 function Costs({ open }: { open: boolean }) {
   const t = useI18n();
   const s = useLoad(admin.costs, open);
@@ -155,6 +153,62 @@ function Turns({ open }: { open: boolean }) {
   );
 }
 
+/** One person: allowance, model, managed key and account recovery [COST-1] [SEC-1]. */
+function Person({ athlete }: { athlete: AdminAthlete }) {
+  const t = useI18n();
+  const [open, setOpen] = useState(false);
+  const [summary, setSummary] = useState<AiAccessSummary | undefined>();
+  const [recovery, setRecovery] = useState<{ code: string; expiresAt: string } | undefined>();
+  const [error, setError] = useState<string | undefined>();
+  const run = async (fn: () => Promise<AiAccessSummary>) => {
+    setError(undefined);
+    try { setSummary(await fn()); } catch (e) { setError(describeError(e)); }
+  };
+  useEffect(() => { if (open && !summary) void run(() => admin.ai(athlete.id)); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="admin-block">
+      <button type="button" className="list-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <span className="list-title">{athlete.displayName}{athlete.isAdmin ? ` · ${t('admin')}` : ''}</span>
+      </button>
+      {open && (
+        <div className="admin-body">
+          {!summary ? (error ? <p className="form-error">{error}</p> : <Spinner />) : (
+            <AiAccessPanel summary={summary} canEdit onBudgets={(b) => void run(() => admin.setBudgets(athlete.id, b))} onModel={(m) => void run(() => admin.setModel(athlete.id, m))}>
+              {summary.billing === 'managed' && (
+                summary.openrouterKey?.owner === 'admin' ? (
+                  <Row label={t('Separate OpenRouter key')} hint={t('Calls for this person use this key, so its OpenRouter credit limit applies too.')}>
+                    <button type="button" className="btn small" onClick={() => void run(() => admin.removeKey(athlete.id))}>{t('Remove')}</button>
+                  </Row>
+                ) : (
+                  <KeyInput label={t('Separate OpenRouter key (optional)')} hint={t('Create a key with a credit limit at openrouter.ai for this person. Without one, the server key is used.')} onSave={(key) => run(() => admin.setKey(athlete.id, key))} />
+                )
+              )}
+              <Row label={t('Lost access?')} hint={t('A one-time code that signs this person in on a new device. Valid for 30 minutes.')}>
+                <button type="button" className="btn small" onClick={async () => {
+                  setError(undefined);
+                  try { setRecovery(await admin.recoveryCode(athlete.id)); } catch (e) { setError(describeError(e)); }
+                }}>{t('Create recovery code')}</button>
+              </Row>
+              {recovery && <p role="status" className="code-box"><code>{recovery.code}</code></p>}
+            </AiAccessPanel>
+          )}
+          {summary && error && <p className="form-error" role="alert">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function People() {
+  const t = useI18n();
+  const s = useLoad(admin.athleteList, true);
+  if (s.loading) return <Spinner />;
+  if (s.error) return <p className="form-error">{s.error}</p>;
+  const people = (s.data ?? []).filter((a) => a.status === 'active');
+  if (people.length === 0) return <p className="hint">{t('Nothing to show.')}</p>;
+  return <>{people.map((a) => <Person key={a.id} athlete={a} />)}</>;
+}
+
 function Invite() {
   const t = useI18n();
   const [code, setCode] = useState<string | undefined>();
@@ -195,7 +249,10 @@ export function AdminSection() {
   const t = useI18n();
   return (
     <Section title={t("Admin")}>
-      <Block title={t("Athletes")}>{(open) => <Athletes open={open} />}</Block>
+      <div className="admin-block">
+        <p className="list-title pad">{t("People")}</p>
+        <People />
+      </div>
       <div className="admin-block">
         <p className="list-title pad">{t("Invite someone")}</p>
         <Invite />

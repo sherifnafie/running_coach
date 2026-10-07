@@ -1,6 +1,7 @@
 /**
  * @opencoach/engine — the agent loop and provider adapters (SPEC §5.7, §5.8, Appendix C §C.6).
- * Adapters are written directly on official SDKs (docs/adr/0001-provider-adapters.md).
+ * Chat models go through OpenRouter (docs/adr/0006-openrouter-only-chat.md); other OpenAI-compatible
+ * endpoints use the compatible adapter. Both are written on the official `openai` SDK.
  *
  * Signatures of the original stub are final. Additions are optional parameters / extra exports only.
  */
@@ -11,10 +12,9 @@ export { createAgentLoop, MAX_TOKENS_NOTE } from './loop';
 export type { AgentLoopOptions } from './loop';
 
 // providers
-export { createAnthropicProvider } from './anthropic';
-export type { AnthropicProviderOptions, AnthropicClientLike } from './anthropic';
-export { createOpenAIProvider } from './openai';
-export type { OpenAIProviderOptions, OpenAIClientLike } from './openai';
+export { createOpenRouterProvider } from './openrouter';
+export type { OpenRouterProviderOptions, OpenRouterProviderDeps } from './openrouter';
+export { DEFAULT_OPENROUTER_CATALOG, DEFAULT_OPENROUTER_MODEL } from './openrouter-catalog';
 export { createCompatibleProvider } from './compatible';
 export { createImageProvider } from './image-generation';
 export type { CompatibleClientLike, CompatibleProviderDeps } from './compatible';
@@ -25,8 +25,9 @@ export type { ScriptedStep, ScriptHandler, ScriptedProviderOptions, ScriptedProv
 export { demoCoachHandler } from './demo';
 
 // routing & pricing
-export { DEFAULT_PRICES, priceFor } from './pricing';
+export { DEFAULT_PRICES, lookupPricing, priceFor } from './pricing';
 export { createModelRouter } from './router';
+export type { ModelRouterOptions } from './router';
 
 // streaming helpers
 export { partialSendMessageText } from './partial';

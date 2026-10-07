@@ -24,7 +24,8 @@ Settings come from YAML (`OPENCOACH_CONFIG`, see `opencoach.config.example.yaml`
 | `PUBLIC_URL`, `VIEWS_URL` | Browser-facing origins of the app and the views; they must differ |
 | `OPENCOACH_TRUST_PROXY` | `true`, or trusted proxy addresses (`loopback`, `10.0.0.0/8`), when a reverse proxy or tunnel fronts the server. Without it, all clients share the proxy's rate-limit bucket. |
 | `OPENCOACH_DEMO` | `1` for the scripted demo coach |
-| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY` | Pick default models for that provider |
+| `OPENROUTER_API_KEY` | Chat models (all tiers default to the catalog's default model) |
+| `OPENAI_API_KEY` | Voice only: speech-to-text, text-to-speech, calls |
 | `BRAVE_API_KEY`, `TAVILY_API_KEY`, `SEARXNG_URL` | Web search for the coach |
 | `TELEGRAM_BOT_TOKEN`, `OPENCOACH_ADMIN_TOKEN` | Telegram channel; bearer token for `/admin/*` |
 | `OPENCOACH_SANDBOX`, `OPENCOACH_ALLOW_UNSAFE_SANDBOX` | `local` (default) or `docker`; unsafe fallback for development only |
@@ -32,9 +33,37 @@ Settings come from YAML (`OPENCOACH_CONFIG`, see `opencoach.config.example.yaml`
 
 ### Models
 
-With one provider key and no `models` section, the server picks default tiers for that provider. With no keys and no explicit models, it runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes. Set `models.pricing` for models the server doesn't know, otherwise their cost counts as zero against budgets.
+Chat models go through [OpenRouter](https://openrouter.ai) with one key (ADR 0006). Set `OPENROUTER_API_KEY` and leave `models` out: every tier uses the default model of the built-in catalog (DeepSeek V4.1 Flash; low effort for conversation, high for deep work). With no key and no explicit models, the server runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes.
 
-**OpenCode GO:** use `opencoach.config.opencode-go.example.yaml` and supply `OPENCODE_GO_API_KEY`. It runs DeepSeek V4.1 Flash on all tiers through the compatible provider, with thinking enabled, low effort for conversation and high effort for deep work. Vision is off because this is the text model; add a vision-capable route before relying on screenshot reading. In Compose, mount the YAML read-only and set `OPENCOACH_CONFIG` (see the comments in `docker-compose.yml`).
+The catalog lists the models the settings picker offers, with their capabilities and fallback prices. OpenRouter reports what each call cost, and that amount counts against budgets. The defaults:
+
+| Model | Why |
+|---|---|
+| `deepseek/deepseek-v4.1-flash` (default) | Fastest and cheapest (~$0.01 per chat turn in this harness), reads screenshots. Guesses more than the others when it does not know. |
+| `z-ai/glm-5.3-flash` | Similar cost, by far the lowest hallucination rate in its class; slower replies. |
+| `xiaomi/mimo-v2.6-pro` | Strongest reasoning on a budget; slow to start answering. |
+| `google/gemini-3.8-flash` | Fast all-rounder, best screenshot reading; about 5x the default cost. |
+| `openai/gpt-6.1-sol` | Premium knowledge and quick replies; about 10x the default cost. |
+
+Override the list with `providers.openrouter.models` and the default with `providers.openrouter.defaultModel`. Provider routing defaults to `dataCollection: deny` (no hosts that store or train on prompts) and `requireParameters: true`; the default model pins fp8-or-better hosts so prompt caching keeps hitting. Set `routing` for stricter rules, e.g. `zdr: true`.
+
+```yaml
+providers:
+  openrouter:
+    defaultModel: deepseek/deepseek-v4.1-flash
+    routing: { dataCollection: deny, requireParameters: true }
+```
+
+Other OpenAI-compatible endpoints (Ollama, vLLM, OpenCode GO) still work under `providers.compatible` with explicit `models.tiers`; set `models.pricing` for them, otherwise their cost counts as zero against budgets.
+
+### Who pays: managed and own keys
+
+Each person is either *managed* or brings their own key. Both show in Settings → AI and costs.
+
+- **Managed** (default): calls use the server's OpenRouter key, or a separate key you assign to that person in Settings → Admin → People. A separate key can carry its own credit limit in the OpenRouter dashboard. Only an administrator can change a managed person's budgets and model, and the **monthly budget is a hard allowance**: once it is used up the coach pauses until next month and says so.
+- **Own key**: the person clicks *Connect OpenRouter* (OAuth sign-in at OpenRouter) or pastes a key. They choose their model and set their own budgets; OpenRouter enforces any limit they put on the key. Disconnecting returns them to managed.
+
+Keys are encrypted at rest with `<dataDir>/secrets/credentials.key` (keep it with the data directory; without it stored keys cannot be read), shown only as a masked hint, never passed to sandboxes or exports, and deleted with the account. Voice always uses the server's OpenAI key for now.
 
 **MCP servers** are configured under `mcp.servers`. Their tools appear to the coach as `mcp__<server>__<tool>`, and their output is treated as untrusted. Tools can be allowlisted; helper access is off by default.
 
@@ -94,6 +123,28 @@ Phones only allow microphone access over HTTPS. If speech isn't configured, the 
 Views run in `<iframe sandbox="allow-scripts">` on the views origin with a restrictive CSP. Their data access goes through the gateway, which enforces each view's manifest. Without Chromium, the coach can't preview or publish view changes, but the existing views keep working.
 
 Browser sessions use an HttpOnly cookie. State-changing requests need the app `Origin` and a session-bound `X-CSRF-Token` (the PWA handles this; other clients can get one from `GET /v1/auth/csrf`, or use a bearer session). Push uses VAPID keys in `<dataDir>/secrets/vapid.json`; keep that file across upgrades, and set `push.vapidSubject` to your contact address. Large uploads can resume over Tus at `/v1/uploads/resumable`.
+
+## Small home instance
+
+For a few people on one always-on machine, keep the live instance apart from any development checkout. `ops/` has what that needs:
+
+- `ops/opencoach.service`: systemd user unit running `~/opencoach-prod/app` with `~/opencoach-prod/opencoach.env` (mode 0600; put `OPENROUTER_API_KEY` and the other variables there) and data in `~/opencoach-prod/data`. Run `loginctl enable-linger $USER` so it runs without a login session.
+- `ops/deploy.sh <ref>`: fetches the ref into the production clone, takes a backup, stops, installs, builds and restarts. If the build fails, it rolls back to the previous commit. The first run needs `OPENCOACH_SOURCE=/path/to/repo`.
+- `ops/backup.sh` with `ops/opencoach-backup.{service,timer}`: a nightly consistent snapshot (SQLite through the online backup API) to `~/opencoach-prod/backups`, keeping 14. Set `OPENCOACH_BACKUP_DIR` in `~/opencoach-prod/backup.env` to an external disk or a synced folder; backups hold health data and `secrets/`.
+
+Published view versions record their directory as an absolute path, so moving a data directory needs `UPDATE ui_versions SET dir = replace(dir, '<old>/', '<new>/')` in `system.db` while the server is stopped.
+
+**Reaching it from phones without a domain:** Tailscale Funnel publishes a node on its `*.ts.net` name over HTTPS, terminating TLS on your machine. Funnel allows ports 443, 8443 and 10000; use two of them for the two origins:
+
+```sh
+sudo tailscale set --operator=$USER   # once
+tailscale funnel --bg --https=8443 http://127.0.0.1:8080
+tailscale funnel --bg --https=10000 http://127.0.0.1:8081
+```
+
+Then set `PUBLIC_URL=https://<node>.ts.net:8443`, `VIEWS_URL=https://<node>.ts.net:10000` and `OPENCOACH_TRUST_PROXY=loopback`. A Cloudflare Tunnel on two subdomains of your own domain works the same way.
+
+**Accounts:** the first account is the administrator. Invite others from Settings → Admin; each invite code works once for 24 hours. Ask everyone to add a passkey (synced by their phone's password manager). If someone loses every signed-in device, Settings → Admin → People → *Create recovery code* gives a 30-minute code they enter as the pairing code on the sign-in screen. As administrator you can read everyone's coaching transcripts through the admin tools; tell them.
 
 ## Sandboxes
 

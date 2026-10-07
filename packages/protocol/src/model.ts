@@ -47,17 +47,21 @@ export interface Usage {
   cachedInputTokens: number; // cache reads
   cacheWriteTokens: number;
   outputTokens: number;
+  /** Amount the provider reports it charged for this call (USD), when it reports one (OpenRouter). Preferred over price-table estimates. */
+  costUsd?: number;
 }
 
 export const ZERO_USAGE: Usage = { inputTokens: 0, cachedInputTokens: 0, cacheWriteTokens: 0, outputTokens: 0 };
 
 export function addUsage(a: Usage, b: Usage): Usage {
-  return {
+  const sum: Usage = {
     inputTokens: a.inputTokens + b.inputTokens,
     cachedInputTokens: a.cachedInputTokens + b.cachedInputTokens,
     cacheWriteTokens: a.cacheWriteTokens + b.cacheWriteTokens,
     outputTokens: a.outputTokens + b.outputTokens,
   };
+  if (a.costUsd !== undefined || b.costUsd !== undefined) sum.costUsd = (a.costUsd ?? 0) + (b.costUsd ?? 0);
+  return sum;
 }
 
 export type StopReason = 'end_turn' | 'tool_use' | 'max_tokens' | 'refusal' | 'pause' | 'other';
@@ -73,7 +77,7 @@ export type ModelStreamEvent =
   | { type: 'message_end'; stopReason: StopReason; usage: Usage; item: AssistantItem; refusalCategory?: string };
 
 export interface ModelProvider {
-  /** e.g. "anthropic", "openai", "deepseek", "scripted" */
+  /** e.g. "openrouter", "ollama", "scripted" */
   readonly id: string;
   capabilities(model: string): ModelCapabilities;
   /** Stream one model call. Throws ProviderError on failure. */
@@ -135,9 +139,12 @@ export interface ResolvedModel {
 }
 
 export interface ModelRouter {
-  /** Primary first, then fallbacks. Throws if the tier cannot be resolved. */
-  route(tier: Tier, override?: TierConfig): ResolvedModel[];
-  /** USD cost of a usage record for a model (0 if unknown pricing). */
+  /**
+   * Primary first, then fallbacks. Throws if the tier cannot be resolved. With `scope`, providers bound to that
+   * athlete's own credentials are used where they exist (bring-your-own or managed per-athlete keys).
+   */
+  route(tier: Tier, override?: TierConfig, scope?: { athleteId: string }): ResolvedModel[];
+  /** USD cost of a usage record: the provider-reported charge when present, else the price-table estimate (0 if unknown). */
   cost(model: string, usage: Usage): number;
   /** Providers registered (for diagnostics / settings UI). */
   providers(): string[];
