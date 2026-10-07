@@ -27,6 +27,38 @@ export function parseToolInput(raw: string): { input: unknown; valid: boolean } 
   return { input: { [INVALID_TOOL_INPUT_KEY]: raw }, valid: false };
 }
 
+const PARAMETER_TAG = /<parameter\s+name="([^"]+)"\s*>([\s\S]*?)(?=<\/parameter>|<parameter\s+name=|$)/g;
+const TRAILING_CLOSERS = /(?:\s*<\/(?:parameter|invoke|function_calls|tool_call)>)+\s*$/;
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Some models (seen with DeepSeek V4.1 Flash through OpenRouter) slip into an XML tool syntax halfway through a JSON
+ * tool call, so one string argument swallows the rest of the call:
+ * `{"text": "Hi!</text>\n<parameter name=\"ui\">{\"quick_replies\": [...]}"}`.
+ * Split such tails back into the arguments they were meant to be. Values are parsed as JSON when they parse, else kept
+ * as strings; an argument the call already sets is never overwritten. Anything else is returned unchanged.
+ */
+export function repairLeakedParameters(input: Record<string, unknown>): Record<string, unknown> {
+  let out = input;
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value !== 'string' || !value.includes('<parameter')) continue;
+    const m = value.match(new RegExp(`^([\\s\\S]*?)(?:</${escapeRegExp(key)}>)?\\s*(<parameter\\s+name="[^"]+"\\s*>[\\s\\S]*)$`));
+    if (!m) continue;
+    const recovered: Record<string, unknown> = {};
+    for (const [, name, raw] of m[2]!.matchAll(PARAMETER_TAG)) {
+      if (!name || name in input || name in recovered) continue;
+      const text = raw!.replace(TRAILING_CLOSERS, '').trim();
+      try {
+        recovered[name] = JSON.parse(text);
+      } catch {
+        recovered[name] = text;
+      }
+    }
+    out = { ...out, ...recovered, [key]: m[1]!.trimEnd() };
+  }
+  return out;
+}
+
 export function errorMessage(e: unknown): string {
   if (e instanceof Error) return e.message || e.name;
   if (typeof e === 'string') return e;

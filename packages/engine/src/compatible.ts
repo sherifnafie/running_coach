@@ -14,7 +14,7 @@ import {
   type Usage,
 } from '@opencoach/protocol';
 import { abortError, httpInfoFromSdkError, isAbortError, providerErrorFromHttp } from './errors';
-import { dataUrl, errorMessage, isRecord, parseToolInput, stringifyInput, textOfParts } from './util';
+import { dataUrl, errorMessage, isRecord, parseToolInput, repairLeakedParameters, stringifyInput, textOfParts } from './util';
 
 /**
  * Any OpenAI-compatible Chat Completions endpoint (OpenRouter, Ollama, vLLM, ...) on the official `openai`
@@ -268,8 +268,9 @@ export async function* parseCompatibleStream(chunks: AsyncIterable<Chunk>, ctx: 
     if (!acc.started) continue; // never got a name: garbage
     const parsed = parseToolInput(acc.args);
     if (truncated && !parsed.valid) continue; // cut off by the output limit: dropped, no tool_call_end
-    yield { type: 'tool_call_end', id: acc.id, name: acc.name, input: parsed.input };
-    parts.push({ type: 'tool_call', id: acc.id, name: acc.name, input: parsed.input });
+    const input = parsed.valid ? repairLeakedParameters(parsed.input as Record<string, unknown>) : parsed.input;
+    yield { type: 'tool_call_end', id: acc.id, name: acc.name, input };
+    parts.push({ type: 'tool_call', id: acc.id, name: acc.name, input });
   }
 
   const hasCalls = parts.some((p) => p.type === 'tool_call');
