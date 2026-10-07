@@ -8,7 +8,7 @@ import { aiApi, settingsApi } from '../../lib/endpoints';
 import { useI18n } from '../../lib/i18n';
 import { lsSet } from '../../lib/storage';
 import { useStore } from '../../lib/store';
-import { NumberRow, Row, SelectRow } from './Controls';
+import { NumberRow, Row, SelectRow, useCommit } from './Controls';
 
 const usd = (n: number) => `$${n.toFixed(n < 10 ? 2 : 0)}`;
 
@@ -68,7 +68,25 @@ export function KeyInput({ label, hint, onSave }: { label: string; hint: string;
   );
 }
 
+/** Servers without OpenRouter (demo, other endpoints): plain spending limits, as before. */
+function BudgetOnlySection() {
+  const t = useI18n();
+  const budgets = useStore(appStore, (s) => s.me!.settings.budgets);
+  const save = useCommit();
+  return (
+    <Section title={t("Spending limits")} hint={t("Caps on what your coach may spend on AI each day and month. When a limit is reached your coach pauses.")}>
+      <NumberRow label={t("Daily limit")} unit="USD" value={budgets.dailyUsd} min={0} max={1000} step={0.5} onCommit={(v) => save({ budgets: { dailyUsd: v } })} />
+      <NumberRow label={t("Monthly limit")} unit="USD" value={budgets.monthlyUsd} min={0} max={10000} step={1} onCommit={(v) => save({ budgets: { monthlyUsd: v } })} />
+    </Section>
+  );
+}
+
 export function AiSection() {
+  const hasModels = useStore(appStore, (s) => !!s.me?.features.models);
+  return hasModels ? <ModelAccessSection /> : <BudgetOnlySection />;
+}
+
+function ModelAccessSection() {
   const t = useI18n();
   const isAdmin = useStore(appStore, (s) => !!s.me?.athlete.isAdmin);
   const [summary, setSummary] = useState<AiAccessSummary | undefined>();
