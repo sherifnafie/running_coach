@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Icon } from '../components/Icon';
+import { CoachAvatar } from '../components/CoachAvatar';
 import { useTick } from '../components/Atoms';
 import { appStore } from '../lib/appState';
 import { callStore, endCall, isCallActive, pttCancel, pttEnd, pttStart, resetCall, setHandsFree, startCall, toggleMute, toggleSpeaker } from '../lib/calls';
@@ -79,9 +80,7 @@ export function CallScreen() {
   return (
     <div className="call" role="region" aria-label="Call">
       <div className="call-body">
-        <div className={`call-avatar ${call.agent}${live ? ' live' : ''}`} aria-hidden="true">
-          {coachName.slice(0, 1).toUpperCase()}
-        </div>
+        <CoachAvatar key={me?.athlete.id} className={`call-avatar ${call.agent}${live ? ' live' : ''}`} name={coachName} sha256={me?.settings.coachIdentity?.avatarSha256} />
         <h2>{coachName}</h2>
         <p className="call-status" role="status" aria-live="polite">
           {call.phase === 'error' ? 'Call failed' : status}

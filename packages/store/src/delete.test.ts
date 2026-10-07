@@ -155,6 +155,7 @@ describe('deleteAthlete', () => {
       'view-token:ath_1', 'app-manifest:ath_1', 'harness-version:ath_1', 'last-head:ath_1',
       'turns-since-pinned-write:ath_1', 'notice:budget_exhausted:ath_1', 'telegram-athlete:ath_1',
       'epoch-system:ep_ath_1', 'export:ath_1:job_one', 'upload-drafts:ath_1', 'upload-draft:ath_1:job_one',
+      'image-attempt:ath_1:turn:call',
     ];
     for (const key of owned) await store.setKv(key, 'private');
     await store.setKv('view-token-rev:gone_token', 'ath_1');
@@ -163,7 +164,7 @@ describe('deleteAthlete', () => {
     for (const key of ['message:ath_1:client', 'tool:ath_1:turn_ath_1:tool', 'msg:turn_ath_1:tool']) {
       await store.putIdempotent(key, { text: 'private health message' }, expiry);
     }
-    const kept = ['view-token:ath_10', 'app-manifest:athX1', 'epoch-system:ep_ath_10', 'export:ath_10:job', 'notice:budget_exhausted:ath_10', 'telegram-offset'];
+    const kept = ['view-token:ath_10', 'app-manifest:athX1', 'epoch-system:ep_ath_10', 'export:ath_10:job', 'notice:budget_exhausted:ath_10', 'telegram-offset', 'image-attempt:ath_10:turn:call'];
     for (const key of kept) await store.setKv(key, 'keep');
     await store.setKv('view-token-rev:kept_token', 'ath_10');
     await store.setKv('telegram-chat:456', 'ath_10');

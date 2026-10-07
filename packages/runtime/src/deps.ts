@@ -5,6 +5,7 @@ import type {
   DeliveryHook,
   Logger,
   ModelRouter,
+  ImageProvider,
   SafetyScreen,
   SandboxProvider,
   ServerConfig,
@@ -34,6 +35,7 @@ export interface CoachRuntimeDeps {
   webSearch?: WebSearchBackend;
   safety?: SafetyScreen;
   synthesizer?: Synthesizer;
+  imageProvider?: ImageProvider;
   delivery?: DeliveryHook;
   /** Tests/evals: don't run the background scheduler loop; call tickScheduler() explicitly. */
   manualScheduler?: boolean;

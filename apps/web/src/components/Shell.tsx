@@ -12,6 +12,7 @@ import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { MissingView, ViewScreen } from '../screens/ViewScreen';
 import { Icon } from './Icon';
 import { SafetyBanner } from './SafetyBanner';
+import { CoachAvatar } from './CoachAvatar';
 
 /**
  * The shell (SPEC §9.1, P9): harness-owned chrome that always works whatever the coach publishes. Chat is first and
@@ -108,9 +109,7 @@ function Header({ route, viewTitle }: { route: Route; viewTitle?: string }) {
     return (
       <header className="app-header">
         <div className="coach-id">
-          <span className="avatar" aria-hidden="true">
-            {coachName.slice(0, 1).toUpperCase()}
-          </span>
+          <CoachAvatar key={me?.athlete.id} name={coachName} sha256={me?.settings.coachIdentity?.avatarSha256} />
           <div>
             <h1>{coachName}</h1>
             <p className={`presence${sub ? ' on' : ''}`} role="status" aria-live="polite">

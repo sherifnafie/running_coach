@@ -33,7 +33,7 @@ export type { MountedFsOptions } from './types';
 export { createMountedFS } from './mounted-fs';
 export { createFsBlobStore } from './blobs';
 export { extForMime, baseMime } from './mime';
-export { stripImageLocation, prepareImageForModel } from './images';
+export { stripImageLocation, prepareImageForModel, prepareCoachAvatar } from './images';
 
 // ---- export / import / delete
 export { exportAthlete, importAthlete, deleteAthleteData } from './export';

@@ -33,3 +33,13 @@ push:
 #       url: https://your-mcp-server.example/mcp
 #       allowTools: [search]
 #       helpers: false
+
+# Optional: independent image generation for athlete-requested coach avatars.
+# See docs/self-hosting.md. Use a dedicated provider key and a conservative
+# cost estimate; this example amount is not provider pricing.
+# imageGeneration:
+#   provider: google
+#   model: gemini-3.1-flash-image
+#   apiKeyEnv: OPENCOACH_IMAGE_API_KEY
+#   costPerImageUsd: 0.25
+#   timeoutMs: 120000

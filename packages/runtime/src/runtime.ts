@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { avatarFor } from './identity';
 import {
   COACH_TOOLS,
   CLIENT_SUBMITTABLE_TYPES,
@@ -243,6 +244,13 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
 
   async updateSettings(athleteId: string, patch: unknown): Promise<AthleteSettings> {
     const core = this.core;
+    // Validate/sanitize image ownership before any setting is persisted [SEC-4].
+    const identity = (patch as { coachIdentity?: { avatarSha256?: unknown } } | null)?.coachIdentity;
+    if (identity?.avatarSha256 !== undefined) {
+      if (identity.avatarSha256 !== null && (typeof identity.avatarSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(identity.avatarSha256))) throw new ToolError('INVALID_INPUT', 'Invalid avatar blob reference.');
+      const avatarSha256 = await avatarFor(core, athleteId, identity.avatarSha256);
+      patch = { ...(patch as object), coachIdentity: { ...identity, avatarSha256 } };
+    }
     const { settings, diff } = await core.store.updateSettings(athleteId, patch);
     const keys = Object.keys(diff);
     if (keys.length) {

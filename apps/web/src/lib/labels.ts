@@ -1,5 +1,11 @@
 /** Shell-only labels are excluded from the isolated-view kit bundle. */
 export const shellLabels: Record<string, [string, string]> = {
+  "Coach avatar": ["Coachavatar", "صورة المدرب"],
+  "Reset avatar": ["Avatar herstellen", "إعادة ضبط الصورة"],
+  "Let my coach change its name and avatar": ["Laat mijn coach de naam en avatar veranderen", "السماح لمدربي بتغيير اسمه وصورته"],
+  "Optional. Ask in chat for a name or image; turn this off at any time.": ["Optioneel. Vraag in de chat om een naam of afbeelding; je kunt dit altijd uitschakelen.", "اختياري. اطلب اسمًا أو صورة في الدردشة؛ يمكنك إيقافه في أي وقت."],
+  "Avatar generation uses a separate image service and counts toward your AI budget. Only the visual prompt is sent.": ["Avatars maken gebruikt een aparte afbeeldingsdienst en telt mee voor je AI-budget. Alleen de beeldbeschrijving wordt verstuurd.", "تستخدم الصور خدمة منفصلة وتُحتسب ضمن ميزانية الذكاء الاصطناعي. يُرسل وصف الصورة فقط."],
+  "Image generation is not configured. Your coach can still change its name when allowed.": ["Afbeeldingen maken is niet ingesteld. Je coach kan wel de naam veranderen als je dit toestaat.", "إنشاء الصور غير مُعدّ. يمكن لمدربك تغيير اسمه إذا سمحت بذلك."],
   "Main": ["Hoofdnavigatie", "التنقل الرئيسي"],
   "Your running coach": ["Je hardloopcoach", "مدربك للجري"],
   "Back to chat": ["Terug naar chat", "العودة إلى الدردشة"],

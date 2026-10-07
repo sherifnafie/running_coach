@@ -13,6 +13,7 @@ import {
   type PreviewReport,
   type ModelCapabilities,
   type WebSearchBackend,
+  type ImageProvider,
 } from '@opencoach/protocol';
 import { createAgentLoop, createModelRouter, createScriptedProvider, type ScriptHandler, type ScriptedStep } from '@opencoach/engine';
 import { createLocalSandboxProvider } from '@opencoach/sandbox';
@@ -80,7 +81,7 @@ export function send(text: string, extra: Record<string, unknown> = {}): Scripte
   return { toolCalls: [{ name: 'send_message', input: { text, ...extra } }] };
 }
 
-export async function makeHarness(opts: { start?: string; renderer?: UiRenderer | null; webSearch?: WebSearchBackend; capabilities?: Partial<ModelCapabilities>; config?: Record<string, unknown> } = {}): Promise<Harness> {
+export async function makeHarness(opts: { start?: string; renderer?: UiRenderer | null; webSearch?: WebSearchBackend; imageProvider?: ImageProvider; capabilities?: Partial<ModelCapabilities>; config?: Record<string, unknown> } = {}): Promise<Harness> {
   const dataDir = await mkdtemp(join(tmpdir(), 'oc-rt-'));
   const clock = new VirtualClock(opts.start ?? '2026-10-07T08:00:00Z');
   const store = await openSqliteStore({ path: ':memory:', clock });
@@ -107,6 +108,7 @@ export async function makeHarness(opts: { start?: string; renderer?: UiRenderer 
     kitDir: join(REPO, 'packages/ui-kit/dist'),
     renderer: opts.renderer === null ? undefined : opts.renderer ?? passRenderer,
     webSearch: opts.webSearch,
+    imageProvider: opts.imageProvider,
     manualScheduler: true,
   });
   await runtime.start();

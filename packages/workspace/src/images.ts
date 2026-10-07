@@ -15,6 +15,15 @@ const REENCODE: Record<string, 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'
   'image/gif': 'gif',
 };
 
+/** Validate raster bytes, crop for the shell and strip metadata [UI-1] [SEC-1]. */
+export async function prepareCoachAvatar(data: Uint8Array): Promise<Uint8Array> {
+  if (!data.length || data.length > 8 * 1024 * 1024) throw new Error('Avatar must be a raster image of at most 8 MiB.');
+  const image = sharp(data, { limitInputPixels: 16_777_216, failOn: 'error' });
+  const metadata = await image.metadata();
+  if (!['png', 'jpeg', 'webp'].includes(metadata.format ?? '') || (metadata.pages ?? 1) > 1) throw new Error('Avatar must be a still PNG, JPEG or WebP image.');
+  return toUint8(await image.rotate().resize(512, 512, { fit: 'cover' }).png().toBuffer());
+}
+
 function toUint8(b: Buffer): Uint8Array {
   return new Uint8Array(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
 }

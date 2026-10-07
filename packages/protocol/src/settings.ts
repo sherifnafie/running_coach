@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Effort, IsoDateTime, LocalTime, Units } from './common';
+import { Effort, IsoDateTime, LocalTime, Sha256, Units } from './common';
 
 /**
  * Per-athlete settings (harness-owned, athlete-configurable). SPEC §5.5, §13, §16.
@@ -23,6 +23,8 @@ export const PresentationPatch = z.object({
   locale: Locale.optional(),
   theme: z.enum(['system', 'light', 'dark']).optional(),
   accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  coach_name: z.string().trim().min(1).max(40).optional(),
+  coach_avatar_sha256: Sha256.nullable().optional().describe('An owned generated/uploaded raster blob; null restores initials.'),
 }).strict().refine((value) => Object.keys(value).length > 0, 'Choose at least one preference');
 export type PresentationPatch = z.infer<typeof PresentationPatch>;
 
@@ -37,6 +39,10 @@ export const AthleteSettings = z.object({
     })
     .prefault({}),
   appearance: Appearance.prefault({}),
+  coachIdentity: z.object({
+    allowChanges: z.boolean().default(false),
+    avatarSha256: Sha256.nullable().default(null),
+  }).prefault({}),
   notifications: z
     .object({
       quietHours: QuietHours.nullable().default({ start: '22:00', end: '07:00' }),

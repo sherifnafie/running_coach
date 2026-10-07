@@ -6,6 +6,7 @@ import { describeError } from '../../lib/api';
 import { appStore, type ThemePref } from '../../lib/appState';
 import { signOut, toast, updateSettings } from '../../lib/controller';
 import { Icon } from '../../components/Icon';
+import { CoachAvatar } from '../../components/CoachAvatar';
 import { clock } from '../../lib/clock';
 import { auth, settingsApi } from '../../lib/endpoints';
 import { formatDuration, localDayKey, toDateInputValue } from '../../lib/format';
@@ -99,10 +100,17 @@ function ProfileSection() {
   const t = useI18n();
   const s = useSettings();
   const save = useCommit();
+  const imageGeneration = useStore(appStore, state => state.me?.features.imageGeneration);
   return (
     <Section title={t("Profile")}>
       <TextRow label={t("Your name")} value={s.profile.name} maxLength={80} autoComplete="name" onCommit={(v) => save({ profile: { name: v } })} />
       <TextRow label={t("Coach name")} value={s.profile.coachName} maxLength={40} onCommit={(v) => save({ profile: { coachName: v } })} />
+      <Row label={t("Coach avatar")}>
+        <CoachAvatar name={s.profile.coachName} sha256={s.coachIdentity?.avatarSha256} />
+        {s.coachIdentity?.avatarSha256 && <button type="button" className="btn" onClick={() => void save({ coachIdentity: { avatarSha256: null } })}>{t('Reset avatar')}</button>}
+      </Row>
+      <Toggle label={t("Let my coach change its name and avatar")} hint={t("Optional. Ask in chat for a name or image; turn this off at any time.")} checked={s.coachIdentity?.allowChanges ?? false} onChange={(allowChanges) => void save({ coachIdentity: { allowChanges } })} />
+      <p className="section-hint">{t(imageGeneration ? 'Avatar generation uses a separate image service and counts toward your AI budget. Only the visual prompt is sent.' : 'Image generation is not configured. Your coach can still change its name when allowed.')}</p>
       <SelectRow
         label={t("Units")}
         value={s.profile.units}

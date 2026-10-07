@@ -73,6 +73,7 @@ export const ToolInputs = {
   cancel_schedule: z.object({ id: z.string() }),
   set_heartbeat: z.object({ time: LocalTime.optional(), enabled: z.boolean().optional() }),
   set_preferences: PresentationPatch,
+  generate_image: z.object({ prompt: z.string().trim().min(1).max(2000) }).strict(),
   spawn_agent: z.object({
     task: z.string().min(1).max(20_000),
     profile: z.string().max(64).optional().describe('Helper profile name in /workspace/agents/<profile>.md'),
@@ -112,6 +113,7 @@ export const COACH_TOOLS: ToolName[] = [
   'read', 'write', 'edit', 'glob', 'grep', 'bash',
   'send_message', 'no_reply',
   'schedule', 'list_schedules', 'cancel_schedule', 'set_heartbeat', 'set_preferences',
+  'generate_image',
   'spawn_agent', 'task_status', 'cancel_task',
   'preview_ui', 'publish_ui', 'rollback_ui',
   'web_search', 'web_fetch', 'search_history',
@@ -278,7 +280,8 @@ export interface ToolContext {
   scheduler: SchedulerPort;
   helpers: HelperPort;
   ui: UiPort;
-  preferences?: { update(input: import('./settings').PresentationPatch): Promise<{ locale: string; theme: string; accent: string | null }> };
+  preferences?: { update(input: import('./settings').PresentationPatch): Promise<{ locale: string; theme: string; accent: string | null; coachName?: string; coachAvatarSha256?: string | null }> };
+  images?: { generate(prompt: string, signal: AbortSignal): Promise<import('./common').BlobRef> };
   web: WebPort;
   history: HistoryPort;
   voice?: VoiceCallPort;

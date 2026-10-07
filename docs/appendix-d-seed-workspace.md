@@ -278,6 +278,8 @@ Others (front-matter plus a 5–15 line brief each):
 
 ## D.6 First-party skills (`/system/skills`, read-only)
 
+`/system/skills/coach-identity/SKILL.md` is indexed with the other skills and read only for a relevant athlete request. It explains name/avatar permission, private generated blobs, preview versus application, text-only limitations, budgets and failure handling. It must not become an intake or scheduled-contact workflow. See SPEC §9.5.1 and the self-hosting image configuration. Existing workspace persona files and views are preserved; the current settings identity is reported every turn.
+
 All skills follow the Agent Skills format. Each is **knowledge plus suggested procedure, with evidence notes**, and invites adaptation. Contents outlines:
 
 The implementation also ships a `research` skill: depth selection, source retrieval and verification, privacy, uncertainty, bounded delegation and persistent cited reports. `/system/docs/opencoach.md` explains the actual product and ownership boundaries. Runtime reports state configured services and model/vision routes; mentioning a feature in these documents is not proof that it is available in a deployment.

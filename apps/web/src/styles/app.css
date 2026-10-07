@@ -464,7 +464,9 @@ input[aria-invalid='true'] {
   color: var(--rc-on-accent);
   font-weight: 700;
   flex: none;
+  overflow: hidden;
 }
+.avatar img, .call-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .presence {
   margin: 0;
   font-size: 0.82rem;

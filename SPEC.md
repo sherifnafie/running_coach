@@ -558,7 +558,8 @@ Kept deliberately small (P7). Full contracts, parameters and errors are in Appen
 | `send_message` | The only channel to the athlete (§5.4) | Runtime | Policy engine; idempotency |
 | `no_reply` | Explicitly end a reactive turn without replying, with a reason | Runtime | Reactive turns only |
 | `schedule`, `list_schedules`, `cancel_schedule`, `set_heartbeat` | Self-wakes and the heartbeat time (§5.5) | Runtime | ≤ 50 active; minimum interval 15 min; timezone-aware RRULE |
-| `set_preferences` | Persistent locale, theme and accent requested by the athlete [UI-1] | Runtime | Coach only; strict presentation-only schema; audited; no consent, privacy, budget, security or delivery changes |
+| `set_preferences` | Requested locale, theme, accent and optional coach name/avatar [UI-1] | Runtime | Coach only; strict schema; identity requires athlete opt-in and chat turn; owned raster blobs only; audited; no permission, consent, privacy, budget, security or delivery changes |
+| `generate_image` | One requested square image through an optional independent image service [MOD-1] | Trusted runtime | Coach only; athlete identity opt-in and chat turn; budgets include conservative attempt cost; no automatic retries; private blob; no automatic send/apply |
 | `spawn_agent`, `task_status`, `cancel_task` | Helpers and background tasks (§5.6) | Runtime | Depth, concurrency and budget limits |
 | `preview_ui`, `publish_ui`, `rollback_ui` | Validate, screenshot, publish and revert views (§9.6) | Runtime + sandbox Chromium | Validation gates |
 | `web_search`, `web_fetch` | Research: weather, races, literature | Runtime (proxied) | Rate limits; results marked untrusted; logged |
@@ -655,6 +656,14 @@ The bridge provides: `coach.db.query(sql, params)` (read-only connection, row ca
 ### 9.5 App manifest
 
 `ui/app.json` defines the nav order, the home view and the theme accent. Persisted athlete appearance preferences can override the accent and choose system/light/dark; Settings and the coach presentation tool update them across devices. The shell renders the nav from it. `[UI-2]` The shell MUST keep chat reachable whatever `app.json` says.
+
+### 9.5.1 Optional coach identity
+
+`[UI-1]` Settings keeps the saved coach name and an optional private avatar blob. The athlete can enable or revoke coach identity changes (default off), manually rename and reset the image. The head coach may change the name/avatar through the presentation tool only in a requested reactive turn. Helpers, scheduled/consolidation turns and the tool itself cannot grant permission. These controls do not alter AI disclosure or any coaching guarantee. Guidance stays in the progressive `coach-identity` skill and must keep personalization peripheral.
+
+`[MOD-1]` Image generation is an optional independent `ImageProvider`, callable from text-only conversation models. A configured Google Gemini image or OpenAI-compatible image service receives only the visual prompt; keys stay in the trusted server `[SEC-1]`. One raster image is normalized to a 512×512 PNG, stored under the athlete's blob ownership and served through authenticated routes `[SEC-4]`. No external avatar URLs, SVG/HTML or cross-athlete blobs are accepted. Generation, preview and application are separate actions. Previous blobs remain in private exportable data; manual reset/reapplication and audited before/after references make display changes reversible `[WS-4]`. Account deletion removes blobs and image attempt records `[SEC-6]`.
+
+`[COST-1]` Operators supply a conservative per-attempt estimate. It is reserved in usage accounting before dispatch and counts toward daily/monthly limits, including failed or uncertain attempts; it is not a provider invoice. Generation is serialized per athlete, cancellable and bounded. Persisted attempt markers prevent automatically repeating an uncertain external request `[RT-6]`. Raw image-provider diagnostics must never expose secrets/prompts to the coach.
 
 ### 9.6 Publish pipeline
 

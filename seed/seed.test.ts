@@ -12,7 +12,7 @@ const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const seedRoot = join(root, 'seed');
 const packRoot = join(seedRoot, 'running');
 const requiredSkills = [
-  'calendar-export', 'data-hygiene', 'environment', 'file-import', 'fueling-basics',
+  'calendar-export', 'coach-identity', 'data-hygiene', 'environment', 'file-import', 'fueling-basics',
   'illness-return', 'injury-and-pain', 'intake', 'plan-design', 'race-prep', 'research',
   'screenshot-extraction', 'strength-mobility', 'training-load', 'ui-kit', 'zones-and-paces',
 ];

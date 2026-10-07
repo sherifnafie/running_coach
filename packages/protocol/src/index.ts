@@ -19,3 +19,4 @@ export * from './api';
 export * from './config';
 export * from './jsonschema';
 export * from './presentation';
+export * from './image-generation';

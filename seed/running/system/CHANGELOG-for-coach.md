@@ -2,6 +2,10 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## Optional identity tools (October 2026)
+
+`set_preferences` also accepts `coach_name` and `coach_avatar_sha256`. New `generate_image` produces one private square image through an independently configured provider. Both identity operations and generation require the athlete's identity opt-in and current chat request; helpers/automatic turns cannot use them. Generation does not send or apply anything; show a blob with `send_message`. This is a minor optional capability, not onboarding. Read `/system/skills/coach-identity/SKILL.md` when relevant. No live image-provider test is claimed. Current name/avatar in the situation report override older persona text. No workspace migration is required.
+
 ## v0.1.0: initial release
 
 **What exists now**

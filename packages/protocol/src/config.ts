@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ModelsConfig } from './model';
 import { VoiceConfig } from './voice';
 import { Effort } from './common';
+import { ImageGenerationConfig } from './image-generation';
 
 export const HARNESS_VERSION = '0.1.0';
 export const UI_KIT_MAJOR = '1';
@@ -118,6 +119,7 @@ export const ServerConfig = z.object({
     })
     .prefault({}),
   voice: VoiceConfig.prefault({}),
+  imageGeneration: ImageGenerationConfig.optional(),
   push: z.object({ vapidSubject: z.string().default('mailto:admin@localhost') }).prefault({}),
   safety: z.object({ modelScreen: z.boolean().default(false) }).prefault({}),
   limits: LimitsConfig,

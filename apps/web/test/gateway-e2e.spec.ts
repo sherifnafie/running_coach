@@ -11,7 +11,8 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core';
 import { build } from 'vite';
-import { athletePaths, silentLogger } from '../../../packages/protocol/src';
+import { ImageGenerationConfig, athletePaths, silentLogger } from '../../../packages/protocol/src';
+import { createImageProvider } from '../../../packages/engine/src/image-generation';
 import { composeServer, type ComposedServer } from '../../server/src/compose';
 import { loadConfig } from '../../server/src/config';
 import { createExecutor } from '../../../packages/runtime/src/executor';
@@ -69,6 +70,8 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
       PORT: String(port), VIEWS_PORT: String(viewsPort), PUBLIC_URL: appUrl,
       VIEWS_URL: `http://localhost:${viewsPort}`, LOG_LEVEL: 'error',
     } });
+    config.imageGeneration = ImageGenerationConfig.parse({ provider: 'google', model: 'fixture-image', apiKeyEnv: 'FIXTURE_IMAGE_KEY', costPerImageUsd: 0.01 });
+    const imageProvider = createImageProvider(config.imageGeneration, { env: { FIXTURE_IMAGE_KEY: 'fixture-only' }, fetch: async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAD0lEQVR4nGNgWBUKQhAKABqeA/24RcKwAAAAAElFTkSuQmCC' } }] } }] })) });
     config.limits.debounceIdleMs = 10;
     config.limits.debounceMaxMs = 30;
     config.defaultSettings = { notifications: { quietHours: null } };
@@ -84,7 +87,7 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     const speechAddress = speech.address();
     if (!speechAddress || typeof speechAddress === 'string') throw new Error('No speech test port');
     config.voice.stt = { provider: 'openai-compatible', baseUrl: `http://127.0.0.1:${speechAddress.port}/v1`, model: 'test-transcriber' };
-    server = await composeServer({ config, logger: silentLogger, webDist: dist, seedRoot: join(repo, 'seed'), renderer: false, manualScheduler: true, printSetupCode: () => {} });
+    server = await composeServer({ config, logger: silentLogger, webDist: dist, seedRoot: join(repo, 'seed'), renderer: false, imageProvider, manualScheduler: true, printSetupCode: () => {} });
     await server.listen();
     browser = await chromium.launch({ executablePath, headless: true, args: ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
     context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-GB', timezoneId: 'Europe/Amsterdam', serviceWorkers: 'allow' });
@@ -329,6 +332,42 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await page.reload();
     await page.getByLabel('Units', { exact: true }).waitFor();
     expect(await page.getByLabel('Units', { exact: true }).inputValue()).toBe('imperial');
+  }, 60_000);
+
+  it('[UI-1] [SEC-4] opts into identity tools and displays a private generated avatar after reload', async () => {
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await nav.getByRole('button', { name: 'Settings', exact: true }).click();
+    const permission = page.getByRole('switch', { name: 'Let my coach change its name and avatar' });
+    expect(await permission.isChecked()).toBe(false);
+    await permission.click();
+    await expect.poll(async () => (await server.store.getSettings(athleteId)).coachIdentity.allowChanges).toBe(true);
+    const executor = createExecutor(server.runtime.core, { athleteId, turnId: 'identity-browser', triggerClass: 'reactive', agent: { kind: 'coach', depth: 0 }, tools: ['generate_image', 'set_preferences'], fs: server.runtime.core.fsFor(athleteId), sandbox: { exec: async () => { throw new Error('No shell'); } }, vision: false });
+    const image = await executor.execute({ type: 'tool_call', id: 'generate', name: 'generate_image', input: { prompt: 'A green running mascot icon.' } }, new AbortController().signal);
+    expect(image.isError).toBe(false);
+    const blob = (await server.store.listBlobs(athleteId)).find(blob => blob.name === 'generated-image.png')!;
+    expect(blob).toBeDefined();
+    expect((await server.store.getSettings(athleteId)).coachIdentity.avatarSha256).toBeNull();
+    const apply = await executor.execute({ type: 'tool_call', id: 'apply', name: 'set_preferences', input: { coach_name: 'Kip', coach_avatar_sha256: blob.sha256 } }, new AbortController().signal);
+    expect(apply.isError).toBe(false);
+    await nav.getByRole('button', { name: 'Chat', exact: true }).click();
+    await page.getByRole('heading', { name: 'Kip', exact: true }).waitFor();
+    const avatar = page.locator('.app-header .avatar img');
+    await expect.poll(() => avatar.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(512);
+    expect(await avatar.getAttribute('src')).toBe(`/v1/blobs/${blob.sha256}`);
+    await page.reload();
+    await page.getByRole('heading', { name: 'Kip', exact: true }).waitFor();
+    await expect.poll(() => page.locator('.app-header .avatar img').evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(512);
+    const anonymous = await fetch(`${appUrl}/v1/blobs/${blob.sha256}`);
+    expect(anonymous.status).toBe(401);
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.getByRole('button', { name: 'Reset avatar', exact: true }).click();
+    await expect.poll(async () => (await server.store.getSettings(athleteId)).coachIdentity.avatarSha256).toBeNull();
+    await page.getByRole('switch', { name: 'Let my coach change its name and avatar' }).click();
+    await expect.poll(async () => (await server.store.getSettings(athleteId)).coachIdentity.allowChanges).toBe(false);
+    const blocked = await executor.execute({ type: 'tool_call', id: 'revoked', name: 'set_preferences', input: { coach_name: 'Changed without permission' } }, new AbortController().signal);
+    expect(blocked.isError).toBe(true);
+    await server.runtime.updateSettings(athleteId, { profile: { coachName: 'Coach' } });
+    expect(browserErrors).toEqual([]);
   }, 60_000);
 
   it('[WS-4] presents local coach history readably and persists maximum message limits [MSG-4]', async () => {

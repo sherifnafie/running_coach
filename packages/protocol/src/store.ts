@@ -130,7 +130,7 @@ export interface TaskRecord {
   originEventId?: string;
 }
 
-export type UsageKind = 'turn' | 'helper' | 'voice' | 'stt' | 'tts' | 'safety' | 'consolidation';
+export type UsageKind = 'turn' | 'helper' | 'voice' | 'stt' | 'tts' | 'safety' | 'consolidation' | 'image';
 
 export interface UsageRecord {
   athleteId: string;

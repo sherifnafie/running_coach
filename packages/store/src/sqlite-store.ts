@@ -359,7 +359,7 @@ export class SqliteStore implements Store {
         SELECT 1 FROM turns WHERE athlete_id = ?
         AND substr(idempotency.key, 1, length('msg:' || turns.id || ':')) = 'msg:' || turns.id || ':'
       )`, id);
-      for (const prefix of [`message:${id}:`, `tool:${id}:`, `export:${id}:`, `upload-draft:${id}:`]) {
+      for (const prefix of [`message:${id}:`, `tool:${id}:`, `export:${id}:`, `upload-draft:${id}:`, `image-attempt:${id}:`]) {
         this.run('DELETE FROM idempotency WHERE substr(key, 1, length(?)) = ?', prefix, prefix);
         this.run('DELETE FROM kv WHERE substr(key, 1, length(?)) = ?', prefix, prefix);
       }

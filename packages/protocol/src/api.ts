@@ -39,7 +39,7 @@ export interface MeResponse {
   viewsOrigin: string;
   kitUrl: string;
   vapidPublicKey?: string;
-  features: { voiceNotes: boolean; calls: { realtime: boolean; cascaded: boolean }; passkeys: boolean; push: boolean; webSearch: boolean };
+  features: { voiceNotes: boolean; calls: { realtime: boolean; cascaded: boolean }; passkeys: boolean; push: boolean; webSearch: boolean; imageGeneration?: boolean };
   harnessVersion: string;
   /** Present when the server runs the scripted demo coach (no API keys). */
   demoMode: boolean;

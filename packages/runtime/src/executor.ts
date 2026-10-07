@@ -20,6 +20,7 @@ import {
 import { executeTool, toolSpecsFor } from '@opencoach/tools';
 import type { Core } from './core';
 import type { SpawnParent } from './helpers';
+import { avatarFor, generateImage, requireIdentityPermission } from './identity';
 
 export interface ExecutorOptions {
   athleteId: string;
@@ -48,7 +49,7 @@ const denied = (what: string) => () => {
 /** Side effects are replayed by (turn, call), including calls made by helpers [RT-6]. */
 const SIDE_EFFECTS = new Set<string>([
   'write', 'edit', 'bash', 'send_message', 'no_reply', 'schedule', 'cancel_schedule', 'set_heartbeat',
-  'spawn_agent', 'cancel_task', 'publish_ui', 'rollback_ui', 'set_preferences',
+  'spawn_agent', 'cancel_task', 'publish_ui', 'rollback_ui', 'set_preferences', 'generate_image',
 ]);
 
 export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & { allowed: ToolName[] } {
@@ -149,8 +150,16 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
         helpers,
         ui,
         preferences: isCoach ? { update: async (input) => {
+          const identity = input.coach_name !== undefined || input.coach_avatar_sha256 !== undefined;
+          if (identity) await requireIdentityPermission(core, o.athleteId, o.triggerClass);
+          const avatar = input.coach_avatar_sha256 === undefined ? undefined : await avatarFor(core, o.athleteId, input.coach_avatar_sha256);
+          if (identity) await requireIdentityPermission(core, o.athleteId, o.triggerClass);
           const { settings, diff } = await core.store.updateSettings(o.athleteId, {
-            ...(input.locale === undefined ? {} : { profile: { locale: input.locale } }),
+            profile: {
+              ...(input.locale === undefined ? {} : { locale: input.locale }),
+              ...(input.coach_name === undefined ? {} : { coachName: input.coach_name }),
+            },
+            ...(avatar === undefined ? {} : { coachIdentity: { avatarSha256: avatar } }),
             appearance: {
               ...(input.theme === undefined ? {} : { theme: input.theme }),
               ...(input.accent === undefined ? {} : { accent: input.accent }),
@@ -160,8 +169,9 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
             await core.store.audit({ athleteId: o.athleteId, at: core.clock.now().toISOString(), actor: 'coach', action: 'presentation.updated', detail: { turnId: o.turnId, diff } });
             core.bus.publish(o.athleteId, { t: 'settings.changed' });
           }
-          return { locale: settings.profile.locale, ...settings.appearance };
+          return { locale: settings.profile.locale, ...settings.appearance, coachName: settings.profile.coachName, coachAvatarSha256: settings.coachIdentity.avatarSha256 };
         } } : undefined,
+        images: isCoach ? { generate: (prompt, signal) => generateImage(core, o.athleteId, o.turnId, call.id, o.triggerClass, prompt, signal) } : undefined,
         web: core.web,
         history,
         log: core.log.child({ athleteId: o.athleteId, turnId: o.turnId, tool: call.name }),

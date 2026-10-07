@@ -45,6 +45,7 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   lines.push(`athlete: ${s.settings.profile.name} · units: ${s.settings.profile.units} · locale: ${s.settings.profile.locale}${s.firstContact ? ' · FIRST CONTACT (new athlete; no intake yet)' : ''}`);
 
   lines.push(`presentation: theme ${s.settings.appearance.theme} · accent ${s.settings.appearance.accent ?? 'default'} · reply language ${s.settings.profile.locale}; use set_preferences for requested changes`);
+  lines.push(`current coach identity: name ${s.settings.profile.coachName} · avatar ${s.settings.coachIdentity.avatarSha256 ?? 'initials'}; current settings take precedence over a name in older memory`);
 
   const [lastAthlete] = await store.listEvents({ athleteId: s.athleteId, types: ['user.message', 'user.upload', 'user.voice_note'], order: 'desc', limit: 1 });
   const unread = await store.countUnreadCoachMessages(s.athleteId);

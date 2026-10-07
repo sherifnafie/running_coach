@@ -38,6 +38,41 @@ With one provider key and no `models` section, the server picks default tiers fo
 
 **MCP servers** are configured under `mcp.servers`. Their tools appear to the coach as `mcp__<server>__<tool>`, and their output is treated as untrusted. Tools can be allowlisted; helper access is off by default.
 
+## Optional coach name, avatar and generated images
+
+In Settings → Profile, enable **Let my coach change its name and avatar**, then ask in chat. The option is off by default and the coach cannot enable it. You can manually rename, reset the avatar, or revoke the option at any time. Naming works without an image provider. Generation is independent of conversation vision: a text-only DeepSeek coach can call a separate image service, but cannot inspect the generated picture visually.
+
+Add one `imageGeneration` block to your server YAML and supply its dedicated key in the trusted process environment. The existing coach model/GO key stays unchanged:
+
+```yaml
+imageGeneration:
+  provider: google
+  model: gemini-3.1-flash-image
+  apiKeyEnv: OPENCOACH_IMAGE_API_KEY
+  costPerImageUsd: 0.25 # example conservative allowance per attempt; set for your provider
+  timeoutMs: 120000
+```
+
+This uses the documented Gemini `generateContent` image API. Google retired Imagen from the Gemini API; use an image-capable Gemini model available to your account ([migration](https://ai.google.dev/gemini-api/docs/imagen), [API contract](https://ai.google.dev/api/generate-content)). An alternative uses the OpenAI-compatible Images API:
+
+```yaml
+imageGeneration:
+  provider: openai-compatible
+  model: gpt-image-1.5
+  apiKeyEnv: OPENCOACH_IMAGE_API_KEY
+  baseUrl: https://api.openai.com/v1
+  costPerImageUsd: 0.25 # example estimate, not a current price or provider spending limit
+```
+
+Use a key for the selected service; a GO text-model key alone does not configure image generation. API contracts: [OpenAI Images](https://developers.openai.com/api/reference/resources/images/methods/generate). Model availability, provider billing and generated-image quality require live validation with your own credentials. None is certified by fixture tests. HTTPS is required except for an optional loopback-compatible service. Credentials cannot be supplied by the coach, and responses cannot redirect to external image URLs.
+
+Only the visual prompt is sent to the configured service; coach instructions prohibit including athlete health records, profile/history, uploaded reference photos or secrets. The tool generates one square image, normalized to a safe 512×512 PNG in the private athlete blob store. Generation, showing a chat preview and applying an avatar are separate actions. Previous avatars remain private and exportable until account deletion. Current settings override older frozen persona text.
+
+`costPerImageUsd` is a required operator-maintained conservative per-attempt charge, not the provider invoice. Before a request it is included in existing daily/monthly budget accounting. Failed/cancelled/unknown attempts remain counted to avoid hiding uncertain external charges; generation is never retried automatically. This setting does not enforce a limit at the provider. Keep it at or above your expected maximum charge for the configured request. External requests are bounded and cancellable; durable attempt markers prevent redispatch after an uncertain interrupted call. Image costs appear in account/deployment usage totals; model-only turn token costs remain separate.
+
+Restart the server after configuration changes. Without this block the service is not called, the UI explains generation is unavailable, and naming remains usable. Skills and frozen prompts refresh at the next epoch; the situation report already points to the identity skill and states current permission/configuration. No existing coach workspace, training plan or published view is overwritten.
+
+
 ### Voice notes
 
 Speech is configured separately from the coach model. An OpenAI key enables speech-to-text, text-to-speech and calls. A different provider or a local transcriber works too:

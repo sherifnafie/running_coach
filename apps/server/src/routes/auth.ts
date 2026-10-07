@@ -91,7 +91,7 @@ export function authRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     return {
       athlete: { id: athlete.id, displayName: athlete.displayName, isAdmin: athlete.isAdmin }, settings: await store.getSettings(athleteId),
       viewsOrigin: ctx.viewsOrigin, kitUrl: `${ctx.viewsOrigin}/kit/1/kit.js`, vapidPublicKey: ctx.deps.vapidPublicKey,
-      features: { voiceNotes: voice.voiceNotes, calls: { realtime: voice.realtime, cascaded: voice.cascaded }, passkeys: true, push: !!ctx.deps.vapidPublicKey, webSearch: ctx.deps.features?.webSearch ?? false },
+      features: { voiceNotes: voice.voiceNotes, calls: { realtime: voice.realtime, cascaded: voice.cascaded }, passkeys: true, push: !!ctx.deps.vapidPublicKey, webSearch: ctx.deps.features?.webSearch ?? false, imageGeneration: ctx.deps.features?.imageGeneration ?? false },
       harnessVersion: HARNESS_VERSION, demoMode: ctx.deps.features?.demoMode ?? ctx.deps.config.demo,
     };
   });

@@ -45,7 +45,13 @@ with con:  # one transaction
 ```
 The blob hashes are the sha256 values in the attachment paths (`/raw/3f2a…e1.png`). Take `now_iso` from the situation report's time, with the athlete's offset.
 
+## `generate_image`
+
+Optional `prompt` (required, 1–2000 characters) generates one square image via the server's configured image provider. Read `/system/skills/coach-identity/SKILL.md` only for a relevant athlete request. Coach only, current chat turn, athlete identity opt-in, budget checked. It returns an owned blob SHA; it does not send or apply it. Preview with a `send_message` blob attachment; apply an authorized avatar with `set_preferences`. Never send athlete health/profile/history or secrets in a visual prompt. No automatic retry after failure/unknown billing. Text-only models cannot visually inspect the result.
+
 ## `set_preferences`
+
+Optional `coach_name` and `coach_avatar_sha256` change the saved coach identity, in a requested chat turn after the athlete enables it in Profile. Avatar must be this athlete's still PNG/JPEG/WebP blob; `null` restores initials. This tool cannot grant permission to itself. The current name/avatar are reported every turn.
 
 Persist requested presentation changes: `locale` (`en`, `nl`, `ar`, or another valid BCP-47 tag), `theme` (`system`, `light`, `dark`), and `accent` (six-digit hex, or `null` to reset). Reply in the chosen language. English, Dutch and Arabic shell/starter labels update across devices; coach-authored content needs review and possibly translation/publication. This tool cannot alter privacy, consent, spending, notifications or security.
 

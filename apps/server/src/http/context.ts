@@ -27,7 +27,7 @@ export interface GatewayDeps {
   vapidPublicKey?: string;
   /** SSRF guard for client-supplied push endpoints (default: https + public host). */
   validatePushEndpoint?: (endpoint: string) => Promise<void>;
-  features?: { webSearch: boolean; demoMode: boolean };
+  features?: { webSearch: boolean; demoMode: boolean; imageGeneration?: boolean };
   /** Directory of the built PWA (apps/web/dist). */
   webDist?: string;
   /** UI kit assets served on the separate views origin. */

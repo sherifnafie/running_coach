@@ -23,6 +23,8 @@ You run the server yourself and open the PWA on a computer or phone. `SPEC.md` d
 
 Today, Calendar, Plan and Progress are the starter views. They are owned by the coach, who can change them or add new ones. Every change goes through automated checks before it's published, and you can revert any version. Chat and Settings belong to the app.
 
+Optional: enable **Settings → Profile → Let my coach change its name and avatar**, then ask in chat. Names need no extra service; generated avatars use a separate image provider and AI budget. See [image setup](docs/self-hosting.md#optional-coach-name-avatar-and-generated-images).
+
 ## Quick start (demo, no API key)
 
 Requirements: Linux (or WSL2) with unprivileged user namespaces, Node.js ≥ 22.13, pnpm 10.28, Git and Python 3. Chromium is optional; the coach needs it to preview and publish view changes (`OPENCOACH_CHROMIUM_PATH` if it isn't found automatically).

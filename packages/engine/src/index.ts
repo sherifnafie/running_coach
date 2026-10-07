@@ -16,6 +16,7 @@ export type { AnthropicProviderOptions, AnthropicClientLike } from './anthropic'
 export { createOpenAIProvider } from './openai';
 export type { OpenAIProviderOptions, OpenAIClientLike } from './openai';
 export { createCompatibleProvider } from './compatible';
+export { createImageProvider } from './image-generation';
 export type { CompatibleClientLike, CompatibleProviderDeps } from './compatible';
 
 // scripted provider (tests, evals, demo)

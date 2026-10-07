@@ -14,7 +14,7 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 | `packages/store`, `workspace`, `sandbox` | SQLite store; athlete workspace (git, coach.db, history, virtual FS, blobs, export/import/delete); local namespace sandbox and Docker sandbox. |
 | `packages/ui-kit` | Browser kit, bridge, Playwright preview renderer with publish gates, coach-facing docs. |
 | `packages/voice` | STT/TTS, realtime calls with server sideband, cascaded calls. |
-| `seed/` | Constitution, running pack, 16 skills, helper profiles, the workspace template and four starter views (Today, Calendar, Plan, Progress). |
+| `seed/` | Constitution, running pack, 17 skills, helper profiles, the workspace template and four starter views (Today, Calendar, Plan, Progress). |
 | `apps/server` | Gateway (HTTP, WebSocket, auth, passkeys, CSRF), separate views origin, push, Telegram, CLI, Docker packaging. |
 | `apps/web` | React PWA: chat (streaming, micro-UI, attachments, voice notes), coach views in sandboxed iframes, settings (incl. language/theme), calls. |
 | `packages/evals-sim`, `evals/` | Simulator with virtual time, personas, graders/judges, suites, CLI. See `evals/README.md`. |
@@ -30,6 +30,8 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
   - The native Android build and Health Connect on a device; iOS.
   - Scheduled proactive delivery over real time.
 - **A known model weakness to keep an eye on:** in the VO₂max eval, DeepSeek computed the estimate correctly but invented an RPE value. The eval keeps that as a failure (see `evals/vo2max.md`). Fix this kind of problem through seed instructions, not harness code.
+
+**Optional coach identity:** athlete-controlled name/avatar changes and an independent square-image service are implemented. Off by default; head coach and requested chat turns only. Providers: Google Gemini image generation and OpenAI-compatible Images, with private owned blobs, preview/application separation, conservative budget accounting and durable replay guards. A progressive skill keeps personalization peripheral. Mock provider contracts and the real-gateway browser journey passed; no live image-provider availability or quality is certified. See [setup](self-hosting.md#optional-coach-name-avatar-and-generated-images) and [ADR 0005](adr/0005-optional-coach-identity.md).
 
 ## Open work (roughly by value)
 

@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { SystemClock, consoleLogger, type Clock, type Logger, type ModelProvider, type ServerConfig, type UiRenderer } from '@opencoach/protocol';
-import { createAgentLoop, createAnthropicProvider, createCompatibleProvider, createModelRouter, createOpenAIProvider, createScriptedProvider, demoCoachHandler } from '@opencoach/engine';
+import { SystemClock, consoleLogger, type Clock, type Logger, type ModelProvider, type ServerConfig, type UiRenderer, type ImageProvider } from '@opencoach/protocol';
+import { createAgentLoop, createAnthropicProvider, createCompatibleProvider, createImageProvider, createModelRouter, createOpenAIProvider, createScriptedProvider, demoCoachHandler } from '@opencoach/engine';
 import { createCoachRuntime, createSafetyScreen, createWebSearchBackend } from '@opencoach/runtime';
 import { createSandboxProvider } from '@opencoach/sandbox';
 import { openSqliteStore } from '@opencoach/store';
@@ -25,6 +25,8 @@ export interface ComposeOptions {
   webDist?: string;
   /** Tests can disable Chromium; production detects installed Chromium. */
   renderer?: UiRenderer | false;
+  /** Tests can inject a controlled image service; credentials never enter the runtime sandbox. */
+  imageProvider?: ImageProvider;
   manualScheduler?: boolean;
   printSetupCode?: (text: string) => void;
 }
@@ -69,10 +71,12 @@ export async function composeServer(opts: ComposeOptions = {}) {
     const pushDelivery = createPushDelivery({ store, provider: push, logger });
     let telegram: ReturnType<typeof createTelegramAdapter> | undefined;
     const webSearch = createWebSearchBackend(config.web.search);
+    const imageProvider = opts.imageProvider ?? createImageProvider(config.imageGeneration);
     const runtime = createCoachRuntime({ config, clock, logger, store, blobs, sandbox, router,
       loop: createAgentLoop({ price: (model, usage) => router.cost(model, usage) }),
       seedRoot: opts.seedRoot ?? DEFAULT_SEED_ROOT, pack: 'running', kitDir, extraSystemDocs, renderer,
       webSearch, safety: createSafetyScreen({ router, useModel: config.safety.modelScreen }), synthesizer,
+      imageProvider,
       delivery: async (athleteId, message, context) => {
         await pushDelivery(athleteId, message, context);
         await telegram?.delivery(athleteId, message);
@@ -87,7 +91,7 @@ export async function composeServer(opts: ComposeOptions = {}) {
     }
     const setupCodes = new SetupCodeManager({ store, clock, dataDir: config.dataDir, logger, publicUrl: config.publicUrl, print: opts.printSetupCode });
     const gateway = await createGateway({ config, clock, logger, store, blobs, runtime, callService: calls,
-      setupCodes, kitDir, webDist: opts.webDist ?? DEFAULT_WEB_DIST, features: { demoMode: isDemoConfig(config), webSearch: !!webSearch },
+      setupCodes, kitDir, webDist: opts.webDist ?? DEFAULT_WEB_DIST, features: { demoMode: isDemoConfig(config), webSearch: !!webSearch, imageGeneration: !!imageProvider },
       vapidPublicKey: push.publicKey?.(), exportAthlete, stripImageLocation,
       telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); },
     });

@@ -101,13 +101,25 @@ export const setHeartbeatTool: ToolDef<'set_heartbeat'> = {
 
 export const setPreferencesTool: ToolDef<'set_preferences'> = {
   name: 'set_preferences',
-  description: 'Change the athlete\'s persistent OpenCoach presentation preferences when requested: locale (BCP-47, e.g. ar or nl, also your reply language), theme (system/light/dark), accent (#RRGGBB, or null to reset). Applies across devices immediately. Built-in UI supports English, Dutch and Arabic; other languages use English shell labels. Custom views receive the locale and may need translation and publication. Cannot change privacy, consent, spending, notifications or security.',
+  description: 'Change requested presentation preferences: locale (BCP-47), theme (system/light/dark), accent (#RRGGBB or null). Optional coach_name and coach_avatar_sha256 (owned PNG/JPEG/WebP blob or null for initials) require the athlete’s Settings opt-in and a requested chat turn. Read /system/skills/coach-identity/SKILL.md when relevant. Does not change your AI disclosure, privacy, permissions, spending or notifications. Identity is optional; never turn routine coaching into branding.',
   input: ToolInputs.set_preferences,
   availableTo: ['coach'],
   execute: (input, ctx) => guard(async () => {
     if (!ctx.preferences) return fail('NOT_CONFIGURED', 'Presentation preferences are unavailable.');
     const result = await ctx.preferences.update(input);
     return ok(`Presentation preferences saved: ${JSON.stringify(result)}. Reply in the requested language.`, [], result);
+  }),
+};
+
+export const generateImageTool: ToolDef<'generate_image'> = {
+  name: 'generate_image',
+  description: 'Generate one square image through the separate configured image provider, for an athlete-requested visual such as your optional avatar. Requires the athlete’s coach identity opt-in and a chat turn; costs count toward AI budgets. Send only a visual description, never athlete health/history or secrets. Returns a private blob; does NOT apply it as an avatar or send it. Use send_message with a blob attachment for preview, then set_preferences with coach_avatar_sha256 when authorized. Read coach-identity skill. Do not claim visual inspection without vision or retry failed generation automatically.',
+  input: ToolInputs.generate_image,
+  availableTo: ['coach'],
+  execute: (input, ctx) => guard(async () => {
+    if (!ctx.images) return fail('NOT_CONFIGURED', 'Image generation is unavailable.');
+    const blob = await ctx.images.generate(input.prompt, ctx.signal);
+    return ok(`Generated image: ${JSON.stringify(blob)}. Nothing was sent or applied. Attach the blob for the athlete to see it; you cannot claim to have inspected it without vision.`, [], blob);
   }),
 };
 
