@@ -15,6 +15,7 @@ import { registerChart } from './components/chart';
 import { registerData } from './components/data';
 import { registerForm } from './components/form';
 import { registerWorkout } from './components/workout-el';
+import { typeGlyph, typeKey, typeLabel } from './components/types';
 
 declare global {
   interface Window {
@@ -44,3 +45,13 @@ export const kit = { major: KIT_MAJOR, icons: iconNames };
 export { h, s };
 export const format = coach.format;
 export const dates = coach.dates;
+/**
+ * Session/sport type helpers, the same ones <rc-calendar> uses: `types.label('tempo')` (translated),
+ * `types.glyph('heavy')`, `types.className('bouldering')` -> 'rc-type-x3' (sets --rc-type-c). Any word works.
+ */
+export const types = {
+  key: typeKey,
+  label: (type: unknown): string => coach.t(typeLabel(type)),
+  glyph: typeGlyph,
+  className: (type: unknown): string => `rc-type-${typeKey(type)}`,
+};

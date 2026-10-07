@@ -10,8 +10,11 @@ export const INTENSITY_TYPES: readonly SessionType[] = ['tempo', 'intervals', 'h
 export const KEY_SESSION_TYPES: readonly SessionType[] = ['long', 'tempo', 'intervals', 'hills', 'race'];
 export const RUN_TYPES: readonly SessionType[] = ['easy', 'recovery', 'long', 'tempo', 'intervals', 'hills', 'race'];
 
+/** Hard planned-session types from other disciplines (the seed's general vocabulary); also paused after a red flag. */
+export const OTHER_INTENSITY_TYPES: readonly string[] = ['heavy', 'power', 'test', 'competition', 'conditioning', 'meet'];
+
 export function isIntensity(t: string): boolean {
-  return (INTENSITY_TYPES as readonly string[]).includes(t);
+  return (INTENSITY_TYPES as readonly string[]).includes(t) || OTHER_INTENSITY_TYPES.includes(t);
 }
 export function isRunType(t: string): boolean {
   return (RUN_TYPES as readonly string[]).includes(t);

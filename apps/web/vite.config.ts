@@ -23,7 +23,7 @@ export default defineConfig({
       manifest: {
         name: 'OpenCoach',
         short_name: 'OpenCoach',
-        description: 'Your AI running coach.',
+        description: 'Your AI coach, for any sport.',
         start_url: '/',
         scope: '/',
         display: 'standalone',

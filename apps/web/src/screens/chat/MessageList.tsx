@@ -139,7 +139,7 @@ export function MessageList({ dropActive, visible = true }: { dropActive?: boole
             <p>
               <strong>{t("Say hello to your coach.")}</strong>
             </p>
-            <p>{t("Tell them about your running, your goals, or just how today went.")}</p>
+            <p>{t("Tell them what you're training for, your goals, or just how today went.")}</p>
           </div>
         )}
         {(chat.hasMore || limit < timeline.length) && (

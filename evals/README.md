@@ -1,4 +1,4 @@
-# Running-coach evaluations
+# Coaching evaluations
 
 The simulator (`packages/evals-sim`) runs scenarios against the production runtime [EV-1]. It uses the real SQLite store, seeded workspaces, sandbox tools and scheduler, with a `VirtualClock`. It jumps straight to the next athlete action or runtime wake-up instead of waiting in real time. Only messages delivered through `send_message` count as replies.
 

@@ -74,7 +74,7 @@ export async function composeServer(opts: ComposeOptions = {}) {
     const imageProvider = opts.imageProvider ?? createImageProvider(config.imageGeneration);
     const runtime = createCoachRuntime({ config, clock, logger, store, blobs, sandbox, router,
       loop: createAgentLoop({ price: (model, usage) => router.cost(model, usage) }),
-      seedRoot: opts.seedRoot ?? DEFAULT_SEED_ROOT, pack: 'running', kitDir, extraSystemDocs, renderer,
+      seedRoot: opts.seedRoot ?? DEFAULT_SEED_ROOT, pack: 'general', kitDir, extraSystemDocs, renderer,
       webSearch, safety: createSafetyScreen({ router, useModel: config.safety.modelScreen }), synthesizer,
       imageProvider,
       delivery: async (athleteId, message, context) => {

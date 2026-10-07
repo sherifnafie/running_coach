@@ -14,7 +14,7 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 | `packages/store`, `workspace`, `sandbox` | SQLite store; athlete workspace (git, coach.db, history, virtual FS, blobs, export/import/delete); local namespace sandbox and Docker sandbox. |
 | `packages/ui-kit` | Browser kit, bridge, Playwright preview renderer with publish gates, coach-facing docs. |
 | `packages/voice` | STT/TTS, realtime calls with server sideband, cascaded calls. |
-| `seed/` | Constitution, running pack, 17 skills, helper profiles, the workspace template and four starter views (Today, Calendar, Plan, Progress). |
+| `seed/` | Constitution and one general pack for any sport or combination ([ADR 0006](adr/0006-multi-discipline-coaching.md)): 18 skills (sport-neutral method skills plus `running`, `strength-training` and `disciplines`), helper profiles, a sport-agnostic workspace template and four starter views (Today, Calendar, Plan, Progress). |
 | `apps/server` | Gateway (HTTP, WebSocket, auth, passkeys, CSRF), separate views origin, push, Telegram, CLI, Docker packaging. |
 | `apps/web` | React PWA: chat (streaming, micro-UI, attachments, voice notes), coach views in sandboxed iframes, settings (incl. language/theme), calls. |
 | `packages/evals-sim`, `evals/` | Simulator with virtual time, personas, graders/judges, suites, CLI. See `evals/README.md`. |

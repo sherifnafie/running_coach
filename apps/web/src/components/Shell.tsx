@@ -113,7 +113,7 @@ function Header({ route, viewTitle }: { route: Route; viewTitle?: string }) {
           <div>
             <h1>{coachName}</h1>
             <p className={`presence${sub ? ' on' : ''}`} role="status" aria-live="polite">
-              {sub || t('Your running coach')}
+              {sub || t('Your coach')}
             </p>
           </div>
         </div>

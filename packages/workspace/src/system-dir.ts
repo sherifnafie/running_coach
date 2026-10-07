@@ -45,6 +45,7 @@ function extraDocTarget(name: string): string {
  *     ({{pack_coaching}} and {{pack_safety}} are filled in; every other {{placeholder}} is kept for per-epoch rendering)
  *   <seedRoot>/<pack>/system/**   → docs/, skills/, CHANGELOG-for-coach.md, ... (copied as-is)
  *   <seedRoot>/core/addenda/      → addenda/
+ *   <seedRoot>/<pack>/workspace/  → seed-workspace/ (reference copy for upgraded workspaces: views, schema, helper profiles)
  *   extraDocs (name → host file or dir, e.g. the UI kit docs) → docs/<name>
  * A `.source-hash` file records the hash of every input; an unchanged hash means nothing is rebuilt.
  * The tree is built in a temp dir and swapped in with rename. Returns the host path of the system dir.
@@ -61,6 +62,7 @@ export async function buildSystemDir(opts: { dataDir: string; seedRoot: string; 
   const safetyFile = path.join(seedRoot, pack, 'constitution', 'safety.md');
   const packSystem = path.join(seedRoot, pack, 'system');
   const addendaDir = path.join(seedRoot, 'core', 'addenda');
+  const seedWorkspace = path.join(seedRoot, pack, 'workspace');
 
   // ---- source hash
   const h = createHash('sha256');
@@ -73,6 +75,7 @@ export async function buildSystemDir(opts: { dataDir: string; seedRoot: string; 
   await hashFile(h, 'pack/constitution/safety.md', safetyFile);
   await hashDir(h, 'pack/system', packSystem);
   await hashDir(h, 'core/addenda', addendaDir);
+  if (await pathExists(seedWorkspace)) await hashDir(h, 'pack/workspace', seedWorkspace);
   const extraNames = Object.keys(extraDocs).sort();
   for (const name of extraNames) {
     const host = extraDocs[name]!;
@@ -101,6 +104,9 @@ export async function buildSystemDir(opts: { dataDir: string; seedRoot: string; 
 
     if (await pathExists(packSystem)) await copyTree(packSystem, tmp);
     if (await pathExists(addendaDir)) await copyTree(addendaDir, path.join(tmp, 'addenda'));
+    if (await pathExists(seedWorkspace)) {
+      await copyTree(seedWorkspace, path.join(tmp, 'seed-workspace'), { skip: (rel) => rel.split('/').some((seg) => seg === '.git' || seg === '.gitkeep') });
+    }
     for (const name of extraNames) {
       const host = extraDocs[name]!;
       const dest = path.join(tmp, 'docs', extraDocTarget(name));

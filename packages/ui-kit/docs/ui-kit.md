@@ -1,8 +1,8 @@
 # UI kit 1
 
 Coach-authored views use `/kit/1/kit.js` and `/kit/1/kit.css`. The kit installs
-`window.coach` and light-DOM custom elements. Import `coach`, `h`, `format`, or
-`dates` from the JS module. Keep your JavaScript in an external module: inline
+`window.coach` and light-DOM custom elements. Import `coach`, `h`, `format`,
+`dates` or `types` from the JS module. Keep your JavaScript in an external module: inline
 scripts and event handlers are blocked by the view CSP.
 
 ```html
@@ -54,7 +54,7 @@ plain semantic HTML so your CSS and accessibility tools can inspect them.
 | `rc-week-strip` | `start`, `selected`, `week-starts-on`, `.data` | `select-date`, `select` |
 | `rc-calendar` | `mode="week|month"`, `date`, `selected`, `movable`, `.data`, `.goTo(date)` | `select`, `select-date`, `before-move`, `moved`; see below |
 | `rc-chart` | `type="bar|line|area|scatter"`, `x-format`, `y-format`, `label`, `.data = [{x,y,series?}]` | Empty/error states and accessible data table |
-| `rc-workout` | `structure` JSON (or `.structure`), `compact` | Renders steps, repeats, targets and notes |
+| `rc-workout` | `structure` JSON (or `.structure`), `compact` | Renders endurance steps, repeats, exercises (sets × reps @ load), targets and notes |
 | `rc-form` | `.fields = [{id,type,label,...}]`, `submit-label`, `busy` | `submit`: `event.detail.values`; `.reset()` |
 | `rc-body-map` | `multi`, `readonly`, `label`, `.value`, `heat` JSON | `change`: selected body-region values |
 | `rc-markdown` | `file` workspace path, `src` markdown text, `empty` | Sanitized markdown; file must be declared in `reads` |
@@ -67,7 +67,11 @@ Queries containing `?` wait until the `params` attribute exists. A manual `.data
 assignment is useful when several components share one query.
 
 Calendar rows should have `id`, `date` (`YYYY-MM-DD`), `type`, `title`, `status`,
-and optional `source` (`planned`, `activity`, `race`). A movable calendar uses
+and optional `source` (`planned`, `activity`, `event`). Only `planned` rows (or rows
+without a source) are movable. `type` is free text: a session type (`tempo`,
+`heavy`), a sport (`climb`) or an event kind (`meet`). Known words have fixed
+colours and letters; any other word gets a stable colour from a hash and its
+initial, so new sports need no kit change. A movable calendar uses
 `write-target`, `write-key` (default `id`), `write-status` and `act-name`. Declare
 the matching `update` columns and action in the manifest. The component writes
 the date/status first and optionally emits the action; failures restore the
@@ -76,11 +80,28 @@ previous display. Moving a session is athlete input, not a coaching decision.
 ## Formatting and layout
 
 `coach.format.distance(m)`, `.duration(seconds)`, `.pace(secondsPerKm)`,
+`.weight(kg)` (kg or lb by the athlete's units; `.weightUnit()` for the label),
 `.date(dateOrInstant, 'short|medium|long')` and `.relativeDay(date)` respect the
 environment's locale, units, and timezone. Use `coach.env.now()` for current time
 and `coach.dates.todayIn(coach.env.now().getTime(), coach.env.tz)` for today's
 local date. Date-only arithmetic uses `.addDays`, `.startOfWeek`, `.monthGrid`;
 never shift a training date through an instant in the browser's timezone.
+
+`format="..."` on `rc-stat` and `y-format` on `rc-chart` accept `distance`,
+`duration`, `pace`, `weight`, `number`, `integer`, `percent`, `date`, `time` and `text`.
+`rc-chart` with `stacked` stacks bar `series` (e.g. weekly time by sport).
+
+`types.label(type)` (translated), `types.glyph(type)` and `types.className(type)`
+(`rc-type-…`, sets `--rc-type-c`) give a view the same labels, letters and
+colours the calendar uses, for any session type or sport.
+
+Session `structure` (see `data/schema.md`): endurance steps
+`{"kind":"work","duration":{"time_s":300},"target":{"rpe":[7,8]}}`, repeats
+`{"kind":"repeat","times":4,"steps":[...]}`, and exercises
+`{"kind":"exercise","name":"Back squat","sets":3,"reps":5,"load":{"kg":100},"target":{"rpe":8},"rest_s":180}`
+(`sets` may be an array of `{reps, load, target, times}` for top sets and back-offs;
+`load` may be `{"pct_1rm":[70,75]}` or `{"bodyweight":true}`; `reps` may be a range or `"AMRAP"`).
+Targets: `pace_s_km`, `hr_bpm`, `hr_zone`, `rpe`, `rir`, `pct_1rm`, `talk_test`.
 
 Use the kit's `--rc-*` tokens (`--rc-bg`, `--rc-surface`, `--rc-text`,
 `--rc-text-3`, `--rc-accent`, spacing and radii) in view CSS. Utility classes

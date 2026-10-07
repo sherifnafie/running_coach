@@ -2,7 +2,7 @@
   "name": "opencoach",
   "private": true,
   "version": "0.1.0",
-  "description": "OpenCoach: an open-source, AI-native running coach harness",
+  "description": "OpenCoach: an open-source, AI-native coaching harness for any sport or combination of sports",
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@10.28.0",

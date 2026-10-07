@@ -277,7 +277,7 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await frame.getByRole('button', { name: 'Ask coach', exact: true }).click();
     const composer = page.getByRole('textbox', { name: 'Message', exact: true });
     await composer.waitFor();
-    expect(await composer.inputValue()).toContain("About today's Gateway easy run");
+    expect(await composer.inputValue()).toContain("About today's session (Gateway easy run)");
     await composer.fill('');
   }, 60_000);
 
@@ -297,7 +297,7 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await frame.getByRole('heading', { name: 'Why this plan', exact: true }).waitFor();
     await frame.getByText(explanation, { exact: true }).waitFor();
     const visible = await frame.locator('body').innerText();
-    expect(visible).toContain('Planned weekly volume');
+    expect(visible).toContain('Planned weekly training');
     for (const internal of ['INTERNAL_PLAN_CANARY', 'data/coach.db', 'planned_workouts', 'helper task bookkeeping']) expect(visible).not.toContain(internal);
 
     const updated = 'We have eased this week so you can recover before building again.';

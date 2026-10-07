@@ -1,6 +1,6 @@
 # OpenCoach
 
-**A self-hosted, AI-native running coach.** An agentic LLM is the coach. It keeps a persistent workspace (your profile, training data, plan, notes, history), messages you proactively within limits you set, delegates work to helper agents, and authors the training screens you see. The app is the harness around it: chat, voice, uploads, sandboxed views, scheduling, safety rails and privacy controls.
+**A self-hosted, AI-native coach for any sport, or several at once.** Running, lifting, powerlifting, cycling, a team sport, general fitness: you tell the coach what you train for, and it coaches that, combining disciplines into one plan when you do more than one. An agentic LLM is the coach. It keeps a persistent workspace (your profile, training data, plan, notes, history), messages you proactively within limits you set, delegates work to helper agents, and authors the training screens you see. The app is the harness around it: chat, voice, uploads, sandboxed views, scheduling, safety rails and privacy controls.
 
 You run the server yourself and open the PWA on a computer or phone. `SPEC.md` describes the full design.
 
@@ -15,11 +15,13 @@ You run the server yourself and open the PWA on a computer or phone. `SPEC.md` d
 | Screen | What you can do |
 |---|---|
 | **Chat** | Talk to the coach, tap quick replies, send photos, files and voice notes. |
-| **Today** | Today's workout, mark it done or skipped, a quick check-in. |
-| **Calendar** | Planned workouts, activities and races; move a workout to another day. |
-| **Plan** | The current block, weekly volume, key sessions and why the plan looks the way it does. |
-| **Progress** | Distance, long runs, easy pace and consistency over time. |
+| **Today** | Today's sessions in any sport (intervals, or sets × reps @ load), mark them done or skipped, a quick check-in. |
+| **Calendar** | Planned sessions, activities and goal events (races, meets, tests); move a session to another day. |
+| **Plan** | The current block, weekly training time by sport, key sessions, the next goal and why the plan looks the way it does. |
+| **Progress** | Training time by sport and consistency, plus distance for endurance sports and estimated 1RM trends for lifting when you log them. |
 | **Settings** | Language (English, Dutch, Arabic/RTL), theme, units, quiet hours, message and cost limits, privacy, devices, export and account deletion. |
+
+How the coach knows your sport: running and strength training (including powerlifting) ship as first-party skills; for anything else it researches the sport, writes its own notes, and tells you what needs an in-person coach (see [ADR 0006](docs/adr/0006-multi-discipline-coaching.md)).
 
 Today, Calendar, Plan and Progress are the starter views. They are owned by the coach, who can change them or add new ones. Every change goes through automated checks before it's published, and you can revert any version. Chat and Settings belong to the app.
 

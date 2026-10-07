@@ -10,16 +10,16 @@ import { parseFrontMatter } from '../packages/workspace/src/frontmatter';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const seedRoot = join(root, 'seed');
-const packRoot = join(seedRoot, 'running');
+const packRoot = join(seedRoot, 'general');
 const requiredSkills = [
-  'calendar-export', 'coach-identity', 'data-hygiene', 'environment', 'file-import', 'fueling-basics',
-  'illness-return', 'injury-and-pain', 'intake', 'plan-design', 'race-prep', 'research',
-  'screenshot-extraction', 'strength-mobility', 'training-load', 'ui-kit', 'zones-and-paces',
+  'calendar-export', 'coach-identity', 'competition-prep', 'data-hygiene', 'disciplines', 'environment', 'file-import',
+  'fueling-basics', 'illness-return', 'injury-and-pain', 'intake', 'plan-design', 'research', 'running',
+  'screenshot-extraction', 'strength-training', 'training-load', 'ui-kit',
 ];
-const tables = ['activities', 'activity_gear', 'blocks', 'checkins', 'gear', 'metrics', 'planned_workouts', 'races'];
+const tables = ['activities', 'activity_gear', 'blocks', 'checkins', 'exercise_sets', 'gear', 'goal_events', 'metrics', 'planned_workouts'];
 const stamp = '2026-10-06T07:00:00+02:00';
 
-describe('running seed pack (Appendix D)', () => {
+describe('general seed pack (Appendix D)', () => {
   let temp: string;
   let workspace: string;
   let system: string;
@@ -29,24 +29,25 @@ describe('running seed pack (Appendix D)', () => {
     temp = await fs.mkdtemp(join(root, 'work', 'seed-test-'));
     const paths = athletePaths(temp, 'ath_seed');
     await initWorkspace({
-      paths, seedRoot, pack: 'running', clock: new VirtualClock(stamp),
+      paths, seedRoot, pack: 'general', clock: new VirtualClock(stamp),
       vars: { athlete_name: 'Sam Runner', coach_name: 'Kai', voice_id: 'alloy', created_date: '2026-10-06' },
     });
     workspace = paths.workspace;
-    system = await buildSystemDir({ dataDir: temp, seedRoot, pack: 'running', harnessVersion: 'seed-test' });
+    system = await buildSystemDir({ dataDir: temp, seedRoot, pack: 'general', harnessVersion: 'seed-test' });
   });
 
   afterAll(async () => { if (temp) await fs.rm(temp, { recursive: true, force: true }); });
 
   it('[WS-2] initializes a self-describing pack with existing, rendered pinned files', async () => {
     const pack = JSON.parse(await fs.readFile(join(packRoot, 'pack.json'), 'utf8'));
-    expect(pack).toMatchObject({ id: 'running', name: 'Running' });
+    expect(pack).toMatchObject({ id: 'general', name: 'General coaching' });
     expect(pack.version).toMatch(/^\d+\.\d+\.\d+$/);
     const agents = await fs.readFile(join(workspace, 'AGENTS.md'), 'utf8');
     expect(parseFrontMatter(agents).error).toBeUndefined();
     expect(agents).toContain('Sam Runner');
     expect(agents).not.toMatch(/\{\{\w+\}\}/);
-    for (const section of ['Map', 'Conventions', 'Open threads']) expect(agents).toContain(`## ${section}`);
+    for (const section of ['Map', 'Conventions', 'Disciplines', 'Open threads']) expect(agents).toContain(`## ${section}`);
+    expect(await fs.readFile(join(workspace, 'athlete/profile.md'), 'utf8')).toContain('## Disciplines');
     const pinned = await readPinnedList(workspace);
     expect(pinned).toEqual(['coach/persona.md', 'athlete/profile.md', 'plan/current-week.md']);
     for (const file of pinned) {
@@ -69,8 +70,16 @@ describe('running seed pack (Appendix D)', () => {
         for (const row of db.prepare(`PRAGMA table_info(${table})`).all()) expect(doc, `${table}.${String(row.name)}`).toMatch(new RegExp(`\\b${String(row.name)}\\b`));
         expect(db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get()?.n).toBe(0);
       }
-      db.prepare('INSERT INTO activities(id, started_at, source, created_at, updated_at) VALUES(?,?,?,?,?)').run('unknown', stamp, 'manual', stamp, stamp);
+      // A session must say what sport it was ('other' if nothing fits); everything not measured stays NULL.
+      expect(() => db.prepare('INSERT INTO activities(id, started_at, source, created_at, updated_at) VALUES(?,?,?,?,?)').run('nosport', stamp, 'manual', stamp, stamp)).toThrow(/NOT NULL/);
+      db.prepare('INSERT INTO activities(id, started_at, sport, source, created_at, updated_at) VALUES(?,?,?,?,?,?)').run('unknown', stamp, 'other', 'manual', stamp, stamp);
       expect(db.prepare('SELECT distance_m, duration_s, avg_hr, rpe, source_refs, confirmed FROM activities WHERE id=?').get('unknown')).toMatchObject({ distance_m: null, duration_s: null, avg_hr: null, rpe: null, source_refs: '[]', confirmed: 0 });
+      db.prepare('INSERT INTO exercise_sets(id, activity_id, performed_at, exercise, set_index) VALUES(?,?,?,?,?)').run('set1', 'unknown', stamp, 'Back squat', 1);
+      expect(db.prepare('SELECT reps, load_kg, rpe, rir, is_warmup FROM exercise_sets WHERE id=?').get('set1')).toMatchObject({ reps: null, load_kg: null, rpe: null, rir: null, is_warmup: 0 });
+      db.prepare("INSERT INTO planned_workouts(id, date, type, title, updated_at) VALUES('p1', '2026-10-07', 'rest', 'Rest', ?)").run(stamp);
+      expect(db.prepare('SELECT sport, key, status FROM planned_workouts').get()).toMatchObject({ sport: null, key: 0, status: 'planned' });
+      db.prepare('DELETE FROM planned_workouts').run();
+      db.prepare('DELETE FROM exercise_sets').run();
       db.prepare('DELETE FROM activities WHERE id=?').run('unknown');
     } finally { db.close(); }
   });
@@ -95,7 +104,7 @@ describe('running seed pack (Appendix D)', () => {
     }
   });
 
-  it('[SAFE-3] assembles running constitution and turn addenda while retaining epoch placeholders', async () => {
+  it('[SAFE-3] assembles the general constitution and turn addenda while retaining epoch placeholders', async () => {
     const constitution = await fs.readFile(join(system, 'constitution.md'), 'utf8');
     for (const file of ['coaching', 'safety']) expect(constitution).toContain((await fs.readFile(join(packRoot, 'constitution', `${file}.md`), 'utf8')).trim());
     expect(constitution).not.toMatch(/\{\{\s*pack_(?:coaching|safety)\s*\}\}/);
@@ -106,6 +115,17 @@ describe('running seed pack (Appendix D)', () => {
     for (const file of addenda) expect(await fs.readFile(join(system, 'addenda', file), 'utf8')).toBe(await fs.readFile(join(seedRoot, 'core/addenda', file), 'utf8'));
     expect(await fs.readFile(join(system, 'addenda/consolidation.md'), 'utf8')).toMatch(/cannot message the athlete/);
     expect(await fs.readFile(join(system, 'CHANGELOG-for-coach.md'), 'utf8')).toMatch(/\S/);
+    // Not a running coach by default: the athlete chooses the discipline(s).
+    expect(constitution).toMatch(/What you coach is the athlete's choice/);
+    expect(constitution).not.toMatch(/## 10\. Coaching \(running\)/);
+  });
+
+  it('[WS-9] ships a reference copy of the seed workspace for upgraded coaches', async () => {
+    for (const file of ['data/schema.md', 'data/migrations/0001_init.sql', 'ui/views/today/view.js', 'ui/views/progress/view.json', 'agents/planner.md']) {
+      expect(await fs.readFile(join(system, 'seed-workspace', file), 'utf8'), file).toBe(await fs.readFile(join(packRoot, 'workspace', file), 'utf8'));
+    }
+    expect(await fs.stat(join(system, 'seed-workspace/skills/.gitkeep')).catch(() => null)).toBeNull();
+    expect(await fs.readFile(join(system, 'CHANGELOG-for-coach.md'), 'utf8')).toContain('/system/seed-workspace/');
   });
 
   it('indexes every Appendix D skill with valid frontmatter and existing bundled script references', async () => {
@@ -151,6 +171,8 @@ describe('running seed pack (Appendix D)', () => {
     const result = JSON.parse(candidate.stdout);
     expect(result.possible_duplicates.map((row: { id: string }) => row.id)).toEqual(['file', 'screenshot']);
     expect(result.activities_sharing_a_source_blob).toEqual(['file']);
+    const otherSport = spawnSync('python3', [script, '--db', dbFile, '--candidate', JSON.stringify({ started_at: '2026-10-05T06:01:00Z', sport: 'strength', duration_s: 3600 })], { encoding: 'utf8' });
+    expect(JSON.parse(otherSport.stdout).possible_duplicates).toEqual([]);
     expect(await fs.readFile(dbFile)).toEqual(before);
   });
 
@@ -165,13 +187,14 @@ describe('running seed pack (Appendix D)', () => {
       add.run('flex', '2026-10-26', 'any', 'easy', 'Easy run', null, null, 1200, 'planned', null, stamp);
       add.run('skip', '2026-10-27', 'am', 'easy', 'Skipped run', null, null, 1200, 'skipped', null, stamp);
       add.run('rest', '2026-10-28', 'any', 'rest', 'Rest', null, null, null, 'planned', null, stamp);
-      db.prepare('INSERT INTO races(id,date,name,distance_m,priority,goal,notes) VALUES(?,?,?,?,?,?,?)').run('race', '2026-11-01', 'Local 10K', 10000, 'B', '{"time_s":3000}', 'PRIVATE race notes');
+      add.run('lift', '2026-10-29', 'pm', 'heavy', 'Squat day', null, JSON.stringify({ steps: [{ kind: 'exercise', name: 'Back squat', sets: [{ reps: 3, load: { kg: 140 }, target: { rpe: 8 } }, { reps: 5, load: { kg: 120 }, times: 3 }], rest_s: 180 }] }), 3600, 'planned', null, stamp);
+      db.prepare('INSERT INTO goal_events(id,date,name,sport,kind,distance_m,priority,goal,notes) VALUES(?,?,?,?,?,?,?,?,?)').run('race', '2026-11-01', 'Local 10K', 'run', 'race', 10000, 'B', '{"text":"Sub 50","time_s":3000}', 'PRIVATE race notes');
     } finally { db.close(); }
     const run = () => spawnSync('python3', [join(system, 'skills/calendar-export/scripts/make_ics.py'), '--db', dbFile, '--out', out, '--tz', 'Europe/Amsterdam', '--stamp', stamp, '--check'], { encoding: 'utf8' });
     expect(run().status).toBe(0);
     const first = await fs.readFile(out, 'utf8');
     expect(first).toContain('UID:workout-tempo@opencoach');
-    expect(first).toContain('UID:race-race@opencoach');
+    expect(first).toContain('UID:event-race@opencoach');
     expect(first).not.toContain('UID:workout-skip');
     expect(first).not.toContain('UID:workout-rest');
     expect(first).not.toContain('PRIVATE');
@@ -182,6 +205,9 @@ describe('running seed pack (Appendix D)', () => {
     const unfolded = first.replace(/\r\n[ \t]/g, '');
     expect(unfolded).toContain('SUMMARY:Tempo\\; café\\, steady');
     expect(unfolded).toContain('3 x:\\n  Work: 5 min at RPE 6-7');
+    expect(unfolded).toContain('Back squat: 1 x 3 @ 140 kg (RPE 8)\\; 3 x 5 @ 120 kg\\, rest 3 min');
+    expect(unfolded).toContain('SUMMARY:Race: Local 10K');
+    expect(unfolded).toContain('Goal: Sub 50');
     expect(first.replace(/\r\n/g, '')).not.toMatch(/[\r\n]/);
     for (const line of first.split('\r\n')) expect(Buffer.byteLength(line)).toBeLessThanOrEqual(75);
     expect(run().status).toBe(0);
@@ -193,5 +219,37 @@ describe('running seed pack (Appendix D)', () => {
     expect(changed).toContain('UID:workout-tempo@opencoach');
     expect(changed).toContain('DTSTART;TZID=Europe/Amsterdam:20261025T070000');
     expect(changed).not.toContain('DTSTART;TZID=Europe/Amsterdam:20261024T070000');
+  });
+
+  it('[EV-1] plan, load and lifting scripts summarize a hybrid week across sports', async () => {
+    const dbFile = join(temp, 'hybrid.db');
+    await fs.copyFile(join(workspace, 'data/coach.db'), dbFile);
+    const db = new DatabaseSync(dbFile);
+    try {
+      const plan = db.prepare('INSERT INTO planned_workouts(id,date,sport,type,title,target_duration_s,target_distance_m,key,updated_at) VALUES(?,?,?,?,?,?,?,?,?)');
+      plan.run('p1', '2026-10-12', 'strength', 'heavy', 'Squat day', 3600, null, 1, stamp);
+      plan.run('p2', '2026-10-13', 'run', 'intervals', 'Intervals', 3000, 8000, 1, stamp);
+      plan.run('p3', '2026-10-15', 'run', 'easy', 'Easy run', null, 6000, 0, stamp);
+      const act = db.prepare('INSERT INTO activities(id,started_at,sport,duration_s,distance_m,rpe,source,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)');
+      act.run('a1', '2026-10-05T18:00:00+02:00', 'strength', 3600, null, 7, 'manual', stamp, stamp);
+      act.run('a2', '2026-10-06T07:00:00+02:00', 'run', 2400, 6000, 4, 'manual', stamp, stamp);
+      const set = db.prepare('INSERT INTO exercise_sets(id,activity_id,performed_at,exercise,set_index,reps,load_kg,rpe) VALUES(?,?,?,?,?,?,?,?)');
+      for (let i = 1; i <= 3; i++) set.run(`s${i}`, 'a1', '2026-10-05T18:00:00+02:00', 'Back squat', i, 5, 100, 8);
+    } finally { db.close(); }
+    const py = (skill: string, script: string, ...args: string[]) => spawnSync('python3', [join(system, 'skills', skill, 'scripts', script), '--db', dbFile, ...args], { encoding: 'utf8' });
+    const check = py('plan-design', 'plan_check.py', '--as-of', '2026-10-11', '--json');
+    expect(check.status, check.stderr).toBe(0);
+    const week = JSON.parse(check.stdout).weeks[0];
+    expect(week).toMatchObject({ sessions: 3, by_sport: { run: 2, strength: 1 }, hard_sessions: 2, key_sessions: 2, run_km: 14 });
+    expect(week.flags.join('\n')).toMatch(/hard sessions on consecutive days/);
+    const load = py('training-load', 'load.py', '--as-of', '2026-10-11', '--json');
+    expect(load.status, load.stderr).toBe(0);
+    const loadOut = JSON.parse(load.stdout);
+    expect(loadOut.sports_counted).toEqual({ strength: 1, run: 1 });
+    expect(loadOut.distance_sport).toBe('run');
+    expect(loadOut.weeks.at(-1)).toMatchObject({ sessions: 2, load: 7 * 60 + 4 * 40, distance_km: 6 });
+    const lifts = py('strength-training', 'e1rm.py', '--as-of', '2026-10-11', '--json');
+    expect(lifts.status, lifts.stderr).toBe(0);
+    expect(JSON.parse(lifts.stdout).exercises['Back squat'][0]).toMatchObject({ sets: 3, hard_sets: 3, best_e1rm_kg: 116.7, tonnage_kg: 1500 });
   });
 });

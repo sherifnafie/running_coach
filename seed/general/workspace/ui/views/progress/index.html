@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title data-i18n="Progress">Progress</title>
+  <link rel="stylesheet" href="/kit/1/kit.css">
+  <script type="module" src="/kit/1/kit.js"></script>
+  <script type="module" src="view.js"></script>
+</head>
+<body>
+<rc-page>
+  <rc-header heading="Progress" data-i18n-heading="Progress">
+    <rc-segmented id="range" label="Time range" data-i18n-label="Time range" value="12" options='[{"value":"8","label":"8 wk"},{"value":"12","label":"12 wk"},{"value":"16","label":"16 wk"}]' data-i18n-options='[{"value":"8","label":"8 wk"},{"value":"12","label":"12 wk"},{"value":"16","label":"16 wk"}]'></rc-segmented>
+  </rc-header>
+
+  <rc-empty id="onboarding" hidden icon="progress" heading="Your coach will fill this in" data-i18n-heading="Your coach will fill this in"><span data-i18n="Once you've logged a few sessions, your weekly training and trends show up here.">Once you've logged a few sessions, your weekly training and trends show up here.</span></rc-empty>
+
+  <!--
+    view.js runs a few queries for the chosen range and hands the rows to the components. Sections for a
+    kind of training (distance sports, lifting) appear only when there is data for them, so the same view
+    works for a runner, a lifter, or someone who does both. Weeks are Monday-based.
+  -->
+  <div id="content" class="rc-stack">
+    <div class="rc-grid" data-cols="3">
+      <rc-stat id="s-week" label="This week" data-i18n-label="This week" format="duration" delta-label="vs last week" data-i18n-delta-label="vs last week" delta-good="neutral"></rc-stat>
+      <rc-stat id="s-sessions" label="Sessions" data-i18n-label="Sessions" format="integer"></rc-stat>
+      <rc-stat id="s-done" label="Planned sessions done" data-i18n-label="Planned sessions done"></rc-stat>
+    </div>
+
+    <rc-card heading="Weekly training time" data-i18n-heading="Weekly training time">
+      <rc-chart id="time" type="bar" stacked y-format="duration" height="190"
+        label="Training time per week, by sport" data-i18n-label="Training time per week, by sport" empty="No sessions in this period yet." data-i18n-empty="No sessions in this period yet."></rc-chart>
+    </rc-card>
+
+    <rc-card id="distance-card" heading="Weekly distance" data-i18n-heading="Weekly distance" hidden>
+      <rc-chart id="distance" type="bar" stacked y-format="distance" height="170" label="Distance per week, by sport" data-i18n-label="Distance per week, by sport"></rc-chart>
+      <rc-stat id="s-longest" label="Longest session" data-i18n-label="Longest session" format="distance"></rc-stat>
+    </rc-card>
+
+    <rc-card id="strength-card" heading="Strength" data-i18n-heading="Strength" subheading="Estimated 1RM per week from your working sets (up to 10 reps). An estimate, not a tested max." data-i18n-subheading="Estimated 1RM per week from your working sets (up to 10 reps). An estimate, not a tested max." hidden>
+      <rc-chart id="e1rm" type="line" y-format="weight" height="190" label="Estimated 1RM per week" data-i18n-label="Estimated 1RM per week"></rc-chart>
+      <rc-list id="lifts" empty="No lifts in this period yet." data-i18n-empty="No lifts in this period yet."></rc-list>
+    </rc-card>
+
+    <!-- Calm consistency: no streak counter, no flames, nothing to lose. -->
+    <rc-card heading="Consistency" data-i18n-heading="Consistency">
+      <rc-stat id="consistency" label="Weeks with 2 or more sessions" data-i18n-label="Weeks with 2 or more sessions"
+        hint="Missed weeks happen. What counts is the pattern over months." data-i18n-hint="Missed weeks happen. What counts is the pattern over months."></rc-stat>
+    </rc-card>
+
+    <rc-card heading="Results" data-i18n-heading="Results">
+      <rc-list id="results" empty="No results yet." data-i18n-empty="No results yet."></rc-list>
+    </rc-card>
+  </div>
+</rc-page>
+</body>
+</html>

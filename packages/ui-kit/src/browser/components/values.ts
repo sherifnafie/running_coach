@@ -1,8 +1,8 @@
-/** Shared value formatting for components: `format="distance|duration|pace|number|integer|percent|date|time|text"`. */
+/** Shared value formatting for components: `format="distance|duration|pace|weight|number|integer|percent|date|time|text"`. */
 import type { Coach } from '../coach';
 import { num } from '../util';
 
-export const VALUE_FORMATS = ['distance', 'duration', 'pace', 'number', 'integer', 'percent', 'date', 'time', 'text'] as const;
+export const VALUE_FORMATS = ['distance', 'duration', 'pace', 'weight', 'number', 'integer', 'percent', 'date', 'time', 'text'] as const;
 
 export function formatValue(coach: Coach, v: unknown, fmt?: string | null, signed = false): string {
   if (v == null || v === '') return '';
@@ -22,6 +22,9 @@ export function formatValue(coach: Coach, v: unknown, fmt?: string | null, signe
       break;
     case 'pace':
       out = f.pace(abs);
+      break;
+    case 'weight':
+      out = f.weight(abs);
       break;
     case 'integer':
       out = f.number(abs, 0);

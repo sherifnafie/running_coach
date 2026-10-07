@@ -1,4 +1,4 @@
-# OpenCoach: an AI-native running coach harness
+# OpenCoach: an AI-native coaching harness (any sport, or several)
 
 **Product and technical specification, v0.1 (draft for the build team)**
 **Date:** 2026-10-06 · **Status:** Proposed · **Owner:** project founder · **Working title:** "OpenCoach" (placeholder, see §22)
@@ -29,7 +29,7 @@ This is the founding spec for the project. It turns a rough brainstorm into deci
 
 ### 1.1 The problem
 
-Running apps such as Samsung Health, Strava and Runna sell "coaching", but what they ship is mostly fixed templates plus single-pass rules: "missed a run → shift the plan", "pace was fast → bump VDOT". Runna itself says its plans are coach-written templates that an algorithm then adapts, not AI-generated (Appendix A §A.8). None of them does what a good remote human coach does:
+Training apps such as Samsung Health, Strava, Runna or the many lifting-program apps sell "coaching", but what they ship is mostly fixed templates plus single-pass rules (and one app per sport): "missed a run → shift the plan", "pace was fast → bump VDOT". Runna itself says its plans are coach-written templates that an algorithm then adapts, not AI-generated (Appendix A §A.8). None of them does what a good remote human coach does:
 
 - They don't hold a continuous relationship that remembers your knee niggle from March, your kid's swim schedule and your tendency to race your easy runs.
 - They don't reach out at the right moment ("Did the tempo happen? How did the hamstring feel?").
@@ -59,7 +59,7 @@ Examples:
 ### 1.4 Goals and non-goals (v1)
 
 **Goals**
-1. A single, continuous, persistent coach relationship per athlete, through chat, images, files, voice notes and (Phase 2) calls.
+1. A single, continuous, persistent coach relationship per athlete, through chat, images, files, voice notes and (Phase 2) calls, for whatever the athlete trains: one sport (running, lifting, cycling, a team sport, general fitness...) or several at once. The athlete chooses; the harness has no notion of a sport (§19.3, [ADR 0006](docs/adr/0006-multi-discipline-coaching.md)).
 2. The coach has full agency over its workspace, its data model, its schedule of check-ins and the app's views (calendar, plan, progress and anything else it decides to build).
 3. Proactive behavior that a good coach would show, under user-controlled limits.
 4. Natural data input: screenshots, exports, voice and conversational check-ins. No integrations required.
@@ -68,7 +68,7 @@ Examples:
 7. Safe by design: medical red flags, eating-disorder risk, privacy of special-category health data.
 8. Measurable quality: a simulation-based eval suite is the executable definition of "good coaching".
 
-**Non-goals for v1** (revisit later): third-party fitness API integrations (Strava/Garmin; see §10.5 for the ToS problem), social features, a human-coach marketplace, watch apps, live in-run audio coaching, nutrition tracking as a product, users under 18, a public skill marketplace, and sports other than running (the architecture stays domain-agnostic; see §19.3).
+**Non-goals for v1** (revisit later): third-party fitness API integrations (Strava/Garmin; see §10.5 for the ToS problem), social features, a human-coach marketplace, watch apps, live in-run audio coaching, nutrition tracking as a product, users under 18, a public skill marketplace, and in-person-only skill coaching (technique, spotting and safety supervision for high-risk sports; see §12.1).
 
 ---
 
@@ -111,6 +111,7 @@ Being unopinionated about coaching does not mean being unopinionated about every
 | Persona | Description | What they need most |
 |---|---|---|
 | **Self-coached amateur** (primary; the founder) | Runs 3 to 6 times a week, has a smartwatch (e.g. Galaxy Watch with Samsung Health), targets a half or full marathon, frustrated by generic plans. | Real adaptation, memory, accountability, insight from their own data. |
+| **Hybrid or non-running athlete** | Lifts (general strength or powerlifting), cycles, swims, plays a team sport, or combines several (e.g. a half marathon and a squat goal). Logs in a gym app or a notebook. | One coach and one plan for everything they train, with load and recovery judged across disciplines. |
 | **Beginner** | Couch-to-5K, no watch or a cheap one, anxious about injury. | Encouragement, simple language, conservative progression, RPE-based guidance. |
 | **Returning from injury** | Has a history (shin splints, Achilles, ITB) and fears re-injury. | Careful load management, pain monitoring, knowing when to refer to a physio. |
 | **Time-crunched parent** | Irregular schedule, often misses sessions. | Flexible weekly rescheduling without guilt. |
@@ -150,6 +151,8 @@ These double as end-to-end acceptance scenarios (Appendix E §E.5).
 **J6. Model switch.** The athlete (or self-host admin) switches the coach model from Sonnet 5.5 to GPT-6.1 Sol. The change takes effect at the next context epoch (§5.3). The new model reads the same constitution, workspace, memory and briefing. To the athlete it is still the same coach.
 
 **J7. Call.** The athlete taps **Call coach** and talks for 10 minutes about an upcoming race. The voice front-end has a briefing compiled from the workspace and can consult the main coach for heavy questions. After the call the main coach reads the transcript, updates the race plan and sends a recap.
+
+**J9. A new discipline.** A runner asks, "can you also coach my powerlifting? Meet in March." The coach asks what changes a decision (current lifts, gym days, federation and weight class, priorities), records the new discipline in the profile and `AGENTS.md`, reads the `strength-training` and `disciplines` skills, proposes a combined week that keeps heavy legs away from the long run, and adds lifting to the app (sets in Today, e1RM trends in Progress). For a sport with no first-party skill (say, bouldering) it researches first, writes a workspace skill, and is honest about what needs in-person instruction.
 
 **J8. Race arc.** Taper wakes, a race-week checklist view the coach builds for this race, a race-morning message, a post-race debrief call or chat, a recovery block, and the result recorded in `races`.
 
@@ -562,7 +565,7 @@ Kept deliberately small (P7). Full contracts, parameters and errors are in Appen
 | `generate_image` | One requested square image through an optional independent image service [MOD-1] | Trusted runtime | Coach only; athlete identity opt-in and chat turn; budgets include conservative attempt cost; no automatic retries; private blob; no automatic send/apply |
 | `spawn_agent`, `task_status`, `cancel_task` | Helpers and background tasks (§5.6) | Runtime | Depth, concurrency and budget limits |
 | `preview_ui`, `publish_ui`, `rollback_ui` | Validate, screenshot, publish and revert views (§9.6) | Runtime + sandbox Chromium | Validation gates |
-| `web_search`, `web_fetch` | Research: weather, races, literature | Runtime (proxied) | Rate limits; results marked untrusted; logged |
+| `web_search`, `web_fetch` | Research: weather, events and rules, a new sport's methods, literature | Runtime (proxied) | Rate limits; results marked untrusted; logged |
 | `search_history` | Full-text search over the event log, with date and type filters | Runtime | Returns excerpts with event ids |
 | MCP tools (Phase 2) | Athlete- or admin-connected MCP servers | Runtime | Per-server allowlist; untrusted output |
 
@@ -574,14 +577,9 @@ Voice sessions get a separate, smaller toolset (§11.2).
 
 - `[SK-1]` Skills use the **Agent Skills** open format (`SKILL.md` with name and description front-matter, plus optional scripts and references), loaded with progressive disclosure: only the index sits in context (L2); bodies load when used. The format is supported by Claude, Codex, Gemini CLI, Hermes, OpenClaw and others (Appendix A §A.4), so skills port across harnesses, including the Phase 0 testbed.
 - **First-party skills** (`/system/skills`, read-only, versioned) are *knowledge and suggested procedures*, not workflows. The coach may ignore or override them, except for anything that restates the safety floor. Seed library (details in Appendix D §D.6):
-  - `intake`, `screenshot-extraction`, `file-import` (FIT/GPX/TCX/CSV/ZIP exports)
-  - `training-load` (sRPE, TRIMP, ACWR *with caveats*)
-  - `zones-and-paces` (HR, pace, RPE, talk test, VDOT-style equivalences)
-  - `plan-design` (periodization, progression, sample structures 5K to marathon, evidence notes)
-  - `injury-and-pain` (red flags, pain-monitoring model, return-to-run, referral)
-  - `illness-return`, `race-prep`, `environment` (heat, cold, altitude, air quality)
-  - `strength-mobility`, `fueling-basics` (with RED-S and ED cautions)
-  - `ui-kit` (how to build good views), `calendar-export` (ICS), `data-hygiene` (dedupe, units, timezones)
+  - General method, any sport: `intake`, `plan-design` (periodization, progression, peaking, adapting, evidence notes), `training-load` (sRPE across sports, ACWR *with caveats*), `injury-and-pain` (red flags, pain monitoring, return-to-run and return-to-lifting, referral), `illness-return`, `competition-prep` (any dated goal event), `environment` (heat, cold, altitude, air quality), `fueling-basics` (with RED-S, ED and weight-cutting cautions)
+  - Disciplines: `disciplines` (taking on any sport, writing a workspace skill for it, combining several in one week), `running` (zones, paces and VDOT, session doses, sample weeks 5K to marathon, races), `strength-training` (RPE/RIR, e1RM, programming, powerlifting meets, strength for other sports)
+  - Data and app: `screenshot-extraction` and `file-import` (watch exports, FIT/GPX/TCX/CSV/ZIP, gym-app logs), `data-hygiene` (dedupe, units, timezones), `calendar-export` (ICS), `ui-kit` (how to build good views), `research`, `coach-identity`
 - `[SK-2]` **Coach-authored skills** live in `workspace/skills`. The coach is encouraged to turn repeated procedures into skills, as Hermes does with autonomous skill creation, e.g. "how this athlete's Samsung Health screenshots are laid out".
 - `[SK-3]` **No third-party skill installation in v1.** The ClawHub audits found 13% of public skills with critical security flaws (Appendix A §A.2). Phase 3 may add a curated registry with review, signing and an install-time diff shown to the athlete.
 
@@ -773,12 +771,13 @@ The coach *authors a structured run script* (segments, targets, cue triggers, ph
 
 The full text is in Appendix B. Summary:
 - **Scope:** coach, not clinician. No diagnosis. General information is fine. Refer to professionals readily.
-- **Red flags → stop and seek care** (emergency services if acute): chest pain or pressure, fainting or near-fainting, disproportionate breathlessness, palpitations or irregular heartbeat, heat-illness signs (confusion, stopped sweating, vomiting), suspected stress fracture (focal bone pain, pain at rest or night, worsening with impact), numbness or weakness, head injury, dark urine after extreme exertion, calf swelling with pain after travel.
+- **Red flags → stop and seek care** (emergency services if acute): chest pain or pressure, fainting or near-fainting, disproportionate breathlessness, palpitations or irregular heartbeat, heat-illness signs (confusion, stopped sweating, vomiting), suspected stress fracture (focal bone pain, pain at rest or night, worsening with impact), numbness or weakness, head injury or suspected concussion, sudden severe headache under load, back pain with groin numbness or bladder/bowel changes, a pop or tear with immediate weakness, dark urine after extreme exertion, calf swelling with pain after travel.
 - **Pain protocol:** a pain-monitoring approach, with conservative defaults and an explicit referral threshold.
-- **Disordered eating and RED-S:** no weight-loss pressure, no calorie targets. Signals (rapid weight-loss goals, restrictive language, missed periods, recurrent bone injuries) trigger a supportive shift and a professional referral.
+- **Disordered eating and RED-S:** no weight-loss pressure, no calorie targets, no weight cuts (dehydration, saunas, fasting) for weight-class sports. Signals (rapid weight-loss goals, restrictive language, missed periods, recurrent bone injuries) trigger a supportive shift and a professional referral.
 - **Mental health crisis:** support and crisis resources, and stop coaching talk.
 - **Medical conditions and pregnancy:** need clinician clearance; follow clinician guidance.
 - **No performance-enhancing drug advice.** Supplements only with caution, and only evidence-graded.
+- **Disciplines beyond remote coaching:** for high-risk or technique-critical activities (breath-hold diving, mountaineering, lead/solo climbing, heavy lifts to failure without safeties, sparring) the coach coaches conditioning and structure, insists on the sport's safety practices and in-person instruction, and never prescribes the dangerous part.
 - **Honesty:** state uncertainty and evidence quality. Never fabricate data. Disclose being an AI when asked, and at onboarding.
 - **Athlete autonomy:** the athlete decides; the coach advises and pushes back when needed. **No sycophancy:** saying no to an unsafe plan is part of the job.
 
@@ -909,9 +908,14 @@ evals/              # scenarios, screenshot corpus, graders, reports
 docs/               # this spec + architecture decision records (ADRs)
 ```
 
-### 19.3 Domain packs: running first, others later
+### 19.3 One general pack; disciplines are knowledge, not code
 
-The core (runtime, engine, gateway, UI shell, kit) is **domain-agnostic**. Running lives in a **pack**: the constitution's domain section, the seed workspace, skills, seed views and eval scenarios. v1 ships one pack and no pack-switching UX. Keeping the boundary clean costs little now and opens cycling, strength, triathlon and other coaching domains to contributors later.
+The core (runtime, engine, gateway, UI shell, kit) is **domain-agnostic**: no code knows what a sport is. v1 ships one **general** pack (`seed/general`): the constitution's coaching and safety sections, the seed workspace, skills, seed views and eval scenarios. What the coach coaches is decided per athlete, in conversation, and recorded in their workspace; one athlete can have several disciplines.
+
+- **Discipline knowledge lives in skills.** First-party discipline skills (`running`, `strength-training`) sit beside sport-neutral method skills. For anything else the `disciplines` skill tells the coach to research, write a workspace skill, and extend its schema and views. Contributors add a sport by adding a skill, not code.
+- **The data model is sport-agnostic** (Appendix D §D.4): every session in `activities` with a free-text `sport`, set-by-set lifting in `exercise_sets`, dated goals of any kind in `goal_events`, `sport` and `key` on planned sessions, and weekly time as the cross-sport volume measure.
+- **The UI kit has no sport list.** Session types are free text; unknown words get a stable colour and letter. `<rc-workout>` renders endurance steps and exercises (sets × reps @ load).
+- **The pack mechanism stays** (`pack.json`, `{{pack_coaching}}`, `{{pack_safety}}`) for a deployment that wants a specialized coach, but there is no pack-switching UX and none is needed for multi-sport coaching. See [ADR 0006](docs/adr/0006-multi-discipline-coaching.md).
 
 ### 19.4 Extension points
 
@@ -982,9 +986,9 @@ Hosted multi-tenant mode (hibernating sandboxes, Postgres, billing), in-run audi
 4. **Minimum age:** 18+ in v1 (recommended) or 16+ with extra safeguards.
 5. **Reference default models** for the docs and compose file (suggested: Sonnet 5.5 for coach, GPT-6 Luna class for fast, gpt-realtime-2.1-mini for voice), since price and quality trade off.
 6. **Platform priority:** Android-first native shell (recommended, given Samsung Health) vs. iOS.
-7. **Domain generality:** keep the pack boundary from day one (recommended) or hard-code running for speed.
+7. **Domain generality:** decided: one general pack, disciplines as skills, athlete-chosen and combinable ([ADR 0006](docs/adr/0006-multi-discipline-coaching.md)).
 8. **Third-party JS in views:** recommended **no**; the kit bundles vetted chart, calendar and map libraries.
-9. **Human coach advisory:** recruit 2–3 certified running coaches for eval calibration and safety review. Recommended for Phase 0–1.
+9. **Human coach advisory:** recruit 2–3 certified coaches (running and strength at minimum) for eval calibration and safety review. Recommended for Phase 0–1.
 
 ---
 
@@ -1006,5 +1010,6 @@ Hosted multi-tenant mode (hibernating sandboxes, Postgres, billing), in-run audi
 | **View** | A coach-authored HTML page rendered in a sandboxed iframe. |
 | **Micro-UI** | Declarative quick replies, forms and notification actions attached to messages. |
 | **Situation report** | The per-turn harness-written state block (L6). |
-| **Pack** | A domain bundle (constitution section, seed, skills, views, evals); running is the first. |
+| **Pack** | A seed bundle (constitution section, seed workspace, skills, views, evals). v1 ships one general pack; sports are skills inside it. |
+| **Discipline** | A sport or training goal the athlete is coached in (running, lifting, general fitness...). An athlete can have several; the coach records them in the workspace. |
 | **Provenance** | Source references and confidence on every derived data record. |

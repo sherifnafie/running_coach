@@ -62,6 +62,20 @@
   --rc-type-hike: var(--rc-series-7);
   --rc-type-bike: var(--rc-series-1);
   --rc-type-swim: var(--rc-series-2);
+  --rc-type-recovery: var(--rc-series-3);
+  --rc-type-technique: var(--rc-series-1);
+  --rc-type-skill: var(--rc-series-1);
+  --rc-type-test: var(--rc-series-5);
+  --rc-type-mobility: var(--rc-series-6);
+  --rc-type-conditioning: var(--rc-series-8);
+  --rc-type-competition: var(--rc-series-5);
+  --rc-type-heavy: var(--rc-series-8);
+  --rc-type-power: var(--rc-series-7);
+  --rc-type-hypertrophy: var(--rc-series-2);
+  --rc-type-meet: var(--rc-series-5);
+  --rc-type-row: var(--rc-series-1);
+  --rc-type-climb: var(--rc-series-7);
+  --rc-type-yoga: var(--rc-series-6);
 
   /* chart chrome */
   --rc-grid: #e1e0d9;

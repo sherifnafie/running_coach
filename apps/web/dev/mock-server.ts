@@ -430,7 +430,7 @@ export async function startMockServer(opts: MockServerOptions = {}): Promise<Moc
       const out = startSession(res);
       log('athlete created:', parsed.data.displayName);
       seedHistory(opts.seedHistory ?? 0);
-      setTimeout(() => void coachSays({ text: `Hi ${parsed.data.displayName.split(' ')[0]}! I'm ${settings.profile.coachName}, your running coach. Tell me a bit about your running.` }), 400 * speed);
+      setTimeout(() => void coachSays({ text: `Hi ${parsed.data.displayName.split(' ')[0]}! I'm ${settings.profile.coachName}, your coach. What are you training for, or what would you like to work on?` }), 400 * speed);
       return json(res, 200, out);
     }
 

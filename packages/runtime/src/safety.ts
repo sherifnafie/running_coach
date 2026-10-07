@@ -11,15 +11,19 @@ const PATTERNS: Array<{ cat: SafetyCategory; re: RegExp }> = [
   { cat: 'cardiac', re: /\b(faint(ed|ing)?|pass(ed)? out|black(ed)? out|collaps(ed|ing)|nearly (fainted|passed out)|dizz(y|iness) (and|with) (chest|short))\b/i },
   { cat: 'cardiac', re: /\b(can'?t (catch|get) my breath|short(ness)? of breath (at rest|while resting)|struggling to breathe)\b/i },
   { cat: 'heat_illness', re: /\b(heat ?stroke|stopped sweating|confused (after|in) the heat|vomit(ed|ing) .{0,30}(heat|hot)|heat exhaustion)\b/i },
-  { cat: 'stress_fracture', re: /\b(stress fracture|bone pain|pain (at|in) (the )?(night|rest).{0,40}(shin|foot|hip|bone)|(shin|foot|hip|metatarsal) (hurts|pain) (at night|when resting|even resting))\b/i },
-  { cat: 'neuro', re: /\b(numb(ness)?|tingling|weakness) (in|down) (my )?(arm|leg|face)|\b(hit my head|head injury|concussion|worst headache)\b/i },
+  { cat: 'stress_fracture', re: /\b(stress fracture|stress reaction|bone pain|pain (at|in) (the )?(night|rest).{0,40}(shin|foot|hip|bone)|(shin|foot|hip|metatarsal) (hurts|pain) (at night|when resting|even resting))\b/i },
+  { cat: 'neuro', re: /\b(numb(ness)?|tingling|weakness) (in|down) (my )?(arm|leg|face)|\b(hit my head|head injury|concussion|worst headache|thunderclap headache|sudden (severe|blinding|explosive) headache)\b/i },
+  // Back pain with saddle numbness or bladder/bowel changes (possible cauda equina): an emergency in any sport.
+  { cat: 'neuro', re: /\b(numb(ness)?|tingling|no feeling) (in|around) (my )?(groin|crotch|genitals|inner thighs?|saddle|bum|buttocks)|\b(can'?t|cannot|couldn'?t) (control|hold) (my )?(bladder|bowels?|pee|wee)|\b(lost|losing|loss of) (bladder|bowel) control|\bboth (of my )?legs (are |went |going |feel )?(weak|numb|giving (way|out))\b/i },
+  // A pop or tear with immediate weakness or deformity (tendon rupture): needs prompt assessment.
+  { cat: 'other_acute', re: /\b(felt|heard) (a |something )?(pop|snap|tear|rip)\b.{0,60}\b(weak|can'?t (lift|move|bend|straighten)|bruis\w*|lump|dent|deform\w*|bunched|swollen)\b|\b(torn|ruptured?) (my )?(biceps?|pec\w*|achilles|tendon|acl)\b/i },
   { cat: 'rhabdo', re: /\b(dark|brown|cola[- ]colou?red|tea[- ]colou?red) (urine|pee)\b/i },
   { cat: 'dvt', re: /\b(swollen|swelling) .{0,20}calf\b|\bcalf .{0,20}(swollen|hot and red)\b|\b(blood clot|dvt)\b/i },
   { cat: 'eating_disorder', re: /\b(starv(e|ing) myself|purg(e|ing)|binge|eat(ing)? (only|just) \d{2,4} cal|lose \d{2,} ?(kg|lbs?|pounds) in \d+ (weeks?|days)|missed (my )?periods?|no periods?|haven'?t had (a|my) period)\b/i },
   { cat: 'self_harm', re: /\b(kill myself|suicid\w*|end (it all|my life)|self[- ]harm|hurt(ing)? myself|don'?t want to (live|be alive))\b/i },
 ];
 
-const ACUTE = /\b(right now|now|currently|at the moment|still|just (now|happened)|this (morning|evening|afternoon)|during (my|the) run|mid[- ]run|today)\b/i;
+const ACUTE = /\b(right now|now|currently|at the moment|still|just (now|happened)|this (morning|evening|afternoon)|during (my|the|a) (run|ride|swim|lift|set|session|workout|game|match|training)|mid[- ](run|set|lift|session|workout|game)|today)\b/i;
 
 export function heuristicScreen(text: string): SafetyScreenResult {
   const cats = new Set<SafetyCategory>();
@@ -43,9 +47,9 @@ export function createSafetyScreen(opts: { router?: ModelRouter; useModel: boole
           system: [
             {
               text:
-                'You screen messages from a runner to their coach for acute medical or crisis signals. Reply with ONLY compact JSON: ' +
+                'You screen messages from an athlete (any sport) to their coach for acute medical or crisis signals. Reply with ONLY compact JSON: ' +
                 '{"categories":[...],"acute":true|false}. Categories: cardiac, heat_illness, stress_fracture, neuro, rhabdo, dvt, eating_disorder, self_harm, other_acute. ' +
-                'Use [] when nothing concerning. Ordinary soreness and fatigue are not concerning.',
+                'Use [] when nothing concerning. Ordinary soreness and fatigue are not concerning. Back pain with groin numbness or bladder/bowel changes is neuro; a pop or tear with weakness is other_acute.',
               cache: true,
             },
           ],
@@ -76,5 +80,5 @@ export function safetyBannerText(categories: SafetyCategory[], acute: boolean): 
   }
   return acute
     ? 'If you have chest pain, fainting, severe breathlessness, confusion in the heat or other severe symptoms right now: stop exercising and call your local emergency number.'
-    : 'Some symptoms you mentioned can be serious. Stop training and get checked by a doctor before your next run. If symptoms are severe or happening now, call your local emergency number.';
+    : 'Some symptoms you mentioned can be serious. Stop training and get checked by a doctor before your next session. If symptoms are severe or happening now, call your local emergency number.';
 }

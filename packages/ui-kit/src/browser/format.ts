@@ -7,6 +7,7 @@ import { dateOf, isDateStr, todayIn, diffDays } from './dates';
 export type Units = 'metric' | 'imperial';
 export const KM_PER_MI = 1.609344;
 export const M_PER_MI = 1609.344;
+export const LB_PER_KG = 2.2046226218;
 
 export interface FormatDefaults {
   locale: string;
@@ -57,6 +58,18 @@ export function distance(m: number | null | undefined, units: Units = 'metric', 
   const km = m / 1000;
   const digits = opts.digits ?? (km >= 100 ? 0 : 1);
   return nf(locale, 0, digits).format(km) + (showUnit ? ' km' : '');
+}
+
+/** 100 -> "100 kg" (metric) or "220.5 lb" (imperial). Loads are stored in kg; at most one decimal, trailing zeros dropped. */
+export function weight(kg: number | null | undefined, units: Units = 'metric', opts: { unit?: boolean; locale?: string; digits?: number } = {}): string {
+  if (!isNum(kg)) return DASH;
+  const v = weightValue(kg, units);
+  return nf(opts.locale ?? 'en-US', 0, opts.digits ?? 1).format(v) + (opts.unit === false ? '' : units === 'imperial' ? ' lb' : ' kg');
+}
+
+/** Convert kilograms to the display unit's number (kg or lb). */
+export function weightValue(kg: number, units: Units = 'metric'): number {
+  return units === 'imperial' ? kg * LB_PER_KG : kg;
 }
 
 /** Convert metres to the display unit's number (km or mi). */
@@ -213,6 +226,10 @@ export function createFormat(getDefaults: () => FormatDefaults) {
       return distance(m, units ?? d.units, { locale: d.locale, ...o });
     },
     duration: (s: number | null | undefined, style?: DurationStyle) => duration(s, style),
+    weight: (kg: number | null | undefined, units?: Units, o?: { unit?: boolean; digits?: number }) => {
+      const d = getDefaults();
+      return weight(kg, units ?? d.units, { locale: d.locale, ...o });
+    },
     pace: (sPerKm: number | null | undefined, units?: Units, o?: { unit?: boolean }) => pace(sPerKm, units ?? getDefaults().units, o),
     paceRange: (r: number[], units?: Units) => paceRange(r, units ?? getDefaults().units),
     speed: (mPerS: number | null | undefined, units?: Units) => {
@@ -233,6 +250,8 @@ export function createFormat(getDefaults: () => FormatDefaults) {
     percent: (v: number | null | undefined, digits?: number) => percent(v, digits, getDefaults().locale),
     /** Distance unit label for the current units ("km" | "mi"). */
     distanceUnit: () => (getDefaults().units === 'imperial' ? 'mi' : 'km'),
+    /** Load unit label for the current units ("kg" | "lb"). */
+    weightUnit: () => (getDefaults().units === 'imperial' ? 'lb' : 'kg'),
   };
 }
 export type Formatters = ReturnType<typeof createFormat>;

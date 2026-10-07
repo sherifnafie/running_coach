@@ -1,10 +1,33 @@
-/** <rc-workout>: renders planned_workouts.structure (steps, repeats, targets). */
+/** <rc-workout>: renders planned_workouts.structure (endurance steps, repeats, exercises with sets, targets). */
 import { h, parseJson } from '../util';
 import { buildWorkoutModel, type WorkoutItem } from '../workout';
 import { RcBound, define, getCoach } from './base';
 import { pick } from './values';
 
+function exerciseEl(it: WorkoutItem): HTMLElement {
+  const groups = it.sets ?? [];
+  const single = groups.length <= 1;
+  return h(
+    'li',
+    { class: 'rc-exercise' },
+    h('span', { class: 'rc-step__bar', 'aria-hidden': 'true' }),
+    h('span', { class: 'rc-exercise__name' }, it.kindLabel),
+    single ? h('span', { class: 'rc-exercise__scheme' }, it.duration) : null,
+    single && it.target ? h('span', { class: 'rc-exercise__load' }, it.target) : null,
+    !single
+      ? h(
+          'ul',
+          { class: 'rc-exercise__sets' },
+          ...groups.map((g) => h('li', null, h('span', { class: 'rc-exercise__scheme' }, g.scheme), [g.load, g.target].filter(Boolean).length ? h('span', { class: 'rc-exercise__load' }, [g.load, g.target].filter(Boolean).join(' · ')) : null)),
+        )
+      : null,
+    it.meta ? h('span', { class: 'rc-exercise__meta' }, it.meta) : null,
+    it.note ? h('span', { class: 'rc-step__note' }, it.note) : null,
+  );
+}
+
 function stepEl(it: WorkoutItem): HTMLElement {
+  if (it.type === 'exercise') return exerciseEl(it);
   if (it.type === 'repeat') {
     const li = h('li', { class: 'rc-repeat' });
     li.append(

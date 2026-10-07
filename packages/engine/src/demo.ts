@@ -128,18 +128,18 @@ const NOTE = (what: string): ScriptedStep => ({ text: `Demo coach: ${what}` });
 
 const PAIN = /\b(pain|painful|hurt|hurts|hurting|injur\w*|ache|aching|sprain\w*|swollen|swelling)\b/i;
 const URGENT = /\b(chest|dizzy|dizziness|faint\w*|breath\w*|numb\w*|collapse\w*)\b/i;
-const GOAL = /\b(5k|10k|half marathon|half|marathon|get fit|fitness)\b/i;
+const GOAL = /\b(5k|10k|half marathon|half|marathon|get fit|fitness|get stronger|stronger|strength|powerlifting|build muscle|triathlon)\b/i;
 const PLAN = /\b(plan|schedule|remind\w*|check[- ]?in)\b/i;
 const REST = /\b(rest day|resting|rest)\b/i;
-const RAN = /\b(run|ran|running|done|workout|session|tempo|intervals?|jog\w*)\b/i;
+const RAN = /\b(run|ran|running|done|workout|session|tempo|intervals?|jog\w*|lift(ed|ing)?|squat\w*|bench(ed)?|deadlift\w*|gym|trained|swam|swim|rode|ride|cycl\w*|climb\w*|yoga)\b/i;
 /** Past-tense report of a workout ("I ran 5k"), as opposed to naming a goal ("First 5K"). */
-const REPORT = /\b(ran|done|finished|completed|did)\b/i;
+const REPORT = /\b(ran|done|finished|completed|did|lifted|trained)\b/i;
 const NUMERIC = /^\s*(10|[1-9])(?:\s*\/\s*10)?\s*$/;
 
 const GOAL_QUICK: Array<[string, string]> = [
   ['First 5K', 'First 5K'],
   ['Half marathon', 'Half marathon'],
-  ['Marathon', 'Marathon'],
+  ['Get stronger', 'Get stronger'],
   ['Just get fit', 'Just get fit'],
 ];
 const EFFORT_QUICK: Array<[string, string]> = [
@@ -151,7 +151,7 @@ const EFFORT_QUICK: Array<[string, string]> = [
   ['10 · all-out', '10'],
 ];
 const NEXT_QUICK: Array<[string, string]> = [
-  ['I just ran', 'I just ran today'],
+  ['I just trained', 'I just trained today'],
   ['Make a plan', 'Make me a plan'],
 ];
 
@@ -192,7 +192,7 @@ function respondToAthlete(args: {
     return {
       toolCalls: [
         reply(
-          "I'm sorry that hurts. When something hurts, the safe move is to stop running until we know more. If it's sharp, getting worse, swollen, or comes with chest pain or dizziness, please see a doctor or physio rather than waiting. (I'm a scripted demo coach and can't assess injuries.) Where is it, and how long has it been going on?",
+          "I'm sorry that hurts. When something hurts, the safe move is to stop the activity that hurts until we know more. If it's sharp, getting worse, swollen, or comes with chest pain or dizziness, please see a doctor or physio rather than waiting. (I'm a scripted demo coach and can't assess injuries.) Where is it, and how long has it been going on?",
           { replyTo, quick: [['Mild, a few days', 'It is mild and has lasted a few days'], ['Sharp', 'It is a sharp pain'], ['Getting worse', 'It is getting worse']] },
         ),
       ],
@@ -205,8 +205,8 @@ function respondToAthlete(args: {
       toolCalls: [
         reply(
           hasImages
-            ? "Thanks for sending that. In demo mode I can't read images, so could you tell me the distance and time instead (for example \"5 km in 28:30\")?"
-            : "Thanks, I received your file, but in demo mode I can't open it. How far and how long was the run?",
+            ? "Thanks for sending that. In demo mode I can't read images, so could you tell me what you did instead (for example \"5 km in 28:30\" or \"squats 3x5 at 80 kg\")?"
+            : "Thanks, I received your file, but in demo mode I can't open it. What did you do, and for how long?",
           { replyTo },
         ),
       ],
@@ -219,7 +219,7 @@ function respondToAthlete(args: {
     return {
       toolCalls: [
         reply(
-          "Hi, I'm your running coach, with one honest caveat: I'm a scripted demo coach, because no model API key is configured on this server. I can't think for real yet, but you can click through the whole app. To get started: what are you training for?",
+          "Hi, I'm your coach, with one honest caveat: I'm a scripted demo coach, because no model API key is configured on this server. I can't think for real yet, but you can click through the whole app. A real coach here can coach running, lifting, other sports or a mix. To get started: what are you training for?",
           { replyTo, quick: GOAL_QUICK },
         ),
       ],
@@ -249,7 +249,7 @@ function respondToAthlete(args: {
     const label = goal.charAt(0).toUpperCase() + goal.slice(1);
     return {
       toolCalls: [
-        reply(`${label}, great goal! In this demo I can't build a real plan, but say "plan" and I'll schedule a check-in for tomorrow morning, or tell me about a run you did.`, { replyTo, quick: NEXT_QUICK }),
+        reply(`${label}, great goal! In this demo I can't build a real plan, but say "plan" and I'll schedule a check-in for tomorrow morning, or tell me about a session you did.`, { replyTo, quick: NEXT_QUICK }),
       ],
     };
   }
@@ -258,7 +258,7 @@ function respondToAthlete(args: {
   if (PLAN.test(words)) {
     const tomorrow = date ? tomorrowOf(date) : undefined;
     if (!tomorrow) {
-      return { toolCalls: [reply("I can't tell today's date from this message, so I can't schedule a check-in in demo mode. Tell me about a run instead?", { replyTo })] };
+      return { toolCalls: [reply("I can't tell today's date from this message, so I can't schedule a check-in in demo mode. Tell me about a session instead?", { replyTo })] };
     }
     return {
       toolCalls: [
@@ -267,7 +267,7 @@ function respondToAthlete(args: {
           input: {
             id: `demo-checkin-${tomorrow}`,
             spec: { at: `${tomorrow}T08:00:00${utcOffsetOf(situation)}` },
-            purpose: 'Demo check-in: ask how the athlete is feeling and whether they got a run in.',
+            purpose: 'Demo check-in: ask how the athlete is feeling and whether they got a session in.',
           },
         },
         reply("Done: I've scheduled a check-in for tomorrow at 08:00. (A real coach would build you a proper plan; this demo only schedules the check-in.)", { replyTo }),
@@ -280,7 +280,7 @@ function respondToAthlete(args: {
     return { toolCalls: [reply('Rest is part of training. Enjoy it, and tell me how you feel tomorrow.', { replyTo, quick: NEXT_QUICK })] };
   }
 
-  // 8. a run happened: ask for effort
+  // 8. a session happened: ask for effort
   if (RAN.test(words)) {
     return {
       toolCalls: [reply('Nice work, thanks for telling me. How hard did it feel, from 1 (very easy) to 10 (all-out)?', { replyTo, quick: EFFORT_QUICK })],
@@ -293,8 +293,8 @@ function respondToAthlete(args: {
     toolCalls: [
       reply(
         tapped
-          ? `Got it: "${words.slice(0, 80)}". I'm a scripted demo coach, so try telling me about a run, asking for a plan, or mentioning if something hurts.`
-          : "Thanks for your message! I'm only a scripted demo coach, so I understand a few things: tell me about a run you did, ask for a plan, or mention if something hurts.",
+          ? `Got it: "${words.slice(0, 80)}". I'm a scripted demo coach, so try telling me about a session, asking for a plan, or mentioning if something hurts.`
+          : "Thanks for your message! I'm only a scripted demo coach, so I understand a few things: tell me about a session you did, ask for a plan, or mention if something hurts.",
         { replyTo, quick: NEXT_QUICK },
       ),
     ],
@@ -320,7 +320,7 @@ function alreadyProactiveToday(items: ConvItem[], before: number, date: string |
 function respondToSystem(events: DemoEvent[], items: ConvItem[], startOfRun: number, situation: string): ScriptedStep {
   if (/FIRST CONTACT/i.test(situation)) {
     return { toolCalls: [reply(
-      "Hi, I'm your running coach, with one honest caveat: I'm a scripted demo coach, because no model API key is configured on this server. I can't think for real yet, but you can click through the whole app. To get started: what are you training for?",
+      "Hi, I'm your coach, with one honest caveat: I'm a scripted demo coach, because no model API key is configured on this server. I can't think for real yet, but you can click through the whole app. A real coach here can coach running, lifting, other sports or a mix. To get started: what are you training for?",
       { quick: GOAL_QUICK },
     )] };
   }
@@ -339,14 +339,14 @@ function respondToSystem(events: DemoEvent[], items: ConvItem[], startOfRun: num
     return {
       toolCalls: [
         reply(
-          `Check-in time (this is the wake-up I scheduled)${purpose ? `: "${purpose.slice(0, 200)}"` : '.'} How are you feeling, and did you get a run in?`,
-          { quick: [['Went for a run', 'I just ran today'], ['Rest day', 'Rest day']] },
+          `Check-in time (this is the wake-up I scheduled)${purpose ? `: "${purpose.slice(0, 200)}"` : '.'} How are you feeling, and did you get a session in?`,
+          { quick: [['I trained', 'I just trained today'], ['Rest day', 'Rest day']] },
         ),
       ],
     };
   }
   return {
-    toolCalls: [reply('Good day! The demo coach checking in once for today: did you run, or is it a rest day?', { quick: [['I just ran', 'I just ran today'], ['Rest day', 'Rest day']] })],
+    toolCalls: [reply('Good day! The demo coach checking in once for today: did you train, or is it a rest day?', { quick: [['I just trained', 'I just trained today'], ['Rest day', 'Rest day']] })],
   };
 }
 

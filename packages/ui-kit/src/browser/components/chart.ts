@@ -7,7 +7,7 @@
 import { buildChartModel, columns, nearestColumn, nearestPoint, type ChartModel, type ChartType, type Pt, type XKind } from '../chart-model';
 import { TIME_STEPS } from '../scale';
 import { clamp, h, num, parseJson, s, uid } from '../util';
-import { KM_PER_MI, M_PER_MI, clockMinSec } from '../format';
+import { KM_PER_MI, LB_PER_KG, M_PER_MI, clockMinSec } from '../format';
 import { RcBound, define, emit, getCoach, observeWidth } from './base';
 import { formatValue } from './values';
 
@@ -31,6 +31,13 @@ function ySpec(kind: string, unitSuffix: string): YSpec {
         tick: (v) => f.number(v, Math.abs(v) < 10 && v % 1 !== 0 ? 1 : 0),
         tip: (m) => f.distance(m),
         unit: f.distanceUnit(),
+      };
+    case 'weight':
+      return {
+        convert: (kg) => (units === 'imperial' ? kg * LB_PER_KG : kg),
+        tick: (v) => f.number(v, Math.abs(v) < 10 && v % 1 !== 0 ? 1 : 0),
+        tip: (kg) => f.weight(kg),
+        unit: f.weightUnit(),
       };
     case 'duration':
       return { convert: (v) => v, tick: (v) => f.duration(v, v >= 3600 ? 'short' : 'clock'), tip: (v) => f.duration(v, 'clock'), steps: TIME_STEPS, unit: '' };

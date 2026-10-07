@@ -22,7 +22,7 @@ export async function callBriefing(core: Core, athleteId: string, purpose?: stri
     }
   };
   const vars = { coach_name: settings.profile.coachName, athlete_name: settings.profile.name };
-  const addendum = (await core.addendum('voice', vars)) || `You are the voice of ${settings.profile.coachName}, ${settings.profile.name}'s running coach, on a phone call. Speak naturally and briefly.`;
+  const addendum = (await core.addendum('voice', vars)) || `You are the voice of ${settings.profile.coachName}, ${settings.profile.name}'s coach, on a phone call. Speak naturally and briefly.`;
   const sections: string[] = [addendum];
   const persona = await read('/workspace/coach/persona.md');
   if (persona) sections.push(`## Your persona\n${persona}`);

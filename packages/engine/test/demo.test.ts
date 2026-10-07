@@ -53,7 +53,7 @@ describe('demo coach: first conversation', () => {
     const step = await decide([sched('First contact: greet the new athlete'), situation('FIRST CONTACT: greet the athlete\n', 'no')]);
     expect(sent(step).text).toMatch(/scripted demo coach/);
     expect(sent(step).text).toMatch(/training for/);
-    expect(labels(step)).toEqual(['First 5K', 'Half marathon', 'Marathon', 'Just get fit']);
+    expect(labels(step)).toEqual(['First 5K', 'Half marathon', 'Get stronger', 'Just get fit']);
     expectValidTools(step);
   });
   it('introduces itself as a scripted demo coach and asks about goals with quick replies', async () => {
@@ -64,7 +64,7 @@ describe('demo coach: first conversation', () => {
     expect(s.text).toMatch(/API key/i);
     expect(s.text).toMatch(/training for|goal/i);
     expect(s.reply_to).toBe('evt_first');
-    expect(labels(step)).toEqual(['First 5K', 'Half marathon', 'Marathon', 'Just get fit']);
+    expect(labels(step)).toEqual(['First 5K', 'Half marathon', 'Get stronger', 'Just get fit']);
     expectValidTools(step);
   });
 
@@ -105,8 +105,8 @@ describe('demo coach: reactive replies [RT-4]', () => {
     expect(sent(step).text).not.toMatch(/scheduled/i);
   });
 
-  it('mentioning a run asks for effort 1-10 with quick replies', async () => {
-    for (const text of ['Tempo done, brutal 😅', 'I ran 5k this morning', 'finished my workout', 'I just ran today']) {
+  it('mentioning a session in any sport asks for effort 1-10 with quick replies', async () => {
+    for (const text of ['Tempo done, brutal 😅', 'I ran 5k this morning', 'finished my workout', 'I just ran today', 'I just trained today', 'Squats 3x5 at 100, felt heavy', 'went to the gym', 'swam 2k']) {
       const step = await decide(after(msg(text, 'evt_r')));
       expect(sent(step).text).toMatch(/1 .*10/);
       expect(values(step)).toContain('8');
@@ -188,7 +188,7 @@ describe('demo coach: reactive replies [RT-4]', () => {
     const half = await decide(after(tap('Half marathon', 'evt_hm')));
     expect(sent(half).text).toMatch(/half marathon/i);
     expect(sent(half).reply_to).toBe('evt_hm');
-    for (const [goal, pattern] of [['First 5K', /5k/i], ['Marathon', /marathon/i], ['Just get fit', /get fit/i]] as const) {
+    for (const [goal, pattern] of [['First 5K', /5k/i], ['Marathon', /marathon/i], ['Get stronger', /stronger/i], ['Just get fit', /get fit/i]] as const) {
       const s = await decide(after(tap(goal)));
       expect(calls(s)).toHaveLength(1);
       expect(sent(s).text).toMatch(pattern);
@@ -201,10 +201,10 @@ describe('demo coach: reactive replies [RT-4]', () => {
     expect(sent(await decide(after(tap('Banana')))).text).toContain('Banana');
   });
 
-  it('uploads with images: cannot read them in demo mode, asks for distance and time', async () => {
+  it('uploads with images: cannot read them in demo mode, asks what they did', async () => {
     const step = await decide(after(upload('evt_img')));
     expect(sent(step).text).toMatch(/can't read images/i);
-    expect(sent(step).text).toMatch(/distance/i);
+    expect(sent(step).text).toMatch(/what you did/i);
     expect(sent(step).reply_to).toBe('evt_img');
     // image content parts attached directly
     const withPart = await decide(after({ kind: 'user', parts: [{ type: 'text', text: `${header(TUE, 'user.upload', 'evt_p')}\nAttachments: x` }, { type: 'image', mediaType: 'image/png', data: 'AAAA' }] }));

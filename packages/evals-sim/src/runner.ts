@@ -123,7 +123,7 @@ export async function runScenario(input: ScenarioInput, options: RunScenarioOpti
     await writeFile(join(seedRoot, 'core/constitution.md'), options.constitution);
   }
   const kitDir = await kitDistDir();
-  const runtime = createCoachRuntime({ config: ServerConfig.parse({ dataDir, limits: { ...options.limits, debounceIdleMs: 0 }, web: { enabled: false } }), clock, store, blobs, sandbox, router, loop: createAgentLoop({ price: (m, u) => router.cost(m, u) }), logger: silentLogger, seedRoot, pack: 'running', kitDir, renderer, manualScheduler: true });
+  const runtime = createCoachRuntime({ config: ServerConfig.parse({ dataDir, limits: { ...options.limits, debounceIdleMs: 0 }, web: { enabled: false } }), clock, store, blobs, sandbox, router, loop: createAgentLoop({ price: (m, u) => router.cost(m, u) }), logger: silentLogger, seedRoot, pack: 'general', kitDir, renderer, manualScheduler: true });
   const trace: TraceBundle = { schemaVersion: 1, scenario, seed, model: modelName, startedAt: clock.now().toISOString(), endedAt: '', athleteId: '', events: [], stream: [], actions: [], ledger: { persona, disclosures: [], activities: [], symptoms: [], artifacts: [] }, snapshots: [], changes: [], screenshots, toolCalls, metrics: { costUsd: 0, inputTokens: 0, cachedTokens: 0, cacheHitRate: null, athleteWeeks: 0, costPerAthleteWeek: null, turnDurationsMs: [] }, capabilities: { sandboxKind: sandbox.kind, sandboxIsolated: sandbox.isolated, sandboxClock: 'unverified', visualRenderer: !!suppliedRenderer }, graders: [] };
   let unsubscribe: (() => void) | undefined;
   trace.previewReports = previewReports;
