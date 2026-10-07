@@ -55,7 +55,7 @@ export function Shell() {
       <a className="skip-link" href="#main">
         {t("Skip to content")}</a>
       <div className="shell-col">
-      <Header route={route} viewTitle={activeView?.manifest.title} />
+      <Header route={route} />
       <SafetyBanner />
       <ConnectionBar />
       <CallBar />
@@ -96,7 +96,7 @@ export function Shell() {
   );
 }
 
-function Header({ route, viewTitle }: { route: Route; viewTitle?: string }) {
+function Header({ route }: { route: Route }) {
   const t = useI18n();
   const me = useStore(appStore, (s) => s.me);
   const presence = useStore(appStore, (s) => s.presence);
@@ -125,7 +125,21 @@ function Header({ route, viewTitle }: { route: Route; viewTitle?: string }) {
       </header>
     );
   }
-  const title = route.name === 'settings' ? 'Settings' : route.name === 'call' ? 'Call' : (viewTitle ?? route.viewId);
+  if (route.name === 'view') {
+    // Views show their own title; repeating it here (with a back arrow on a tab) only cost space. The strip keeps
+    // the status-bar inset and surfaces what the coach is doing, linking back to the conversation.
+    return (
+      <div className={`view-status${sub ? ' on' : ''}`}>
+        {sub && (
+          <button type="button" className="view-status-pill" onClick={() => navigate({ name: 'chat' })} aria-label={`${sub}. ${t('Open chat')}`}>
+            <span className="presence-dot" aria-hidden="true" />
+            <span role="status" aria-live="polite">{sub}</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+  const title = route.name === 'settings' ? 'Settings' : 'Call';
   return (
     <header className="app-header">
       <div className="coach-id">
@@ -136,7 +150,6 @@ function Header({ route, viewTitle }: { route: Route; viewTitle?: string }) {
         )}
         <h1>{t(title)}</h1>
       </div>
-      {route.name === 'view' && sub && <p className="presence on small">{sub}</p>}
     </header>
   );
 }
@@ -204,14 +217,15 @@ function BottomNav({ route, nav, moreOpen, setMoreOpen }: { route: Route; nav: R
         </div>
       )}
       <nav className="bottom-nav" aria-label={t("Main")}>
-        {nav.slots.map((item) => {
-          const active = isActive(item, route, nav.overflow);
+        {nav.slots.flatMap((item) => (item.more ? [...nav.overflow.map((o) => ({ ...o, wide: true })), item] : [item])).map((item) => {
+          const wide = 'wide' in item; // shown directly in the desktop sidebar, behind "More" on phones
+          const active = wide ? isActive(item, route) : isActive(item, route, nav.overflow);
           const b = badge(item);
           return (
             <button
-              key={item.key}
+              key={wide ? `wide-${item.key}` : item.key}
               type="button"
-              className={active ? 'on' : ''}
+              className={[active ? 'on' : '', wide ? 'nav-wide' : '', item.more ? 'nav-more' : ''].filter(Boolean).join(' ')}
               aria-current={active && !item.more ? 'page' : undefined}
               aria-haspopup={item.more ? 'menu' : undefined}
               aria-expanded={item.more ? moreOpen : undefined}

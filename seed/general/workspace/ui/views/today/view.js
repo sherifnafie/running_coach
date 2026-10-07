@@ -81,7 +81,8 @@ function sessionCard(w) {
   const tone = { done: 'ok', partial: 'ok', skipped: 'warn' }[w.status];
   return h(
     'rc-card',
-    { heading: w.title, subheading: sessionLine(w), tone: pending ? 'accent' : 'default' },
+    // Highlight what is still to do; a rest day is not a task.
+    { heading: w.title, subheading: sessionLine(w), tone: pending && w.type !== 'rest' ? 'accent' : 'default' },
     tone ? h('rc-badge', { tone }, statusText(w.status)) : w.key ? h('rc-badge', { tone: 'accent' }, t("Key session")) : null,
     w.description ? h('p', null, w.description) : null,
     w.structure ? h('rc-workout', { structure: w.structure }) : null,

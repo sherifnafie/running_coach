@@ -1,5 +1,6 @@
 /** Shell-only labels are excluded from the isolated-view kit bundle. */
 export const shellLabels: Record<string, [string, string]> = {
+  "Open chat": ["Chat openen", "فتح الدردشة"],
   "Dictate": ["Dicteren", "إملاء"],
   "Dictate a message": ["Een bericht dicteren", "إملاء رسالة"],
   "Listening…": ["Aan het luisteren…", "جارٍ الاستماع…"],

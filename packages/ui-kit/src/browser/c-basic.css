@@ -36,7 +36,8 @@ rc-card {
   box-shadow: var(--rc-shadow);
 }
 rc-card[padding='none'] { padding: 0; overflow: hidden; }
-rc-card[tone='accent'] { background: var(--rc-accent-soft); border-color: color-mix(in srgb, var(--rc-accent) 35%, var(--rc-border)); }
+/* Highlight, not a flood of colour: a faint tint and an accent edge keep long cards readable in both themes. */
+rc-card[tone='accent'] { background: color-mix(in srgb, var(--rc-accent) 6%, var(--rc-surface)); border-color: color-mix(in srgb, var(--rc-accent) 30%, var(--rc-border)); border-inline-start: 3px solid var(--rc-accent); }
 rc-card[tone='good'] { background: var(--rc-good-soft); }
 rc-card[tone='warn'] { background: var(--rc-warn-soft); }
 rc-card[tone='bad'] { background: var(--rc-bad-soft); }

@@ -584,6 +584,41 @@ input[aria-invalid='true'] {
   color: var(--rc-text);
   font-weight: 700;
 }
+.bottom-nav .nav-wide { display: none; }
+/* Above a view: status-bar inset, plus what the coach is doing (linking back to chat) when it is busy. */
+.view-status {
+  flex: none;
+  padding-top: var(--safe-top);
+  background: var(--rc-bg);
+}
+.view-status.on { padding: calc(6px + var(--safe-top)) calc(12px + var(--safe-right)) 0 calc(12px + var(--safe-left)); }
+.view-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--rc-border);
+  border-radius: 999px;
+  background: var(--rc-surface);
+  color: var(--rc-accent-text, var(--rc-accent));
+  font-size: 0.82rem;
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.presence-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: presence-pulse 1.4s ease-in-out infinite;
+}
+@keyframes presence-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .presence-dot { animation: none; } }
 .bottom-nav button.on .nav-icon {
   color: var(--rc-accent-text, var(--rc-accent));
 }
@@ -701,6 +736,10 @@ input[aria-invalid='true'] {
   .bottom-nav button.on {
     background: var(--rc-surface-2);
   }
+  .bottom-nav .nav-wide { display: flex; }
+  .bottom-nav .nav-more { display: none; }
+  .view-status { padding-top: calc(8px + var(--safe-top)); }
+  .view-status.on { padding-top: calc(12px + var(--safe-top)); padding-inline: 24px; }
   .sheet-backdrop {
     align-items: center;
     justify-content: center;

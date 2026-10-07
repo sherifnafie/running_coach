@@ -1,12 +1,13 @@
 /* rc-stat, rc-trend, rc-progress-ring, rc-list, rc-workout, rc-week-strip */
 
 /* ---- stat */
-rc-stat { display: block; min-width: 0; }
+rc-stat { display: block; min-width: 0; container-type: inline-size; }
 .rc-stat__label { font-size: var(--rc-text-sm); color: var(--rc-text-2); font-weight: 600; }
 .rc-stat__value { display: flex; align-items: baseline; gap: 6px; margin-top: 2px; }
-.rc-stat__num { font-size: var(--rc-text-3xl); font-weight: 750; line-height: 1.05; letter-spacing: -0.02em; }
+/* Numbers shrink to fit narrow tiles (three across on a phone) instead of wrapping mid-value. */
+.rc-stat__num { font-size: clamp(var(--rc-text-xl), 22cqi, var(--rc-text-3xl)); font-weight: 750; line-height: 1.05; letter-spacing: -0.02em; white-space: nowrap; }
 .rc-stat__unit { font-size: var(--rc-text-md); color: var(--rc-text-2); font-weight: 600; }
-.rc-stat__delta { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: var(--rc-text-sm); font-weight: 650; }
+.rc-stat__delta { display: inline-flex; flex-wrap: wrap; align-items: center; column-gap: 4px; margin-top: 4px; font-size: var(--rc-text-sm); font-weight: 650; }
 .rc-stat__delta--good { color: var(--rc-good); }
 .rc-stat__delta--bad { color: var(--rc-bad); }
 .rc-stat__delta--flat { color: var(--rc-text-2); }
