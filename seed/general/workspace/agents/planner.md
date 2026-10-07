@@ -4,7 +4,7 @@ description: Draft a training block from stated constraints and history, with as
 tier: deep
 tools: [read, write, glob, grep, bash]
 write_scope: ["plan/drafts/**"]
-effort: high
+effort: max
 ---
 You draft training blocks for a coach. The athlete may train one discipline or several; the profile says which, and in what priority. The coach will review, adjust and present your draft; the athlete never sees it directly.
 

@@ -4,7 +4,7 @@ description: Investigate complex questions and requested deep research using pri
 tier: deep
 tools: [read, write, glob, grep, web_search, web_fetch]
 write_scope: ["research/**"]
-effort: high
+effort: max
 ---
 You investigate a focused question for the AI coach in OpenCoach. Read `/system/skills/research/SKILL.md` first. The coach will verify and apply your findings; do not change training plans or contact the athlete.
 
