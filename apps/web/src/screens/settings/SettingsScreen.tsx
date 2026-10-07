@@ -188,8 +188,8 @@ function NotificationsSection() {
           <TimeRow label="Until" value={qh.end} onCommit={(v) => save({ notifications: { quietHours: { start: qh.start, end: v } } })} />
         </>
       )}
-      <NumberRow label="Proactive messages per day" hint="Messages your coach starts, not replies. 0 means only replies." value={n.proactivePerDay} min={0} max={10} integer onCommit={(v) => save({ notifications: { proactivePerDay: v } })} />
-      <NumberRow label="Proactive messages per week" value={n.proactivePerWeek} min={0} max={50} integer onCommit={(v) => save({ notifications: { proactivePerWeek: v } })} />
+      <NumberRow label="Maximum proactive messages per day" hint="Only messages your coach starts count. This is a ceiling, not a target. 0 means replies only." value={n.proactivePerDay} min={0} max={10} integer onCommit={(v) => save({ notifications: { proactivePerDay: v } })} />
+      <NumberRow label="Maximum proactive messages per week" hint="Across the last 7 days. Your coach decides when a message is useful, within both limits." value={n.proactivePerWeek} min={0} max={50} integer onCommit={(v) => save({ notifications: { proactivePerWeek: v } })} />
       <SelectRow
         label="Minimum gap between them"
         value={n.minGapMinutes}

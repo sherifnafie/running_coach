@@ -131,7 +131,7 @@ describe('runtime: proactivity policies', () => {
     expect(released).toHaveLength(1);
   });
 
-  it('enforces the daily proactive budget', async () => {
+  it('enforces the daily proactive ceiling [MSG-4]', async () => {
     h = await makeHarness({ start: '2026-10-07T08:00:00Z' });
     const id = await newAthlete(h);
     await greet(h, id);
@@ -154,6 +154,62 @@ describe('runtime: proactivity policies', () => {
     await h.runtime.tickScheduler();
     await h.settle(id);
     expect(results.some((r) => r.includes('PROACTIVE_BUDGET_EXHAUSTED'))).toBe(true);
+    expect(situationText(h.requests.at(-1)!)).toContain('ceilings, NOT targets');
+    const messages = (await h.events(id, ['coach.message'])) as Array<Extract<AnyEvent, { type: 'coach.message' }>>;
+    expect(messages.filter((m) => m.payload.proactive && m.payload.delivery === 'sent')).toHaveLength(1);
+  });
+
+  it.each(['proactivePerDay', 'proactivePerWeek'] as const)('a zero %s blocks initiation but still allows requested replies [MSG-4]', async (limit) => {
+    h = await makeHarness();
+    const id = await newAthlete(h);
+    await greet(h, id);
+    await h.runtime.updateSettings(id, { notifications: { [limit]: 0, minGapMinutes: 0, quietHours: null } });
+    h.setHandler((req) => lastItemKind(req) === 'tool_results' ? { text: 'done' } : send('Message attempt'));
+    await h.runtime.core.scheduler.harnessWake(id, new Date('2026-10-07T09:00:00Z'), 'check in');
+    await h.clock.advanceTo('2026-10-07T09:00:01Z');
+    await h.runtime.tickScheduler();
+    await h.settle(id);
+    expect(situationText(h.requests.at(-1)!)).toContain('Proactive messaging is disabled by a zero limit');
+    await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'Please reply', clientId: `zero-${limit}` } });
+    await h.settle(id);
+    const messages = (await h.events(id, ['coach.message'])) as Array<Extract<AnyEvent, { type: 'coach.message' }>>;
+    expect(messages.filter((m) => m.payload.proactive)).toHaveLength(0);
+    expect(messages.filter((m) => m.payload.delivery === 'sent')).toHaveLength(2); // greeting and requested reply
+  });
+
+  it('enforces the rolling seven-day ceiling independently of the daily ceiling [MSG-4]', async () => {
+    h = await makeHarness();
+    const id = await newAthlete(h);
+    await greet(h, id);
+    await h.runtime.updateSettings(id, { notifications: { proactivePerDay: 3, proactivePerWeek: 1, minGapMinutes: 0, quietHours: null }, heartbeat: { enabled: false }, consolidation: { enabled: false } });
+    h.setHandler((req) => lastItemKind(req) === 'tool_results' ? { text: 'done' } : send('Useful follow-up'));
+    const wake = async (at: string) => {
+      await h!.runtime.core.scheduler.harnessWake(id, new Date(at), 'follow up');
+      await h!.clock.advanceTo(at);
+      await h!.runtime.tickScheduler();
+      await h!.settle(id);
+    };
+    await wake('2026-10-07T09:00:00Z');
+    await wake('2026-10-08T09:00:00Z');
+    const messages = () => h!.events(id, ['coach.message']) as Promise<Array<Extract<AnyEvent, { type: 'coach.message' }>>>;
+    expect((await messages()).filter((m) => m.payload.proactive)).toHaveLength(1);
+    expect(situationText(h.requests.at(-1)!)).toContain('remaining allowance 3 today, 0 across the last 7 days');
+    await wake('2026-10-14T09:00:01Z');
+    expect((await messages()).filter((m) => m.payload.proactive && m.payload.delivery === 'sent')).toHaveLength(2);
+  });
+
+  it('allows a heartbeat to end silently with unused allowance [MSG-4]', async () => {
+    h = await makeHarness({ start: '2026-10-07T05:00:00Z' });
+    const id = await newAthlete(h);
+    await greet(h, id);
+    h.setHandler(() => ({ text: 'Nothing useful to say today.' }));
+    await h.clock.advanceTo('2026-10-07T05:31:00Z');
+    await h.runtime.tickScheduler();
+    await h.settle(id);
+    expect(situationText(h.requests.at(-1)!)).toContain('system.heartbeat');
+    expect(situationText(h.requests.at(-1)!)).toContain('remaining allowance 3 today, 12 across the last 7 days');
+    const messages = (await h.events(id, ['coach.message'])) as Array<Extract<AnyEvent, { type: 'coach.message' }>>;
+    expect(messages.filter((m) => m.payload.proactive)).toHaveLength(0);
   });
 
   it('flags safety signals and tells the coach [SAFE-2]', async () => {

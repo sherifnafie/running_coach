@@ -346,7 +346,7 @@ The athlete sees **one infinite conversation**. Context windows are finite, and 
 now: 2026-10-07T06:58:12+02:00 (Tuesday) · athlete tz: Europe/Amsterdam
 trigger: schedule.fired sch_123 "Tue morning prescription", set by you 2026-10-05
 last athlete message: 14h ago · your unread messages: 0
-proactive messages left today: 3/3 · quiet hours 22:00–07:00 (ends in 2 min; sends are held until then)
+proactive message limits (ceilings, not targets): 3 per local day, 12 across the last 7 days; remaining allowance 3 today, 12 across the last 7 days · quiet hours 22:00–07:00 (ends in 2 min; sends are held until then)
 pending: task tsk_9 (planner, running 3m) · 2 ui actions since your last turn
 pinned context: 9.8k/12k · epoch: 2026-10-07 #1 · model: claude-sonnet-5-5 (coach tier)
 budget: 41% of monthly used (day 7 of 31) · this turn: max 60 steps
@@ -387,7 +387,7 @@ Three mechanisms let the coach act unprompted:
 | Policy | Default | Range | Enforcement |
 |---|---|---|---|
 | Quiet hours | 22:00–07:00 local | Any window | Messages are held and delivered at the window's end. Wakes still fire, because thinking is allowed and talking is held. |
-| Proactive message budget | 3 per day, 12 per week | 0–10 per day | A `send_message` from a non-reactive turn beyond the budget is rejected with an explanatory tool error. Replies to the athlete and results of tasks the athlete requested don't count. |
+| Maximum proactive messages (ceilings, not targets) | 3 per local day, 12 across the last 7 days | 0–10 per day, 0–50 per 7 days | The coach decides whether contact is useful within both limits. A `send_message` from a non-reactive turn beyond either limit is rejected with an explanatory tool error. Replies to the athlete and results of tasks the athlete requested don't count. |
 | Minimum gap between proactive messages | 2 h | 0–12 h | Held |
 | Pause ("vacation mode") | Off | Until a date | Suppresses wakes except those the coach flagged `during_pause: true`, such as the return date. |
 | Unread pile-up | Coach is told the unread count | — | Situation report |

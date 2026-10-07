@@ -15,6 +15,7 @@ import { athletePaths, silentLogger } from '../../../packages/protocol/src';
 import { composeServer, type ComposedServer } from '../../server/src/compose';
 import { loadConfig } from '../../server/src/config';
 import { createExecutor } from '../../../packages/runtime/src/executor';
+import { openWorkspaceGit } from '../../../packages/workspace/src';
 
 const repo = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 const webRoot = join(repo, 'apps/web');
@@ -328,6 +329,47 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await page.reload();
     await page.getByLabel('Units', { exact: true }).waitFor();
     expect(await page.getByLabel('Units', { exact: true }).inputValue()).toBe('imperial');
+  }, 60_000);
+
+  it('[WS-4] presents local coach history readably and persists maximum message limits [MSG-4]', async () => {
+    const workspace = server.runtime.core.paths(athleteId).workspace;
+    await mkdir(join(workspace, 'research'), { recursive: true });
+    await writeFile(join(workspace, 'research/history-check.md'), 'Synthetic history check.');
+    const saved = await openWorkspaceGit(workspace, server.runtime.core.clock).commitAll('Updated research/history-check.md', { Kind: 'turn' });
+    expect(saved).not.toBeNull();
+    await page.getByRole('button', { name: 'Show changes', exact: true }).click();
+    await page.getByText('Your coach was set up', { exact: true }).waitFor();
+    const entry = page.locator('.changes .list > li').filter({ has: page.getByText('Research', { exact: true }) }).first();
+    expect(await entry.locator('.list-title').innerText()).toBe('Coach saved changes');
+    expect(await entry.locator('details').getAttribute('open')).toBeNull();
+    expect(await entry.getByText('Updated research/history-check.md', { exact: true }).isVisible()).toBe(false);
+    await entry.getByText('Technical details', { exact: true }).click();
+    expect(await entry.getByText('Updated research/history-check.md', { exact: true }).isVisible()).toBe(true);
+    expect(await entry.innerText()).toContain(`Local Git revision: ${saved!.commit.slice(0, 12)}`);
+    await entry.getByText('Technical details', { exact: true }).click();
+
+    const daily = page.getByLabel('Maximum proactive messages per day', { exact: true });
+    const weekly = page.getByLabel('Maximum proactive messages per week', { exact: true });
+    await daily.fill('0');
+    await daily.press('Enter');
+    await weekly.fill('2');
+    await weekly.press('Enter');
+    await expect.poll(async () => {
+      const settings = await server.store.getSettings(athleteId);
+      return [settings.notifications.proactivePerDay, settings.notifications.proactivePerWeek];
+    }).toEqual([0, 2]);
+    await page.reload();
+    await daily.waitFor();
+    expect(await daily.inputValue()).toBe('0');
+    expect(await weekly.inputValue()).toBe('2');
+    expect(await page.getByText('Only messages your coach starts count. This is a ceiling, not a target. 0 means replies only.', { exact: true }).isVisible()).toBe(true);
+    await daily.fill('3');
+    await daily.press('Enter');
+    await weekly.fill('12');
+    await weekly.press('Enter');
+    await expect.poll(async () => (await server.store.getSettings(athleteId)).notifications.proactivePerWeek).toBe(12);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(browserErrors).toEqual([]);
   }, 60_000);
 
   it('[UI-1] persists language/colors, updates open clients and starter views, and supports Arabic RTL', async () => {

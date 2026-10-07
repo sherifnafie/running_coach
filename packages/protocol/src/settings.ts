@@ -40,8 +40,8 @@ export const AthleteSettings = z.object({
   notifications: z
     .object({
       quietHours: QuietHours.nullable().default({ start: '22:00', end: '07:00' }),
-      proactivePerDay: z.number().int().min(0).max(10).default(3),
-      proactivePerWeek: z.number().int().min(0).max(50).default(12),
+      proactivePerDay: z.number().int().min(0).max(10).default(3).describe('Maximum coach-initiated messages per athlete-local day, not a target; 0 disables proactive messages.'),
+      proactivePerWeek: z.number().int().min(0).max(50).default(12).describe('Maximum coach-initiated messages across the last 7 days, not a target; replies and requested task results are exempt.'),
       minGapMinutes: z.number().int().min(0).max(720).default(120),
       pauseUntil: IsoDateTime.nullable().default(null),
       push: z.boolean().default(true),

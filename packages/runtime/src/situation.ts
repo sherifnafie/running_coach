@@ -59,7 +59,7 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
     ? `quiet hours ${n.quietHours.start}–${n.quietHours.end}${quietEnd ? ` (ACTIVE: proactive messages are held until ${formatLocal(quietEnd, tz).slice(11, 16)})` : ''}`
     : 'no quiet hours';
   const paused = n.pauseUntil && new Date(n.pauseUntil).getTime() > now.getTime() ? ` · coaching PAUSED by the athlete until ${formatLocal(n.pauseUntil, tz)}` : '';
-  lines.push(`proactive messages left: ${Math.max(0, n.proactivePerDay - today)}/${n.proactivePerDay} today, ${Math.max(0, n.proactivePerWeek - week)}/${n.proactivePerWeek} this week · ${quiet}${held ? ` · ${held} held message(s) pending` : ''}${paused}`);
+  lines.push(`proactive message limits (ceilings, NOT targets): at most ${n.proactivePerDay} per local day and ${n.proactivePerWeek} across the last 7 days; remaining allowance ${Math.max(0, n.proactivePerDay - today)} today, ${Math.max(0, n.proactivePerWeek - week)} across the last 7 days. Replies and requested task results do not count. ${n.proactivePerDay === 0 || n.proactivePerWeek === 0 ? 'Proactive messaging is disabled by a zero limit. ' : ''}${quiet}${held ? ` · ${held} held message(s) pending` : ''}${paused}`);
 
   const tasks = await store.listTasks(s.athleteId, { state: 'running' });
   const schedules = (await core.scheduler.list(s.athleteId)).filter((x) => x.kind === 'coach');

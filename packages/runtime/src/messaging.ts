@@ -126,13 +126,13 @@ export function createMessagingPort(core: Core, state: TurnMessagingState, callI
           return {
             ok: false,
             code: 'PROACTIVE_BUDGET_EXHAUSTED',
-            message: `Daily proactive message budget reached (${settings.notifications.proactivePerDay}/day, set by the athlete). Wait for tomorrow or for the athlete to write.`,
+            message: `Daily proactive message limit reached (${settings.notifications.proactivePerDay}/local day, set by the athlete). This is a ceiling, not a target. Wait for tomorrow or for the athlete to write.`,
           };
         }
         const week = (await core.store.countProactiveSince(state.athleteId, new Date(now.getTime() - 7 * 86_400_000).toISOString())) + held;
         if (week >= settings.notifications.proactivePerWeek) {
           cancelStream('budget');
-          return { ok: false, code: 'PROACTIVE_BUDGET_EXHAUSTED', message: `Weekly proactive message budget reached (${settings.notifications.proactivePerWeek}/week).` };
+          return { ok: false, code: 'PROACTIVE_BUDGET_EXHAUSTED', message: `Proactive message limit reached (${settings.notifications.proactivePerWeek} across the last 7 days, set by the athlete). This is a ceiling, not a target.` };
         }
         const quietEnd = quietHoursEnd(now, tz, settings.notifications.quietHours);
         const last = await core.store.lastProactiveAt(state.athleteId);

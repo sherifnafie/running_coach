@@ -1852,6 +1852,22 @@ input[aria-invalid='true'] {
 .about {
   margin: 8px 0;
 }
+.change-details {
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+.change-details summary {
+  color: var(--rc-muted);
+  cursor: pointer;
+  padding-block: 12px;
+  min-height: 44px;
+}
+.change-details p {
+  margin-block: 6px;
+}
+.change-details code {
+  unicode-bidi: isolate;
+}
 .about div {
   display: flex;
   justify-content: space-between;

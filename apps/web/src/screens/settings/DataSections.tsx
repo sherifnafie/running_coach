@@ -10,12 +10,14 @@ import { waitForExport } from '../../lib/exportJob';
 import { formatDateTime } from '../../lib/format';
 import { useStore } from '../../lib/store';
 import { ConfirmButton } from './Controls';
+import { changePresentation } from './changeHistory';
 
 // ---- the coach's changes feed ---------------------------------------------------------------------------------
 
 export function ChangesSection() {
   const t = useI18n();
   const tz = useStore(appStore, (s) => s.me?.settings.profile.tz);
+  const locale = useStore(appStore, (s) => s.me?.settings.profile.locale);
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<{ loading: boolean; error?: string; changes?: ChangeEntry[] }>({ loading: false });
 
@@ -29,7 +31,7 @@ export function ChangesSection() {
   }, [open, state.changes]);
 
   return (
-    <Section title={t("What your coach changed")} hint="Every change your coach makes to your workspace and screens, newest first.">
+    <Section title={t("What your coach changed")} hint="Saved updates to your coach's files and screens, newest first.">
       <button type="button" className="btn block" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         {open ? t("Hide changes") : t("Show changes")}
       </button>
@@ -43,15 +45,22 @@ export function ChangesSection() {
           )}
           {state.changes?.length === 0 && <p className="hint">{t("Nothing yet.")}</p>}
           <ul className="list">
-            {state.changes?.map((c) => (
-              <li key={c.commit}>
-                <p className="list-title">{c.summary}</p>
-                <p className="list-meta">
-                  {formatDateTime(c.at, tz)} · {c.kind}
-                  {c.files.length > 0 ? ` · ${c.files.length} file${c.files.length === 1 ? '' : 's'}` : ''}
-                </p>
-              </li>
-            ))}
+            {state.changes?.map((c) => {
+              const { title, areas } = changePresentation(c, t);
+              return (
+                <li key={c.commit}>
+                  <p className="list-title" dir="auto">{title}</p>
+                  <p className="list-meta">{formatDateTime(c.at, tz, locale)}</p>
+                  {areas.length > 0 && <p className="list-meta">{areas.join(' · ')}</p>}
+                  <details className="change-details">
+                    <summary>{t('Technical details')}</summary>
+                    <p dir="auto">{c.summary}</p>
+                    <p>{t('Local Git revision')}: <code dir="ltr">{c.commit.slice(0, 12)}</code></p>
+                    {c.files.length > 0 && <ul>{c.files.map((file) => <li key={file}><code dir="ltr">{file}</code></li>)}</ul>}
+                  </details>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -252,4 +261,3 @@ export function DeleteSection() {
     </Section>
   );
 }
-

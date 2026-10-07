@@ -205,7 +205,7 @@ describe.skipIf(!chromePath)('web e2e smoke (Chromium)', () => {
     await coachName.press('Enter');
     await page.getByText('Saved', { exact: true }).waitFor();
     await page.getByRole('heading', { name: 'Settings' }).waitFor();
-    const daily = page.getByLabel('Proactive messages per day');
+    const daily = page.getByLabel('Maximum proactive messages per day');
     await daily.fill('1');
     await daily.press('Enter');
     await expect

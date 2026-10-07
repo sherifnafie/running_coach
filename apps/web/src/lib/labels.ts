@@ -168,17 +168,21 @@ export const shellLabels: Record<string, [string, string]> = {
     "Tot",
     "إلى"
   ],
-  "Proactive messages per day": [
-    "Coachberichten per dag",
-    "رسائل المدرب الاستباقية يوميًا"
+  "Maximum proactive messages per day": [
+    "Maximum aantal coachberichten per dag",
+    "الحد الأقصى لرسائل المدرب الاستباقية يوميًا"
   ],
-  "Messages your coach starts, not replies. 0 means only replies.": [
-    "Berichten die je coach zelf begint. Bij 0 stuurt je coach alleen antwoorden.",
-    "الرسائل التي يبدأها مدربك. القيمة 0 تعني الردود فقط."
+  "Only messages your coach starts count. This is a ceiling, not a target. 0 means replies only.": [
+    "Alleen berichten die je coach zelf begint tellen mee. Dit is een bovengrens, geen doel. Bij 0 krijg je alleen antwoorden.",
+    "تُحسب فقط الرسائل التي يبدأها مدربك. هذا حد أقصى، وليس هدفًا. القيمة 0 تعني الردود فقط."
   ],
-  "Proactive messages per week": [
-    "Coachberichten per week",
-    "رسائل المدرب الاستباقية أسبوعيًا"
+  "Maximum proactive messages per week": [
+    "Maximum aantal coachberichten per week",
+    "الحد الأقصى لرسائل المدرب الاستباقية أسبوعيًا"
+  ],
+  "Across the last 7 days. Your coach decides when a message is useful, within both limits.": [
+    "Over de afgelopen 7 dagen. Je coach bepaalt wanneer een bericht nuttig is, binnen beide grenzen.",
+    "خلال آخر 7 أيام. يقرر مدربك متى تكون الرسالة مفيدة، ضمن كلا الحدين."
   ],
   "Minimum gap between them": [
     "Minimale tijd ertussen",
@@ -536,10 +540,25 @@ export const shellLabels: Record<string, [string, string]> = {
     "Wat je coach heeft gewijzigd",
     "ما غيره مدربك"
   ],
-  "Every change your coach makes to your workspace and screens, newest first.": [
-    "Wijzigingen aan je gegevens en schermen, nieuwste eerst.",
-    "تغييرات المدرب في بياناتك وواجهاتك، من الأحدث إلى الأقدم."
+  "Saved updates to your coach's files and screens, newest first.": [
+    "Opgeslagen wijzigingen aan de bestanden en schermen van je coach, nieuwste eerst.",
+    "تحديثات محفوظة لملفات مدربك وواجهاته، من الأحدث إلى الأقدم."
   ],
+  "Your coach was set up": ["Je coach is ingesteld", "تم إعداد مدربك"],
+  "Earlier screen restored": ["Eerdere schermversie hersteld", "تمت استعادة إصدار سابق للواجهة"],
+  "Screens published": ["Schermen gepubliceerd", "تم نشر الواجهات"],
+  "Workspace edited outside the coach": ["Werkruimte buiten de coach om gewijzigd", "تم تعديل مساحة العمل من خارج المدرب"],
+  "Training data backed up": ["Back-up van trainingsgegevens gemaakt", "تم حفظ نسخة احتياطية من بيانات التدريب"],
+  "Coach saved changes": ["Je coach heeft wijzigingen opgeslagen", "حفظ مدربك تغييرات"],
+  "Screen files": ["Schermbestanden", "ملفات الواجهات"],
+  "Training data": ["Trainingsgegevens", "بيانات التدريب"],
+  "Coach notes": ["Coachnotities", "ملاحظات المدرب"],
+  "Plan files": ["Planbestanden", "ملفات الخطة"],
+  "Research": ["Onderzoek", "أبحاث"],
+  "Calendar export": ["Agenda-export", "تصدير التقويم"],
+  "Coach workspace": ["Werkruimte van je coach", "مساحة عمل المدرب"],
+  "Technical details": ["Technische details", "تفاصيل تقنية"],
+  "Local Git revision": ["Lokale Git-versie", "إصدار Git محلي"],
   "Hide changes": [
     "Wijzigingen verbergen",
     "إخفاء التغييرات"
