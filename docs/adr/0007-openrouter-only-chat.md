@@ -32,4 +32,9 @@
   - **Artificial Analysis:** intelligence 38 at high effort and 43 at max, against DeepSeek's 39 at max. It avoided hallucinating 55-60% of the time, against 4% for DeepSeek. Cost per task is $0.08-0.21, against $0.27.
   - **Live probes:** tools, a mid-conversation system message, screenshot reading and cache hits (13,933 of 13,935 prompt tokens) all worked. First answer token arrived in about 4-5 s, against 6.3 s for DeepSeek.
   - **Real eval scenarios:** in the three `disciplines` scenarios it matched DeepSeek on reply and record checks at a similar cost (about $0.008-0.009 per scenario, 99.99% cache hits). It asked instead of guessing. In the hybrid-week scenario DeepSeek wrote a plan that failed the availability check, and it deferred work "for a day".
-- The coach tier no longer pins reasoning effort. It follows the trigger class: medium for replies, low for scheduled check-ins, medium for consolidation. Deep work stays at high.
+- The coach tier no longer pins reasoning effort; it follows the trigger class. Measured on Haiku 5.5 with the full constitution and a real programming request (one model call):
+  - medium: 16 s;
+  - high: 18.6 s, $0.002, wrote the sessions from the athlete's numbers;
+  - max: 65 s, $0.007, asked for more data instead of writing the sessions.
+
+  Defaults are therefore high for replies, follow-ups and scheduled check-ins, low for live calls, and max for overnight consolidation and the deep tier, where nobody is waiting. The fast tier runs at medium.
