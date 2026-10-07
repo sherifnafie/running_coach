@@ -60,7 +60,9 @@ describe('[COST-1] live dictation service', () => {
     const info = await service.start('ath_a');
     expect(info).toMatchObject({ model: 'gpt-realtime-whisper', maxDurationS: 300, connect: { ephemeralKey: 'ek' } });
     expect(info.sessionId).toMatch(/^dict_/);
-    expect(minted).toEqual([expect.objectContaining({ model: 'gpt-realtime-whisper', prompt: expect.any(String) })]);
+    expect(minted).toEqual([expect.objectContaining({ model: 'gpt-realtime-whisper' })]);
+    // gpt-realtime-whisper rejects a transcription prompt (HTTP 400), so dictation never sends one.
+    expect(minted[0]).not.toHaveProperty('prompt');
     await clock.advanceBy(90_000);
     await service.end('ath_a', info.sessionId);
     await service.end('ath_a', info.sessionId); // idempotent

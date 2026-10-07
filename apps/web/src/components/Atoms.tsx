@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { clock } from '../lib/clock';
 import { formatDuration } from '../lib/format';
 import { renderMarkdown } from '../lib/markdown';
@@ -105,40 +105,6 @@ export function AudioPlayer({ src, durationMs, label = 'Voice note' }: { src: st
       <span className="audio-time">{error ? 'Unavailable' : formatDuration((playing || pos > 0 ? pos : dur) * 1000)}</span>
     </div>
   );
-}
-
-/** Long-press (touch / mouse hold) + context menu → callback. Cancels on movement. */
-export function useLongPress(onLongPress: () => void, ms = 480) {
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const start = useRef<{ x: number; y: number } | null>(null);
-  const clear = () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = undefined;
-    start.current = null;
-  };
-  useEffect(() => clear, []);
-  return {
-    onPointerDown: (e: ReactPointerEvent) => {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      start.current = { x: e.clientX, y: e.clientY };
-      timer.current = setTimeout(() => {
-        timer.current = undefined;
-        onLongPress();
-      }, ms);
-    },
-    onPointerMove: (e: ReactPointerEvent) => {
-      const s = start.current;
-      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) clear();
-    },
-    onPointerUp: clear,
-    onPointerCancel: clear,
-    onPointerLeave: clear,
-    onContextMenu: (e: { preventDefault(): void }) => {
-      e.preventDefault();
-      clear();
-      onLongPress();
-    },
-  };
 }
 
 /** True once an ISO `expires_at` has passed (re-renders at that moment). */

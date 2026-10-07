@@ -1,8 +1,6 @@
 import { newId, ZERO_USAGE, type Clock, type DictationSessionInfo, type Logger, type RealtimeVoiceProvider, type Store, type VoiceConfig } from '@opencoach/protocol';
 import { VoiceError } from './errors';
 
-/** Vocabulary hint for the transcription model; language-neutral, no athlete data. */
-const DICTATION_PROMPT = 'A person dictating a chat message to their sports coach about training, sessions, exercises, sets and reps, races, pain, sleep and recovery.';
 /** Extra time the server waits past maxDurationS before closing a session the client never ended. */
 const END_GRACE_S = 30;
 
@@ -95,7 +93,7 @@ export function createDictationService(deps: DictationServiceDeps): DictationSer
 
       recent.push(now);
       starts.set(athleteId, recent);
-      const connect = await provider.createTranscriptionSession!({ model: config.model, prompt: DICTATION_PROMPT, ...(config.delay ? { delay: config.delay } : {}) });
+      const connect = await provider.createTranscriptionSession!({ model: config.model, ...(config.delay ? { delay: config.delay } : {}) });
       const session: Active = { sessionId: newId('dict', clock), athleteId, model: config.model, startedAt: clock.now().getTime(), maxDurationS, timer: new AbortController() };
       active.set(athleteId, session);
       // A client that vanishes is billed for the full session and the slot is freed.

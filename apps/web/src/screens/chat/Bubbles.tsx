@@ -1,7 +1,7 @@
 import { useI18n } from '../../lib/i18n';
-import { memo, useState } from 'react';
+import { memo, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import type { Attachment, BlobRef, EventEnvelope } from '@opencoach/protocol';
-import { AudioPlayer, ImageThumb, Markdown, useLongPress } from '../../components/Atoms';
+import { AudioPlayer, ImageThumb, Markdown } from '../../components/Atoms';
 import { Icon } from '../../components/Icon';
 import { MicroUiBlock } from '../../components/MicroUi';
 import { ViewFrame } from '../../components/ViewFrame';
@@ -10,7 +10,7 @@ import type { AnswerView, PendingMessage, Provisional } from '../../lib/chatMode
 import { discardPending, react, retryPending } from '../../lib/controller';
 import { chat } from '../../lib/endpoints';
 import { basename, formatBytes, formatDuration, formatTime } from '../../lib/format';
-import { useStore } from '../../lib/store';
+import { createStore, useStore } from '../../lib/store';
 
 export interface BubbleCtx {
   tz?: string;
@@ -60,6 +60,77 @@ function Gallery({ blobs }: { blobs: BlobRef[] }) {
   );
 }
 
+// ---- message actions ------------------------------------------------------------------------------------------
+
+/** One message at a time shows its actions; tapping a message (or its options button) selects it. */
+const selection = createStore<string | undefined>(undefined);
+
+/** Taps on these keep their own meaning (links, players, images, cards) instead of selecting the message. */
+const INTERACTIVE = 'a, button, input, textarea, select, label, audio, video, iframe, img, summary, .view-card';
+
+function useMessageSelection(id: string) {
+  const selected = useStore(selection, (s) => s === id);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!selected) return;
+    // A tap anywhere outside this message hides the actions (another message selects itself). This listens for
+    // click, not pointerdown: hiding the row moves the bottom-anchored list, which would make that tap miss.
+    const away = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) selection.setState((s) => (s === id ? undefined : s));
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && selection.setState(undefined);
+    document.addEventListener('click', away);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('click', away);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [selected, id]);
+  const toggle = () => selection.setState((s) => (s === id ? undefined : id));
+  const onBubbleClick = (e: ReactMouseEvent) => {
+    if ((e.target as Element).closest(INTERACTIVE)) return;
+    if (window.getSelection()?.toString()) return; // the athlete is selecting text, not tapping
+    toggle();
+  };
+  return { selected, ref, toggle, onBubbleClick };
+}
+
+function MessageActions({ text, messageId, reaction }: { text?: string; messageId?: string; reaction?: string }) {
+  const t = useI18n();
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 1600);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  return (
+    <div className="msg-actions" role="toolbar" aria-label={t('Message actions')}>
+      {text && (
+        <button
+          type="button"
+          className={`icon-btn small${copied ? ' done' : ''}`}
+          aria-label={t(copied ? 'Copied' : 'Copy text')}
+          title={t(copied ? 'Copied' : 'Copy text')}
+          onClick={() => void navigator.clipboard?.writeText(text).then(() => setCopied(true), () => undefined)}
+        >
+          <Icon name={copied ? 'check' : 'copy'} size={18} />
+        </button>
+      )}
+      {messageId && (
+        <>
+          <button type="button" className={`icon-btn small${reaction === '👍' ? ' on' : ''}`} aria-label={t('Helpful')} title={t('Helpful')} aria-pressed={reaction === '👍'} onClick={() => void react(messageId, '👍')}>
+            <Icon name="thumbup" size={18} />
+          </button>
+          <button type="button" className={`icon-btn small${reaction === '👎' ? ' on' : ''}`} aria-label={t('Not helpful')} title={t('Not helpful')} aria-pressed={reaction === '👎'} onClick={() => void react(messageId, '👎')}>
+            <Icon name="thumbdown" size={18} />
+          </button>
+        </>
+      )}
+      <span className="sr-only" aria-live="polite">{copied ? t('Copied') : ''}</span>
+    </div>
+  );
+}
+
 function Time({ iso, ctx }: { iso: string; ctx: BubbleCtx }) {
   return (
     <time className="bubble-time" dateTime={iso}>
@@ -72,26 +143,42 @@ function Time({ iso, ctx }: { iso: string; ctx: BubbleCtx }) {
 
 export const AthleteMessage = memo(function AthleteMessage({ event, ctx }: { event: EventEnvelope<'user.message'>; ctx: BubbleCtx }) {
   const { text, attachments } = event.payload;
+  const sel = useMessageSelection(event.id);
   return (
-    <div className="msg me">
-      <div className="bubble">
+    <div className={`msg me${sel.selected ? ' selected' : ''}`} ref={sel.ref}>
+      <div className="bubble" onClick={text ? sel.onBubbleClick : undefined}>
         {attachments.length > 0 && <Gallery blobs={attachments} />}
         {text && <p className="plain">{text}</p>}
       </div>
-      <Time iso={event.ts} ctx={ctx} />
+      {sel.selected ? (
+        <div className="msg-foot">
+          <MessageActions text={text} />
+          <Time iso={event.ts} ctx={ctx} />
+        </div>
+      ) : (
+        <Time iso={event.ts} ctx={ctx} />
+      )}
     </div>
   );
 });
 
 export const AthleteUpload = memo(function AthleteUpload({ event, ctx }: { event: EventEnvelope<'user.upload'>; ctx: BubbleCtx }) {
   const { blobs, caption } = event.payload;
+  const sel = useMessageSelection(event.id);
   return (
-    <div className="msg me">
-      <div className="bubble">
+    <div className={`msg me${sel.selected ? ' selected' : ''}`} ref={sel.ref}>
+      <div className="bubble" onClick={caption ? sel.onBubbleClick : undefined}>
         <Gallery blobs={blobs} />
         {caption && <p className="plain">{caption}</p>}
       </div>
-      <Time iso={event.ts} ctx={ctx} />
+      {sel.selected ? (
+        <div className="msg-foot">
+          <MessageActions text={caption} />
+          <Time iso={event.ts} ctx={ctx} />
+        </div>
+      ) : (
+        <Time iso={event.ts} ctx={ctx} />
+      )}
     </div>
   );
 });
@@ -100,9 +187,10 @@ export const AthleteVoiceNote = memo(function AthleteVoiceNote({ event, ctx }: {
   const { blob, durationS, transcript } = event.payload;
   const [open, setOpen] = useState(false);
   const t = useI18n();
+  const sel = useMessageSelection(event.id);
   return (
-    <div className="msg me">
-      <div className="bubble voice">
+    <div className={`msg me${sel.selected ? ' selected' : ''}`} ref={sel.ref}>
+      <div className="bubble voice" onClick={transcript ? sel.onBubbleClick : undefined}>
         <AudioPlayer src={chat.blobUrl(blob.sha256)} durationMs={durationS * 1000} />
         {transcript && (
           <>
@@ -113,7 +201,14 @@ export const AthleteVoiceNote = memo(function AthleteVoiceNote({ event, ctx }: {
           </>
         )}
       </div>
-      <Time iso={event.ts} ctx={ctx} />
+      {sel.selected ? (
+        <div className="msg-foot">
+          <MessageActions text={transcript} />
+          <Time iso={event.ts} ctx={ctx} />
+        </div>
+      ) : (
+        <Time iso={event.ts} ctx={ctx} />
+      )}
     </div>
   );
 });
@@ -205,13 +300,12 @@ export const CoachMessage = memo(function CoachMessage({
   ctx: BubbleCtx;
 }) {
   const p = event.payload;
-  const [menu, setMenu] = useState(false);
-  const press = useLongPress(() => setMenu(true));
+  const sel = useMessageSelection(event.id);
   const t = useI18n();
   return (
-    <div className="msg coach" data-unread-id={p.messageId}>
+    <div className={`msg coach${sel.selected ? ' selected' : ''}`} data-unread-id={p.messageId} ref={sel.ref}>
       <div className="bubble-row">
-        <div className="bubble" {...press}>
+        <div className="bubble" onClick={sel.onBubbleClick}>
           {p.text && <Markdown text={p.text} />}
           {p.voiceNote && <AudioPlayer src={chat.blobUrl(p.voiceNote.sha256)} label="Voice reply" />}
           {p.attachments.map((a, i) => (
@@ -223,56 +317,23 @@ export const CoachMessage = memo(function CoachMessage({
             </span>
           )}
         </div>
-        <button type="button" className="icon-btn small more-btn" aria-label={t("Message options")} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
+        {/* Keyboard and mouse users get a visible way in; on touch, tapping the message does the same. */}
+        <button type="button" className="icon-btn small more-btn" aria-label={t("Message options")} aria-expanded={sel.selected} onClick={sel.toggle}>
           <Icon name="more" size={18} />
         </button>
-        {menu && <MessageMenu messageId={p.messageId} text={p.text} reaction={reaction} onClose={() => setMenu(false)} />}
       </div>
       {p.ui && <MicroUiBlock messageId={p.messageId} ui={p.ui} answer={answer} />}
-      <Time iso={event.ts} ctx={ctx} />
+      {sel.selected ? (
+        <div className="msg-foot">
+          <MessageActions text={p.text} messageId={p.messageId} reaction={reaction} />
+          <Time iso={event.ts} ctx={ctx} />
+        </div>
+      ) : (
+        <Time iso={event.ts} ctx={ctx} />
+      )}
     </div>
   );
 });
-
-function MessageMenu({ messageId, text, reaction, onClose }: { messageId: string; text: string; reaction?: string; onClose: () => void }) {
-  const t = useI18n();
-  return (
-    <div className="menu" role="menu" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
-      <button
-        type="button"
-        role="menuitem"
-        className={reaction === '👍' ? 'on' : ''}
-        onClick={() => {
-          void react(messageId, '👍');
-          onClose();
-        }}
-        autoFocus
-      >
-        <Icon name="thumbup" size={18} /> {t("Helpful")}</button>
-      <button
-        type="button"
-        role="menuitem"
-        className={reaction === '👎' ? 'on' : ''}
-        onClick={() => {
-          void react(messageId, '👎');
-          onClose();
-        }}
-      >
-        <Icon name="thumbdown" size={18} /> {t("Not helpful")}</button>
-      <button
-        type="button"
-        role="menuitem"
-        onClick={() => {
-          void navigator.clipboard?.writeText(text).catch(() => undefined);
-          onClose();
-        }}
-      >
-        <Icon name="copy" size={18} /> {t("Copy text")}</button>
-      <button type="button" role="menuitem" className="menu-close" onClick={onClose}>
-        {t("Close")}</button>
-    </div>
-  );
-}
 
 export const ProvisionalBubble = memo(function ProvisionalBubble({ item }: { item: Provisional }) {
   const t = useI18n();

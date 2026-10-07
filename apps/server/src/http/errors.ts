@@ -63,6 +63,16 @@ function isZodError(e: unknown): e is { issues: Array<{ path: Array<string | num
   return typeof e === 'object' && e !== null && (e as { name?: string }).name === 'ZodError' && Array.isArray((e as { issues?: unknown }).issues);
 }
 
+/** What the athlete reads when an AI provider fails; the provider's own detail goes to the server log only. */
+const PROVIDER_MESSAGE: Partial<Record<ProviderError['kind'], string>> = {
+  rate_limit: 'The AI service is busy right now. Try again in a minute.',
+  overloaded: 'The AI service is busy right now. Try again in a minute.',
+  timeout: 'The AI service took too long to answer. Try again.',
+  network: 'Could not reach the AI service. Try again in a moment.',
+  auth: 'The AI service did not accept this server\'s key. Ask your administrator to check it.',
+  unknown: 'The AI service could not handle that request. Try again, and tell your administrator if it keeps happening.',
+};
+
 /** Convert anything thrown into an HttpError (never leaks internals for unexpected errors). */
 export function toHttpError(e: unknown): HttpError {
   if (e instanceof HttpError) return e;
@@ -86,7 +96,7 @@ export function toHttpError(e: unknown): HttpError {
   if (e instanceof ProviderError || (e as { name?: string } | null)?.name === 'ProviderError') {
     const pe = e as ProviderError;
     const status = pe.kind === 'rate_limit' ? 429 : pe.kind === 'timeout' ? 504 : 502;
-    return new HttpError(status, 'provider_error', `The upstream provider failed (${pe.kind}).`);
+    return new HttpError(status, 'provider_error', PROVIDER_MESSAGE[pe.kind] ?? PROVIDER_MESSAGE.unknown!);
   }
 
   // Fastify / plugin errors carry statusCode (FST_ERR_CTP_BODY_TOO_LARGE, FST_REQ_FILE_TOO_LARGE, ...).

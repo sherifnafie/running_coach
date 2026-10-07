@@ -44,6 +44,7 @@ export function Shell() {
   // Keep visited views mounted (hidden) so their state survives tab switches.
   useEffect(() => {
     if (route.name === 'view') setVisited((v) => ({ ...v, [route.viewId]: route.params }));
+    setMoreOpen(false);
   }, [route]);
 
   const views = app?.views ?? [];
@@ -58,7 +59,7 @@ export function Shell() {
       <Header route={route} />
       <SafetyBanner />
       <ConnectionBar />
-      <CallBar />
+      {route.name !== 'call' && <CallBar />}
       <main id="main" className="shell-main" tabIndex={-1}>
         <section className="screen" hidden={!chatVisible} aria-label={t("Chat")}>
           <ChatScreen visible={chatVisible} />
@@ -125,6 +126,7 @@ function Header({ route }: { route: Route }) {
       </header>
     );
   }
+  if (route.name === 'call') return null; // the call screen is full-bleed with its own controls
   if (route.name === 'view') {
     // Views show their own title; repeating it here (with a back arrow on a tab) only cost space. The strip keeps
     // the status-bar inset and surfaces what the coach is doing, linking back to the conversation.
@@ -139,16 +141,10 @@ function Header({ route }: { route: Route }) {
       </div>
     );
   }
-  const title = route.name === 'settings' ? 'Settings' : 'Call';
   return (
     <header className="app-header">
       <div className="coach-id">
-        {route.name !== 'settings' && (
-          <button type="button" className="icon-btn" aria-label={t("Back to chat")} onClick={() => navigate({ name: 'chat' })}>
-            <Icon name="back" />
-          </button>
-        )}
-        <h1>{t(title)}</h1>
+        <h1>{t('Settings')}</h1>
       </div>
     </header>
   );
@@ -187,6 +183,12 @@ function BottomNav({ route, nav, moreOpen, setMoreOpen }: { route: Route; nav: R
   const t = useI18n();
   const unseen = useStore(appStore, (s) => s.unseen);
   const updated = useStore(appStore, (s) => s.updated);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMoreOpen(false);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [moreOpen, setMoreOpen]);
   const badge = (item: NavItem): string | undefined => {
     if (item.key === 'chat' && unseen > 0 && route.name !== 'chat') return unseen > 9 ? '9+' : String(unseen);
     if (item.route?.name === 'view' && updated[item.route.viewId]) return '•';
@@ -196,23 +198,32 @@ function BottomNav({ route, nav, moreOpen, setMoreOpen }: { route: Route; nav: R
   return (
     <>
       {moreOpen && (
-        <div className="sheet-backdrop" onClick={() => setMoreOpen(false)}>
-          <div className="sheet" role="menu" aria-label={t("More")} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && setMoreOpen(false)}>
-            {nav.overflow.map((o, i) => (
-              <button
-                key={o.key}
-                type="button"
-                role="menuitem"
-                autoFocus={i === 0}
-                className={isActive(o, route) ? 'on' : ''}
-                onClick={() => {
-                  setMoreOpen(false);
-                  if (o.route) navigate(o.route);
-                }}
-              >
-                <Icon name={o.icon} /> {t(o.label)}
-              </button>
-            ))}
+        // Stops above the tab bar, so "More" (or another tab) stays tappable while the menu is open.
+        <div className="menu-backdrop" onClick={() => setMoreOpen(false)}>
+          <div className="more-menu" role="menu" aria-label={t("More")} onClick={(e) => e.stopPropagation()}>
+            {nav.overflow.map((o, i) => {
+              const on = isActive(o, route);
+              const fresh = o.route?.name === 'view' && !!updated[o.route.viewId];
+              return (
+                <button
+                  key={o.key}
+                  type="button"
+                  role="menuitem"
+                  autoFocus={i === 0}
+                  className={`more-item${on ? ' on' : ''}`}
+                  aria-current={on ? 'page' : undefined}
+                  onClick={() => {
+                    setMoreOpen(false);
+                    if (o.route) navigate(o.route);
+                  }}
+                >
+                  <span className="more-icon"><Icon name={o.icon} size={20} /></span>
+                  <span className="more-label">{t(o.label)}</span>
+                  {fresh && <span className="more-dot" aria-label={t('Updated')} />}
+                  {on && <Icon name="check" size={18} />}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

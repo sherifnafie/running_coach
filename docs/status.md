@@ -54,6 +54,10 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 
 - **Leaked tool syntax (fixed 2026-10-07):** DeepSeek V4.1 Flash through OpenRouter once wrote `</text><parameter name="ui">…` inside a `send_message` text, and the athlete saw it raw. The adapter now splits such tails back into arguments (`repairLeakedParameters`), and `send_message` rejects any remaining tool markup so the model resends. Watch for other shapes of the same failure.
 
+- **Live dictation never worked in prod (fixed 2026-10-07):** dictation sent a transcription `prompt`, which `gpt-realtime-whisper` rejects with HTTP 400. Athletes saw "The upstream provider failed (invalid_request)". Dictation no longer sends a prompt (session minting verified against the live API), and provider errors now reach athletes as plain-language messages; the provider's detail stays in the server log.
+- **Coach narrating app mechanics:** after a call, DeepSeek told the athlete "voices are coming through now, that was the shimmer run", because it had seen their voice-setting changes. The constitution (§4) now says not to narrate settings, voice or model choices, connection problems or housekeeping. An eval scenario for post-call recaps is still missing.
+- **Stale installed apps (fixed 2026-10-07):** an installed PWA left open in the background kept running old code after a deploy. It now checks for an update when brought to the foreground and reloads into it at a quiet moment (not during a call or while typing).
+
 - **Bring-your-own OpenAI key for voice** is not implemented. Voice uses the server key. The credential store already supports `openai`; the voice services need per-athlete scoping.
 - **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting, "Small home instance"). Store them relative to the data directory.
 
