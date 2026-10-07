@@ -58,12 +58,17 @@ export interface TurnOutcome {
   costUsd: number;
 }
 
+/**
+ * Reasoning effort per trigger class when the tier doesn't pin one. Quality beats a few cents: replies and check-ins
+ * think hard; overnight consolidation (nobody waiting) thinks hardest; live calls stay quick to keep speech responsive.
+ * Max is reserved for unattended work: one max-effort step can take a minute and a reply is several steps.
+ */
 const DEFAULT_EFFORT: Record<TriggerClass, Effort> = {
-  reactive: 'medium',
+  reactive: 'high',
   call: 'low',
-  followup: 'medium',
-  scheduled: 'low',
-  consolidation: 'medium',
+  followup: 'high',
+  scheduled: 'high',
+  consolidation: 'max',
 };
 
 const PROGRESS_LABELS: Record<string, string> = {
