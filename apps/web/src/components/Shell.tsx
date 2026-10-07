@@ -1,4 +1,4 @@
-import { t, useI18n } from '../lib/i18n';
+import { useI18n } from '../lib/i18n';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { appStore } from '../lib/appState';
 import { dismissToast } from '../lib/controller';
@@ -158,14 +158,14 @@ function ConnectionBar() {
   if (ws !== 'open')
     return (
       <div className="conn-bar" role="status">
-        <Icon name="refresh" size={16} /> {ws === 'connecting' ? 'Connecting…' : 'Reconnecting…'}
+        <Icon name="refresh" size={16} /> {ws === 'connecting' ? t('Connecting…') : t('Reconnecting…')}
         {queued > 0 ? ` ${queued} waiting to send.` : ''}
       </div>
     );
   if (queued > 0)
     return (
       <div className="conn-bar" role="status">
-        {t("Sending")}{queued} {t("queued item")}{queued === 1 ? '' : 's'}…
+        {t("Sending")} {queued} {queued === 1 ? t("queued item") : t("queued items")}…
       </div>
     );
   return null;

@@ -1,4 +1,4 @@
-import { t, useI18n } from '../../lib/i18n';
+import { useI18n } from '../../lib/i18n';
 import { useEffect, useState } from 'react';
 import { Section, Spinner } from '../../components/Atoms';
 import { describeError } from '../../lib/api';
@@ -67,7 +67,6 @@ function useLoad<T>(fn: () => Promise<T>, enabled: boolean) {
 }
 
 function Block({ title, children }: { title: string; children: (open: boolean) => React.ReactNode }) {
-  const t = useI18n();
   const [open, setOpen] = useState(false);
   return (
     <div className="admin-block">
@@ -80,7 +79,6 @@ function Block({ title, children }: { title: string; children: (open: boolean) =
 }
 
 function Athletes({ open }: { open: boolean }) {
-  const t = useI18n();
   const s = useLoad(admin.athletes, open);
   return s.loading ? <Spinner /> : s.error ? <p className="form-error">{s.error}</p> : <GenericTable rows={asRows(s.data, ['athletes'])} />;
 }
@@ -139,7 +137,7 @@ function Turns({ open }: { open: boolean }) {
                     .catch((e) => setDetail({ id, error: describeError(e) }));
                 }}
               >
-                {t("Trace")}{idOf(r).slice(-8)}
+                {t("Trace")} {idOf(r).slice(-8)}
               </button>
             </li>
           ))}
@@ -147,7 +145,7 @@ function Turns({ open }: { open: boolean }) {
       )}
       {detail && (
         <div className="trace">
-          <p className="list-title">{t("Turn")}{detail.id}</p>
+          <p className="list-title">{t("Turn")} {detail.id}</p>
           {detail.error ? <p className="form-error">{detail.error}</p> : <pre>{detail.body === undefined ? 'Loading…' : JSON.stringify(detail.body, null, 2)}</pre>}
           <button type="button" className="btn link small" onClick={() => setDetail(null)}>
             {t("Close")}</button>

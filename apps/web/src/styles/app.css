@@ -1717,7 +1717,7 @@ input[aria-invalid='true'] {
 .custom-color { color: var(--rc-text); }
 .custom-color input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 .custom-color:focus-within { outline: 2px solid var(--rc-text); }
-.settings-signout { margin-top: 24px; max-width: 400px; margin-inline: auto; }
+.settings-signout { margin: 24px auto; max-width: 400px; }
 [dir='rtl'] .switch:checked::after { transform: translateX(-20px); }
 [dir='rtl'] .switch::after { left: auto; right: 3px; }
 [dir='rtl'] .app-header .icon-btn svg { transform: scaleX(-1); }
@@ -1934,10 +1934,6 @@ input[aria-invalid='true'] {
   border-radius: 8px;
   font-size: 0.75rem;
 }
-.settings-signout {
-  margin: 8px 0 24px;
-}
-
 /* ---- call ---------------------------------------------------------------------------------------------------------- */
 .call-screen {
   background: var(--rc-bg);

@@ -1,4 +1,4 @@
-import { t, useI18n } from '../../lib/i18n';
+import { useI18n } from '../../lib/i18n';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { Icon } from '../../components/Icon';
 import { appStore } from '../../lib/appState';
@@ -8,12 +8,12 @@ import { lsGet, lsRemove, lsSet } from '../../lib/storage';
 import { useStore } from '../../lib/store';
 import { useVoiceRecorder, VoiceComposer } from './VoiceComposer';
 
-export const ACCEPT = 'image/*,.fit,.gpx,.tcx,.csv,.zip,.pdf,.json';
+const ACCEPT = 'image/*,.fit,.gpx,.tcx,.csv,.zip,.pdf,.json';
 const ACCEPTED_EXT = /\.(fit|gpx|tcx|csv|zip|pdf|json)$/i;
 const MAX_FILES = 20;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
-export function isAcceptedFile(f: File): boolean {
+function isAcceptedFile(f: File): boolean {
   return f.type.startsWith('image/') || ACCEPTED_EXT.test(f.name);
 }
 
@@ -42,7 +42,9 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
     else lsRemove(draftKey);
   }, [draftKey, text]);
 
-  // Re-measure after typing, wrapping/rotation, a hidden tab returning, and voice review closing.
+  // Observe wrapping/rotation once while the textarea is visible; re-armed when a hidden tab returns or voice review closes.
+  const textMode = voice.phase === 'idle';
+  const resizeRef = useRef<() => void>(() => undefined);
   useLayoutEffect(() => {
     const ta = taRef.current;
     if (!ta || !visible) return;
@@ -57,6 +59,7 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
       ta.style.height = `${Math.max(min, Math.min(needed, max))}px`;
       ta.style.overflowY = needed > max ? 'auto' : 'hidden';
     };
+    resizeRef.current = resize;
     resize();
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(() => {
       if (ta.offsetWidth !== width) resize();
@@ -65,11 +68,14 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
     window.addEventListener('resize', resize);
     window.visualViewport?.addEventListener('resize', resize);
     return () => {
+      resizeRef.current = () => undefined;
       observer?.disconnect();
       window.removeEventListener('resize', resize);
       window.visualViewport?.removeEventListener('resize', resize);
     };
-  }, [text, visible, voice.phase]);
+  }, [visible, textMode]);
+  // Re-measure after typing.
+  useLayoutEffect(() => resizeRef.current(), [text]);
 
   useEffect(() => {
     if (!prefill) return;
@@ -130,7 +136,7 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
   const record = () => {
     setMenu(false);
     if (!voiceAvailable) {
-      setHint('Voice notes aren’t set up on this server yet. You can still dictate using the microphone on your phone’s keyboard.');
+      setHint('Voice notes aren’t set up on this server yet. You can still dictate using the microphone on your keyboard.');
     } else if (!online) {
       setHint('Reconnect to record a voice note. You can keep typing while offline.');
     } else {
@@ -138,7 +144,7 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
       void voice.begin();
     }
   };
-  const feedback = voice.error ?? hint;
+  const feedback = voice.error ?? (hint && t(hint));
 
   return (
     <div className="composer" role="group" aria-label={t("Message composer")}>
@@ -171,7 +177,7 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
                 <button type="button" role="menuitem" onClick={() => { setMenu(false); cameraRef.current?.click(); }}><Icon name="camera" size={19} /> {t("Take a photo")}</button>
               </div>}
             </div>
-            <span className="composer-key-hint">{t("Enter to send")}<span aria-hidden="true">·</span> {t("Shift + Enter for a new line")}</span>
+            <span className="composer-key-hint">{t("Enter to send")} <span aria-hidden="true">·</span> {t("Shift + Enter for a new line")}</span>
             <div className="composer-actions">
               <button type="button" className="icon-btn mic" aria-label={t("Record a voice note")} title={voiceAvailable ? t("Record a voice note") : t("Voice notes aren’t configured")} onClick={record}><Icon name="mic" size={21} /></button>
               <button type="button" className="icon-btn send" aria-label={t("Send")} title={t("Send message")} disabled={!canSend} onClick={send}><Icon name="arrow-up" size={23} /></button>
@@ -187,7 +193,6 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
 }
 
 function AttachmentPreview({ file }: { file: File }) {
-  const t = useI18n();
   const [url, setUrl] = useState<string>();
   useEffect(() => {
     if (!file.type.startsWith('image/')) return;

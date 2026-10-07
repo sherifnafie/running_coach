@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { existsSync } from 'node:fs';
 import { chromium, type Browser } from 'playwright-core';
+import { chromiumExecutable } from '@opencoach/ui-kit';
 import { EXTRACTION_FIELDS, type ArtifactKind, type ArtifactTruth, type TrueActivity } from './types';
 
 export interface ScreenshotOptions {
@@ -15,9 +15,6 @@ export interface ScreenshotOptions {
 }
 const escape = (s: unknown): string => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 const duration = (s: number): string => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
-function browserExecutable(override?: string): string | undefined {
-  return override ?? process.env.OPENCOACH_CHROMIUM_PATH ?? ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find(p => existsSync(p));
-}
 
 /** Template and labels share displayed values, so invisible or rounded fields are never invented. */
 export function screenshotTemplate(activity: TrueActivity, options: ScreenshotOptions = {}): { html: string; truth: ArtifactTruth } {
@@ -62,7 +59,7 @@ export function screenshotTemplate(activity: TrueActivity, options: ScreenshotOp
 
 export async function renderScreenshot(activity: TrueActivity, outDir: string, options: ScreenshotOptions = {}, browser?: Browser): Promise<{ path: string; truth: ArtifactTruth }> {
   const ownBrowser = !browser;
-  const instance = browser ?? await chromium.launch({ headless: true, executablePath: browserExecutable(options.executablePath), args: ['--no-sandbox'] });
+  const instance = browser ?? await chromium.launch({ headless: true, executablePath: chromiumExecutable(options.executablePath), args: ['--no-sandbox'] });
   const page = await instance.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   try {
     await page.route('**/*', route => route.abort());
@@ -109,7 +106,7 @@ export async function generateCorpus(activities: TrueActivity[], outDir: string,
   if (!activities.length) throw new Error('Corpus requires ground-truth activities');
   const count = options.count ?? 200;
   if (!Number.isInteger(count) || count < 1) throw new Error('Invalid corpus size');
-  const browser = await chromium.launch({ headless: true, executablePath: browserExecutable(options.executablePath), args: ['--no-sandbox'] });
+  const browser = await chromium.launch({ headless: true, executablePath: chromiumExecutable(options.executablePath), args: ['--no-sandbox'] });
   const labels: ArtifactTruth[] = [];
   try {
     const apps = ['samsung_health', 'garmin', 'apple', 'strava', 'coros', 'polar', 'nrc'];

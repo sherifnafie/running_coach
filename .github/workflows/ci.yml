@@ -29,8 +29,6 @@ jobs:
         run: |
           npx --yes playwright@1.56.1 install --with-deps chromium
           echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright" >> "$GITHUB_ENV"
-      - name: Install Python libraries used by seed scripts
-        run: python3 -m pip install --user --break-system-packages pandas numpy
       - name: Typecheck
         run: pnpm typecheck
       - name: Unit and integration tests

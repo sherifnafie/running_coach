@@ -60,6 +60,11 @@ export const ServerConfig = z.object({
   publicUrl: z.string().default('http://localhost:8080'),
   /** Public origin of the isolated views server (SPEC [SEC-3]). Must differ from publicUrl. */
   viewsUrl: z.string().default('http://localhost:8081'),
+  /**
+   * Fastify `trustProxy`: set when a reverse proxy or tunnel fronts the server, so per-client limits use
+   * the forwarded client address instead of the proxy's (`true`, or trusted addresses such as `loopback` or `10.0.0.0/8`).
+   */
+  trustProxy: z.union([z.boolean(), z.string()]).default(false),
   logLevel: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   /** Run the built-in scripted demo coach (no API keys required). */
   demo: z.boolean().default(false),

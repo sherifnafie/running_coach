@@ -456,8 +456,9 @@ export class SqliteStore implements Store {
     return this.one<SessionRecord>('sessions', SESSION, 'token_hash = ?', tokenHash);
   }
 
-  async touchSession(id: string, nowIso: string): Promise<void> {
-    this.run('UPDATE sessions SET last_seen_at = ? WHERE id = ?', nowIso, id);
+  async touchSession(id: string, nowIso: string, expiresAt?: string): Promise<void> {
+    if (expiresAt) this.run('UPDATE sessions SET last_seen_at = ?, expires_at = ? WHERE id = ?', nowIso, expiresAt, id);
+    else this.run('UPDATE sessions SET last_seen_at = ? WHERE id = ?', nowIso, id);
   }
 
   async deleteSession(id: string): Promise<void> {

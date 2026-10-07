@@ -8,6 +8,7 @@ import { createAgentLoop, createModelRouter, createScriptedProvider, type Script
 import { createCoachRuntime, type CoachRuntime } from '@opencoach/runtime';
 import { createLocalSandboxProvider } from '@opencoach/sandbox';
 import { openSqliteStore } from '@opencoach/store';
+import { kitDistDir } from '@opencoach/ui-kit';
 import { createFsBlobStore } from '@opencoach/workspace';
 import { createScriptedAthlete, type AthleteAgent } from './athletes';
 import { generateGpx, renderScreenshot } from './artifacts';
@@ -121,7 +122,8 @@ export async function runScenario(input: ScenarioInput, options: RunScenarioOpti
     await cp(options.seedRoot ?? join(repo, 'seed'), seedRoot, { recursive: true });
     await writeFile(join(seedRoot, 'core/constitution.md'), options.constitution);
   }
-  const runtime = createCoachRuntime({ config: ServerConfig.parse({ dataDir, limits: { ...options.limits, debounceIdleMs: 0 }, web: { enabled: false } }), clock, store, blobs, sandbox, router, loop: createAgentLoop({ price: (m, u) => router.cost(m, u) }), logger: silentLogger, seedRoot, pack: 'running', kitDir: join(repo, 'packages/ui-kit/dist'), renderer, manualScheduler: true });
+  const kitDir = await kitDistDir();
+  const runtime = createCoachRuntime({ config: ServerConfig.parse({ dataDir, limits: { ...options.limits, debounceIdleMs: 0 }, web: { enabled: false } }), clock, store, blobs, sandbox, router, loop: createAgentLoop({ price: (m, u) => router.cost(m, u) }), logger: silentLogger, seedRoot, pack: 'running', kitDir, renderer, manualScheduler: true });
   const trace: TraceBundle = { schemaVersion: 1, scenario, seed, model: modelName, startedAt: clock.now().toISOString(), endedAt: '', athleteId: '', events: [], stream: [], actions: [], ledger: { persona, disclosures: [], activities: [], symptoms: [], artifacts: [] }, snapshots: [], changes: [], screenshots, toolCalls, metrics: { costUsd: 0, inputTokens: 0, cachedTokens: 0, cacheHitRate: null, athleteWeeks: 0, costPerAthleteWeek: null, turnDurationsMs: [] }, capabilities: { sandboxKind: sandbox.kind, sandboxIsolated: sandbox.isolated, sandboxClock: 'unverified', visualRenderer: !!suppliedRenderer }, graders: [] };
   let unsubscribe: (() => void) | undefined;
   trace.previewReports = previewReports;
@@ -130,7 +132,7 @@ export async function runScenario(input: ScenarioInput, options: RunScenarioOpti
     await runtime.start();
     const athlete = await runtime.createAthlete({ displayName: persona.profile.name, tz: persona.profile.tz, locale: persona.profile.locale, units: persona.profile.units, isAdmin: false });
     trace.athleteId = athlete.id;
-    if (options.observeViews) observer = new BrowserViewObserver({ runtime, athleteId: athlete.id, clock, outDir: join(traceDir, 'published-views'), kitDir: join(repo, 'packages/ui-kit/dist'), executablePath: options.executablePath });
+    if (options.observeViews) observer = new BrowserViewObserver({ runtime, athleteId: athlete.id, clock, outDir: join(traceDir, 'published-views'), kitDir, executablePath: options.executablePath });
     unsubscribe = runtime.subscribe(athlete.id, message => { trace.stream.push(message); observer?.onStream(message); });
     await runtime.updateSettings(athlete.id, { notifications: { quietHours: persona.communication.quietHours, proactivePerWeek: Math.min(50, Math.ceil(persona.communication.proactivePerWeek.max)) }, ...scenario.settings });
     const workspace = runtime.core.paths(athlete.id).workspace;

@@ -6,15 +6,15 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export const SaveContext = createContext<{ commit: (patch: unknown) => Promise<boolean> }>({ commit: async () => false });
 export const useCommit = () => useContext(SaveContext).commit;
 
+/** Labels and hints arrive already translated by the caller. */
 export function Row({ label, hint, children, htmlFor }: { label: string; hint?: string; children: ReactNode; htmlFor?: string }) {
-  const t = useI18n();
   return (
     <div className="row">
       <div className="row-text">
         <label htmlFor={htmlFor} className="row-label">
-          {t(label)}
+          {label}
         </label>
-        {hint && <p className="row-hint">{t(hint)}</p>}
+        {hint && <p className="row-hint">{hint}</p>}
       </div>
       <div className="row-control">{children}</div>
     </div>
@@ -44,13 +44,12 @@ export function SelectRow<T extends string | number>({
   onChange: (v: T) => void;
 }) {
   const id = useId();
-  const t = useI18n();
   return (
     <Row label={label} hint={hint} htmlFor={id}>
       <select id={id} value={String(value)} onChange={(e) => onChange((typeof value === 'number' ? Number(e.target.value) : e.target.value) as T)}>
         {options.map((o) => (
           <option key={String(o.value)} value={String(o.value)}>
-            {t(o.label)}
+            {o.label}
           </option>
         ))}
       </select>
@@ -181,7 +180,7 @@ export function TimeRow({ label, value, onCommit }: { label: string; value: stri
 /** Two-step destructive button: first click arms it, second confirms (auto-disarms). */
 export function ConfirmButton({
   label,
-  confirmLabel = 'Confirm',
+  confirmLabel,
   onConfirm,
   className = 'btn',
   disabled,
@@ -206,7 +205,7 @@ export function ConfirmButton({
           onConfirm();
         }}
       >
-        {t(confirmLabel)}
+        {confirmLabel ?? t('Confirm')}
       </button>
       <button type="button" className="btn" onClick={() => setArmed(false)}>
         {t('Cancel')}
@@ -222,7 +221,7 @@ export function ConfirmButton({
         timer.current = setTimeout(() => setArmed(false), 6000);
       }}
     >
-      {t(label)}
+      {label}
     </button>
   );
 }

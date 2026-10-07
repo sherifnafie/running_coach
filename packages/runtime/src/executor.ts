@@ -179,12 +179,12 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
       const outcome = await executeTool(call.name, call.input, ctx);
       let schemaReport: { ok: boolean; text: string } | undefined;
       if (tracksSchema && beforeSchema !== await readSchema().catch((error: Error) => `schema unavailable: ${error.message}`)) {
-        try {
-          const report = await core.ui.revalidateAfterSchemaChange(o.athleteId);
-          schemaReport = { ok: report.ok, text: `Database schema changed. View revalidation [UI-3]: ${report.ok ? 'passed' : 'failed; repair the affected views before publishing'}.\n${JSON.stringify(report)}` };
-        } catch (error) {
-          schemaReport = { ok: false, text: `Database schema changed. View revalidation [UI-3] failed: ${(error as Error).message}` };
-        }
+        schemaReport = core.deps.renderer
+          ? await core.ui.revalidateAfterSchemaChange(o.athleteId).then(
+              (report) => ({ ok: report.ok, text: `Database schema changed. View revalidation [UI-3]: ${report.ok ? 'passed' : 'failed; repair the affected views before publishing'}.\n${JSON.stringify(report)}` }),
+              (error: Error) => ({ ok: false, text: `Database schema changed. View revalidation [UI-3] failed: ${error.message}` }),
+            )
+          : { ok: true, text: 'Database schema changed. Views were not re-checked [UI-3]: this server has no renderer.' };
       }
       const ms = Math.round(performance.now() - started);
       o.onEnd?.(call, outcome.ok && schemaReport?.ok !== false);

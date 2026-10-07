@@ -1,4 +1,4 @@
-import { t, useI18n } from '../lib/i18n';
+import { useI18n } from '../lib/i18n';
 import { useEffect } from 'react';
 import type { PublishedView } from '@opencoach/protocol';
 import { Icon } from '../components/Icon';

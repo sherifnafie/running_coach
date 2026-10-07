@@ -80,7 +80,7 @@ function renderBlock(block, blocks) {
 function renderVolume(weeks) {
   $('volume').data = weeks.map((w) => ({ x: w.week, y: w.dist }));
   const thisWeek = dates.startOfWeek(today, 1);
-  $(t("weeks")).replaceChildren(
+  $('weeks').replaceChildren(
     h('caption', null, t("Planned volume by week")),
     h('thead', null, h('tr', null, ...[t("Week of"), t("Distance"), t("Runs"), t("Longest")].map((c) => h('th', { scope: 'col' }, c)))),
     h('tbody', null, ...weeks.map((w) => h('tr', { class: w.week === thisWeek ? 'is-current' : '' }, h('th', { scope: 'row' }, format.date(w.week, 'short')), h('td', null, format.distance(w.dist)), h('td', null, String(w.sessions)), h('td', null, w.longest ? format.distance(w.longest) : '–')))),

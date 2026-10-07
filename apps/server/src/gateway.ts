@@ -20,7 +20,7 @@ export type { GatewayDeps } from './http/context';
 
 /** Build both HTTP listeners; composition owns their listen/close lifecycle. */
 export async function createGateway(deps: GatewayDeps) {
-  const app = Fastify({ logger: false, bodyLimit: 2 * 1024 * 1024, trustProxy: false });
+  const app = Fastify({ logger: false, bodyLimit: 2 * 1024 * 1024, trustProxy: deps.config.trustProxy });
   const views = Fastify({ logger: false });
   const context = createContext(deps, new SocketRegistry());
   if (context.publicOrigin === context.viewsOrigin) throw new Error('Views must use a separate origin [SEC-3].');

@@ -1,4 +1,4 @@
-import { t, useI18n } from '../../lib/i18n';
+import { useI18n } from '../../lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEntry, UiVersionRecord } from '@opencoach/protocol';
 import { Section, Spinner } from '../../components/Atoms';
@@ -31,7 +31,7 @@ export function ChangesSection() {
   }, [open, state.changes]);
 
   return (
-    <Section title={t("What your coach changed")} hint="Saved updates to your coach's files and screens, newest first.">
+    <Section title={t("What your coach changed")} hint={t("Saved updates to your coach's files and screens, newest first.")}>
       <button type="button" className="btn block" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         {open ? t("Hide changes") : t("Show changes")}
       </button>
@@ -74,7 +74,7 @@ export function ViewHistorySection() {
   const t = useI18n();
   const appViews = useStore(appStore, (s) => s.app?.views);
   return (
-    <Section title={t("Screen history")} hint="Don't like a change to one of your screens? Go back to an earlier version.">
+    <Section title={t("Screen history")} hint={t("Don't like a change to one of your screens? Go back to an earlier version.")}>
       {!appViews || appViews.length === 0 ? (
         <p className="hint">{t("Your coach hasn't published any screens yet.")}</p>
       ) : (
@@ -125,7 +125,7 @@ function ViewHistory({ id, title, current }: { id: string; title: string; curren
     <li>
       <button type="button" className="list-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <span className="list-title">{title}</span>
-        <span className="list-meta">{t("version")}{current}</span>
+        <span className="list-meta">{t("version")} {current}</span>
       </button>
       {open && (
         <div className="history">
@@ -143,14 +143,14 @@ function ViewHistory({ id, title, current }: { id: string; title: string; curren
                 return (
                   <li key={v.version}>
                     <p className="list-title">
-                      {t("Version")}{v.version}
+                      {t("Version")} {v.version}
                       {isCurrent ? ' (current)' : ''}
                     </p>
                     <p className="list-meta">
                       {v.summary || t("No summary")} · {formatDateTime(v.publishedAt, tz)} · {v.publishedBy.replace('_', ' ')}
                     </p>
                     {!isCurrent && (
-                      <ConfirmButton className="btn small" label="Revert to this" confirmLabel={`Revert to version ${v.version}`} disabled={busy} onConfirm={() => void revert(v.version)} />
+                      <ConfirmButton className="btn small" label={t("Revert to this")} confirmLabel={`Revert to version ${v.version}`} disabled={busy} onConfirm={() => void revert(v.version)} />
                     )}
                   </li>
                 );
@@ -190,7 +190,7 @@ export function DataSection() {
   };
 
   return (
-    <Section title={t("Your data")} hint="Take your coach with you: your workspace, uploads, message history and settings in one bundle.">
+    <Section title={t("Your data")} hint={t("Take your coach with you: your workspace, uploads, message history and settings in one bundle.")}>
       <div className="row stack">
         {phase === 'idle' && (
           <button type="button" className="btn block" onClick={() => void start()}>
@@ -198,7 +198,7 @@ export function DataSection() {
         )}
         {phase === 'working' && (
           <p role="status">
-            <Spinner label="Preparing export" /> {t("Preparing your export. This can take a minute.")}</p>
+            <Spinner label={t("Preparing export")} /> {t("Preparing your export. This can take a minute.")}</p>
         )}
         {phase === 'ready' && url && (
           <p role="status">
@@ -228,11 +228,11 @@ export function DeleteSection() {
   const [error, setError] = useState<string | undefined>();
   const ok = typed.trim() === 'DELETE';
   return (
-    <Section title={t("Delete account")} hint="Permanently deletes your coach, workspace, uploads and history. Backups are removed within 30 days. This cannot be undone.">
+    <Section title={t("Delete account")} hint={t("Permanently deletes your coach, workspace, uploads and history. Backups are removed within 30 days. This cannot be undone.")}>
       <div className="row stack">
         <label className="field">
           <span>
-            {t("Type")}<strong>{t("DELETE")}</strong> {t("to confirm")}</span>
+            {t("Type")} <strong>DELETE</strong> {t("to confirm")}</span>
           <input value={typed} onChange={(e) => setTyped(e.target.value)} autoCapitalize="characters" autoComplete="off" name="confirm-delete" />
         </label>
         {error && (

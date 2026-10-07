@@ -1,4 +1,4 @@
-import { t, useI18n } from '../../lib/i18n';
+import { useI18n } from '../../lib/i18n';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Section } from '../../components/Atoms';
 import { describeError } from '../../lib/api';
@@ -44,14 +44,14 @@ export function HealthConnectSection() {
   };
 
   return (
-    <Section title={t("Health Connect")} hint="Import workouts from this device. Android will ask for permission, and imported workouts are sent to your coach.">
-      <Row label="Import period" htmlFor={id}>
+    <Section title={t("Health Connect")} hint={t("Import workouts from this device. Android will ask for permission, and imported workouts are sent to your coach.")}>
+      <Row label={t("Import period")} htmlFor={id}>
         <select id={id} value={days} disabled={busy} onChange={(e) => {
           setDays(Number(e.target.value));
           setError(undefined);
           setMessage(undefined);
         }}>
-          {[7, 14, 30].map((period) => <option key={period} value={period}>{t("Last")}{period} {t("days")}</option>)}
+          {[7, 14, 30].map((period) => <option key={period} value={period}>{t("Last")} {period} {t("days")}</option>)}
         </select>
       </Row>
       <button type="button" className="btn block" disabled={busy} onClick={() => void sync()}>

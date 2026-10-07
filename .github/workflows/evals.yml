@@ -37,10 +37,13 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
+          SUITE: ${{ inputs.suite }}
+          MODEL: ${{ inputs.model }}
+          JUDGE: ${{ inputs.judge }}
+          SEEDS: ${{ inputs.seeds }}
         run: >
           pnpm --filter @opencoach/evals-sim eval
-          --suite ${{ inputs.suite }} --model ${{ inputs.model }}
-          --judge ${{ inputs.judge }} --seeds ${{ inputs.seeds }} --out evals/runs
+          --suite "$SUITE" --model "$MODEL" --judge "$JUDGE" --seeds "$SEEDS" --out evals/runs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

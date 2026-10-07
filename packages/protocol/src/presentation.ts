@@ -11,534 +11,135 @@ const labels: Record<string, [string, string]> = {
   "of": ["van", "من"],
   "Pick a new day for": ["Kies een nieuwe dag voor", "اختر يومًا جديدًا لـ"],
   "Moved to": ["Verplaatst naar", "نُقلت إلى"],
-  "Settings": [
-    "Instellingen",
-    "الإعدادات"
-  ],
-  "Chat": [
-    "Chat",
-    "الدردشة"
-  ],
-  "Today": [
-    "Vandaag",
-    "اليوم"
-  ],
-  "Calendar": [
-    "Kalender",
-    "التقويم"
-  ],
-  "Plan": [
-    "Plan",
-    "الخطة"
-  ],
-  "Progress": [
-    "Voortgang",
-    "التقدم"
-  ],
-  "More": [
-    "Meer",
-    "المزيد"
-  ],
-  "Light": [
-    "Licht",
-    "فاتح"
-  ],
-  "Dark": [
-    "Donker",
-    "داكن"
-  ],
-  "Default": [
-    "Standaard",
-    "الافتراضي"
-  ],
-  "Confirm": [
-    "Bevestigen",
-    "تأكيد"
-  ],
-  "Cancel": [
-    "Annuleren",
-    "إلغاء"
-  ],
-  "Send": [
-    "Versturen",
-    "إرسال"
-  ],
-  "Loading": [
-    "Laden",
-    "جارٍ التحميل"
-  ],
-  "Retry": [
-    "Opnieuw",
-    "إعادة المحاولة"
-  ],
-  "Your coach will fill this in": [
-    "Je coach vult dit in",
-    "سيملأ مدربك هذا القسم"
-  ],
-  "After your first chat, today's session shows up here.": [
-    "Na je eerste gesprek verschijnt hier je training voor vandaag.",
-    "بعد أول محادثة، تظهر حصة اليوم هنا."
-  ],
-  "Say hi to your coach": [
-    "Begroet je coach",
-    "رحب بمدربك"
-  ],
-  "Today's sessions": [
-    "Trainingen van vandaag",
-    "حصص اليوم"
-  ],
-  "Quick check-in": [
-    "Korte check-in",
-    "تقييم سريع"
-  ],
-  "Helps your coach adjust the plan.": [
-    "Helpt je coach het plan aan te passen.",
-    "يساعد مدربك على تعديل الخطة."
-  ],
-  "How are you feeling?": [
-    "Hoe voel je je?",
-    "كيف تشعر؟"
-  ],
-  "Save check-in": [
-    "Check-in opslaan",
-    "حفظ التقييم"
-  ],
-  "Last activity": [
-    "Laatste activiteit",
-    "آخر نشاط"
-  ],
-  "Distance": [
-    "Afstand",
-    "المسافة"
-  ],
-  "Time": [
-    "Tijd",
-    "الوقت"
-  ],
-  "Pace": [
-    "Tempo",
-    "الوتيرة"
-  ],
-  "Next key session": [
-    "Volgende belangrijke training",
-    "الحصة المهمة التالية"
-  ],
-  "Mark done": [
-    "Afronden",
-    "تمت"
-  ],
-  "Skip": [
-    "Overslaan",
-    "تخطي"
-  ],
-  "Undo": [
-    "Ongedaan maken",
-    "تراجع"
-  ],
-  "Ask coach": [
-    "Vraag je coach",
-    "اسأل المدرب"
-  ],
-  "Done": [
-    "Gedaan",
-    "مكتمل"
-  ],
-  "Skipped": [
-    "Overgeslagen",
-    "متخطى"
-  ],
-  "Planned": [
-    "Gepland",
-    "مخطط"
-  ],
-  "Now": [
-    "Nu",
-    "الآن"
-  ],
-  "Nice work. Logged.": [
-    "Goed gedaan. Opgeslagen.",
-    "أحسنت. تم التسجيل."
-  ],
-  "Hi coach! Can you build my plan?": [
-    "Hoi coach! Kun je mijn plan maken?",
-    "مرحبًا مدربي! هل يمكنك إعداد خطتي؟"
-  ],
-  "I have a question about my plan: ": [
-    "Ik heb een vraag over mijn plan: ",
-    "لدي سؤال عن خطتي: "
-  ],
-  "Discuss this plan": [
-    "Bespreek dit plan",
-    "ناقش هذه الخطة"
-  ],
-  "Why this plan": [
-    "Waarom dit plan",
-    "لماذا هذه الخطة"
-  ],
-  "Planned volume by week": [
-    "Gepland volume per week",
-    "الحجم المخطط أسبوعيًا"
-  ],
-  "Week of": [
-    "Week van",
-    "أسبوع"
-  ],
-  "Runs": [
-    "Trainingen",
-    "مرات الجري"
-  ],
-  "Longest": [
-    "Langste",
-    "الأطول"
-  ],
-  "Key sessions": [
-    "Belangrijke trainingen",
-    "الحصص المهمة"
-  ],
-  "Calendar layout": [
-    "Kalenderweergave",
-    "عرض التقويم"
-  ],
-  "Month": [
-    "Maand",
-    "شهر"
-  ],
-  "Week": [
-    "Week",
-    "أسبوع"
-  ],
-  "Key": [
-    "Legenda",
-    "المفتاح"
-  ],
-  "Colour and letter show the type. Solid means done.": [
-    "Kleur en letter tonen het type. Ingekleurd betekent afgerond.",
-    "اللون والحرف يدلان على النوع. اللون الكامل يعني مكتملًا."
-  ],
-  "Nothing here yet. Your coach will fill this in after your first chat.": [
-    "Nog niets hier. Je coach vult dit in na je eerste gesprek.",
-    "لا شيء هنا بعد. سيملأ مدربك هذا القسم بعد أول محادثة."
-  ],
-  "Run": [
-    "Hardlopen",
-    "جري"
-  ],
-  "Easy": [
-    "Rustig",
-    "سهل"
-  ],
-  "Long run": [
-    "Lange duurloop",
-    "جري طويل"
-  ],
-  "Tempo": [
-    "Tempo",
-    "جري وتيرة"
-  ],
-  "Intervals": [
-    "Intervallen",
-    "فترات"
-  ],
-  "Hills": [
-    "Heuvels",
-    "تلال"
-  ],
-  "Race": [
-    "Wedstrijd",
-    "سباق"
-  ],
-  "Strength": [
-    "Kracht",
-    "قوة"
-  ],
-  "Cross-training": [
-    "Crosstraining",
-    "تدريب متنوع"
-  ],
-  "Moved": [
-    "Verplaatst",
-    "منقول"
-  ],
-  "Planned weekly volume": [
-    "Gepland weekvolume",
-    "الحجم الأسبوعي المخطط"
-  ],
-  "Hi coach! Where do we start?": [
-    "Hoi coach! Waar beginnen we?",
-    "مرحبًا مدربي! من أين نبدأ؟"
-  ],
-  "Nothing planned today": [
-    "Vandaag niets gepland",
-    "لا حصة مخططة اليوم"
-  ],
-  "Enjoy the day. Ask your coach if you want to add something.": [
-    "Geniet van je dag. Vraag je coach als je iets wilt toevoegen.",
-    "استمتع بيومك. اسأل مدربك إذا أردت إضافة شيء."
-  ],
-  "Couldn't save that. Try again.": [
-    "Opslaan mislukt. Probeer opnieuw.",
-    "تعذر الحفظ. حاول مجددًا."
-  ],
-  "Add to today’s check-in": [
-    "Aan de check-in van vandaag toevoegen",
-    "إضافة إلى تقييم اليوم"
-  ],
-  "Energy": [
-    "Energie",
-    "الطاقة"
-  ],
-  "Drained": [
-    "Uitgeput",
-    "منهك"
-  ],
-  "Great": [
-    "Geweldig",
-    "ممتاز"
-  ],
-  "Sleep last night": [
-    "Slaap afgelopen nacht",
-    "النوم ليلة أمس"
-  ],
-  "Poor": [
-    "Slecht",
-    "سيئ"
-  ],
-  "Anything hurting?": [
-    "Ergens pijn?",
-    "هل لديك ألم؟"
-  ],
-  "Anything else?": [
-    "Nog iets anders?",
-    "أي شيء آخر؟"
-  ],
-  "Pick at least one answer.": [
-    "Kies minstens één antwoord.",
-    "اختر إجابة واحدة على الأقل."
-  ],
-  "Thanks, saved.": [
-    "Bedankt, opgeslagen.",
-    "شكرًا، تم الحفظ."
-  ],
-  "Couldn't save your check-in.": [
-    "Check-in opslaan mislukt.",
-    "تعذر حفظ تقييمك."
-  ],
-  "Easy run": [
-    "Rustige loop",
-    "جري سهل"
-  ],
-  "Rest day": [
-    "Rustdag",
-    "يوم راحة"
-  ],
-  "Workout": [
-    "Training",
-    "تمرين"
-  ],
-  "Partly done": [
-    "Deels gedaan",
-    "مكتمل جزئيًا"
-  ],
-  "Ask coach about this": [
-    "Vraag je coach hierover",
-    "اسأل المدرب عن هذا"
-  ],
-  "Race week": [
-    "Wedstrijdweek",
-    "أسبوع السباق"
-  ],
-  "Read-only. Ask your coach to change anything.": [
-    "Alleen lezen. Vraag je coach om iets te wijzigen.",
-    "للعرض فقط. اطلب من مدربك أي تعديل."
-  ],
-  "After your first chat you'll see your training block, weekly volume and key sessions here.": [
-    "Na je eerste gesprek zie je hier je trainingsblok, weekvolume en belangrijke trainingen.",
-    "بعد أول محادثة، سترى هنا خطتك وحجم التدريب الأسبوعي والحصص المهمة."
-  ],
-  "Start the conversation": [
-    "Begin het gesprek",
-    "ابدأ المحادثة"
-  ],
-  "weeks": [
-    "weken",
-    "أسابيع"
-  ],
-  "Planned distance per week": [
-    "Geplande afstand per week",
-    "المسافة المخططة أسبوعيًا"
-  ],
-  "No planned runs in this period yet.": [
-    "Nog geen trainingen gepland in deze periode.",
-    "لا جري مخطط في هذه الفترة بعد."
-  ],
-  "Goal race": [
-    "Doelwedstrijd",
-    "السباق المستهدف"
-  ],
-  "Ask your coach to explain the purpose of this plan.": [
-    "Vraag je coach om het doel van dit plan uit te leggen.",
-    "اطلب من مدربك شرح هدف هذه الخطة."
-  ],
-  "Time range": [
-    "Periode",
-    "الفترة الزمنية"
-  ],
-  "8 wk": [
-    "8 wk",
-    "8 أسابيع"
-  ],
-  "12 wk": [
-    "12 wk",
-    "12 أسبوعًا"
-  ],
-  "16 wk": [
-    "16 wk",
-    "16 أسبوعًا"
-  ],
-  "Once you've logged a few runs, your weekly volume and trends show up here.": [
-    "Na een paar geregistreerde trainingen verschijnen hier je weekvolume en trends.",
-    "بعد تسجيل عدة مرات من الجري، تظهر هنا أحجام التدريب الأسبوعية واتجاهاته."
-  ],
-  "This week": [
-    "Deze week",
-    "هذا الأسبوع"
-  ],
-  "vs last week": [
-    "t.o.v. vorige week",
-    "مقارنة بالأسبوع الماضي"
-  ],
-  "Weekly distance": [
-    "Weekafstand",
-    "المسافة الأسبوعية"
-  ],
-  "Distance run per week": [
-    "Gelopen afstand per week",
-    "مسافة الجري أسبوعيًا"
-  ],
-  "No runs in this period yet.": [
-    "Nog geen trainingen in deze periode.",
-    "لا جري في هذه الفترة بعد."
-  ],
-  "Longest run each week": [
-    "Langste loop per week",
-    "أطول جري في كل أسبوع"
-  ],
-  "Longest run per week": [
-    "Langste loop per week",
-    "أطول جري أسبوعيًا"
-  ],
-  "Your long runs will show up here.": [
-    "Je lange duurlopen verschijnen hier.",
-    "تظهر هنا مرات الجري الطويلة."
-  ],
-  "Easy-run pace": [
-    "Tempo van rustige lopen",
-    "وتيرة الجري السهل"
-  ],
-  "Easy runs with heart rate. Faster at the same effort is a good sign.": [
-    "Rustige lopen met hartslaggegevens. Sneller bij dezelfde inspanning is een goed teken.",
-    "الجري السهل مع بيانات النبض. السرعة الأعلى بالجهد نفسه مؤشر جيد."
-  ],
-  "Pace of easy runs": [
-    "Tempo van rustige lopen",
-    "وتيرة الجري السهل"
-  ],
-  "Needs a few easy runs with heart-rate data.": [
-    "Een paar rustige lopen met hartslaggegevens nodig.",
-    "يحتاج إلى عدة مرات جري سهلة مع بيانات النبض."
-  ],
-  "Consistency": [
-    "Regelmaat",
-    "الانتظام"
-  ],
-  "Weeks with 3 or more runs": [
-    "Weken met 3 of meer trainingen",
-    "أسابيع فيها 3 مرات جري أو أكثر"
-  ],
-  "Missed weeks happen. What counts is the pattern over months.": [
-    "Een week missen gebeurt. Het patroon over maanden telt.",
-    "قد تفوتك بعض الأسابيع. الأهم هو الانتظام على مدى الأشهر."
-  ],
-  "Race results": [
-    "Wedstrijdresultaten",
-    "نتائج السباقات"
-  ],
-  "No race results yet.": [
-    "Nog geen wedstrijdresultaten.",
-    "لا نتائج سباقات بعد."
-  ],
-  "Cross-train": [
-    "Crosstraining",
-    "تدريب متنوع"
-  ],
-  "Tomorrow": [
-    "Morgen",
-    "غدًا"
-  ],
-  "Yesterday": [
-    "Gisteren",
-    "أمس"
-  ],
-  "is typing…": [
-    "typt…",
-    "يكتب…"
-  ],
-  "is thinking…": [
-    "denkt na…",
-    "يفكر…"
-  ],
-  "is working on it…": [
-    "werkt eraan…",
-    "يعمل على ذلك…"
-  ],
-  "Previous month": [
-    "Vorige maand",
-    "الشهر السابق"
-  ],
-  "Next month": [
-    "Volgende maand",
-    "الشهر التالي"
-  ],
-  "Previous week": [
-    "Vorige week",
-    "الأسبوع السابق"
-  ],
-  "Next week": [
-    "Volgende week",
-    "الأسبوع التالي"
-  ],
-  "Go to today": [
-    "Naar vandaag",
-    "الانتقال إلى اليوم"
-  ],
-  "Nothing planned.": [
-    "Niets gepland.",
-    "لا شيء مخطط."
-  ],
-  "Nothing planned": [
-    "Niets gepland",
-    "لا شيء مخطط"
-  ],
-  "Move here": [
-    "Hierheen verplaatsen",
-    "انقل إلى هنا"
-  ],
-  "Selected workout": [
-    "Geselecteerde training",
-    "التمرين المحدد"
-  ],
-  "Move": [
-    "Verplaatsen",
-    "نقل"
-  ],
-  "Choose a new date": [
-    "Kies een nieuwe datum",
-    "اختر تاريخًا جديدًا"
-  ],
-  "Cancel move": [
-    "Verplaatsen annuleren",
-    "إلغاء النقل"
-  ]
+  "Settings": ["Instellingen", "الإعدادات"],
+  "Chat": ["Chat", "الدردشة"],
+  "Today": ["Vandaag", "اليوم"],
+  "Calendar": ["Kalender", "التقويم"],
+  "Plan": ["Plan", "الخطة"],
+  "Progress": ["Voortgang", "التقدم"],
+  "More": ["Meer", "المزيد"],
+  "Light": ["Licht", "فاتح"],
+  "Dark": ["Donker", "داكن"],
+  "Default": ["Standaard", "الافتراضي"],
+  "Confirm": ["Bevestigen", "تأكيد"],
+  "Cancel": ["Annuleren", "إلغاء"],
+  "Send": ["Versturen", "إرسال"],
+  "Loading": ["Laden", "جارٍ التحميل"],
+  "Retry": ["Opnieuw", "إعادة المحاولة"],
+  "Your coach will fill this in": ["Je coach vult dit in", "سيملأ مدربك هذا القسم"],
+  "After your first chat, today's session shows up here.": ["Na je eerste gesprek verschijnt hier je training voor vandaag.", "بعد أول محادثة، تظهر حصة اليوم هنا."],
+  "Say hi to your coach": ["Begroet je coach", "رحب بمدربك"],
+  "Today's sessions": ["Trainingen van vandaag", "حصص اليوم"],
+  "Quick check-in": ["Korte check-in", "تقييم سريع"],
+  "Helps your coach adjust the plan.": ["Helpt je coach het plan aan te passen.", "يساعد مدربك على تعديل الخطة."],
+  "How are you feeling?": ["Hoe voel je je?", "كيف تشعر؟"],
+  "Save check-in": ["Check-in opslaan", "حفظ التقييم"],
+  "Last activity": ["Laatste activiteit", "آخر نشاط"],
+  "Distance": ["Afstand", "المسافة"],
+  "Time": ["Tijd", "الوقت"],
+  "Pace": ["Tempo", "الوتيرة"],
+  "Next key session": ["Volgende belangrijke training", "الحصة المهمة التالية"],
+  "Mark done": ["Afronden", "تمت"],
+  "Skip": ["Overslaan", "تخطي"],
+  "Undo": ["Ongedaan maken", "تراجع"],
+  "Ask coach": ["Vraag je coach", "اسأل المدرب"],
+  "Done": ["Gedaan", "مكتمل"],
+  "Skipped": ["Overgeslagen", "متخطى"],
+  "Planned": ["Gepland", "مخطط"],
+  "Now": ["Nu", "الآن"],
+  "Nice work. Logged.": ["Goed gedaan. Opgeslagen.", "أحسنت. تم التسجيل."],
+  "Hi coach! Can you build my plan?": ["Hoi coach! Kun je mijn plan maken?", "مرحبًا مدربي! هل يمكنك إعداد خطتي؟"],
+  "I have a question about my plan: ": ["Ik heb een vraag over mijn plan: ", "لدي سؤال عن خطتي: "],
+  "Discuss this plan": ["Bespreek dit plan", "ناقش هذه الخطة"],
+  "Why this plan": ["Waarom dit plan", "لماذا هذه الخطة"],
+  "Planned volume by week": ["Gepland volume per week", "الحجم المخطط أسبوعيًا"],
+  "Week of": ["Week van", "أسبوع"],
+  "Runs": ["Trainingen", "مرات الجري"],
+  "Longest": ["Langste", "الأطول"],
+  "Key sessions": ["Belangrijke trainingen", "الحصص المهمة"],
+  "Calendar layout": ["Kalenderweergave", "عرض التقويم"],
+  "Month": ["Maand", "شهر"],
+  "Week": ["Week", "أسبوع"],
+  "Key": ["Legenda", "المفتاح"],
+  "Colour and letter show the type. Solid means done.": ["Kleur en letter tonen het type. Ingekleurd betekent afgerond.", "اللون والحرف يدلان على النوع. اللون الكامل يعني مكتملًا."],
+  "Nothing here yet. Your coach will fill this in after your first chat.": ["Nog niets hier. Je coach vult dit in na je eerste gesprek.", "لا شيء هنا بعد. سيملأ مدربك هذا القسم بعد أول محادثة."],
+  "Run": ["Hardlopen", "جري"],
+  "Easy": ["Rustig", "سهل"],
+  "Long run": ["Lange duurloop", "جري طويل"],
+  "Tempo": ["Tempo", "جري وتيرة"],
+  "Intervals": ["Intervallen", "فترات"],
+  "Hills": ["Heuvels", "تلال"],
+  "Race": ["Wedstrijd", "سباق"],
+  "Strength": ["Kracht", "قوة"],
+  "Cross-training": ["Crosstraining", "تدريب متنوع"],
+  "Moved": ["Verplaatst", "منقول"],
+  "Planned weekly volume": ["Gepland weekvolume", "الحجم الأسبوعي المخطط"],
+  "Hi coach! Where do we start?": ["Hoi coach! Waar beginnen we?", "مرحبًا مدربي! من أين نبدأ؟"],
+  "Nothing planned today": ["Vandaag niets gepland", "لا حصة مخططة اليوم"],
+  "Enjoy the day. Ask your coach if you want to add something.": ["Geniet van je dag. Vraag je coach als je iets wilt toevoegen.", "استمتع بيومك. اسأل مدربك إذا أردت إضافة شيء."],
+  "Couldn't save that. Try again.": ["Opslaan mislukt. Probeer opnieuw.", "تعذر الحفظ. حاول مجددًا."],
+  "Add to today’s check-in": ["Aan de check-in van vandaag toevoegen", "إضافة إلى تقييم اليوم"],
+  "Energy": ["Energie", "الطاقة"],
+  "Drained": ["Uitgeput", "منهك"],
+  "Great": ["Geweldig", "ممتاز"],
+  "Sleep last night": ["Slaap afgelopen nacht", "النوم ليلة أمس"],
+  "Poor": ["Slecht", "سيئ"],
+  "Anything hurting?": ["Ergens pijn?", "هل لديك ألم؟"],
+  "Anything else?": ["Nog iets anders?", "أي شيء آخر؟"],
+  "Pick at least one answer.": ["Kies minstens één antwoord.", "اختر إجابة واحدة على الأقل."],
+  "Thanks, saved.": ["Bedankt, opgeslagen.", "شكرًا، تم الحفظ."],
+  "Couldn't save your check-in.": ["Check-in opslaan mislukt.", "تعذر حفظ تقييمك."],
+  "Easy run": ["Rustige loop", "جري سهل"],
+  "Rest day": ["Rustdag", "يوم راحة"],
+  "Workout": ["Training", "تمرين"],
+  "Partly done": ["Deels gedaan", "مكتمل جزئيًا"],
+  "Ask coach about this": ["Vraag je coach hierover", "اسأل المدرب عن هذا"],
+  "Race week": ["Wedstrijdweek", "أسبوع السباق"],
+  "Read-only. Ask your coach to change anything.": ["Alleen lezen. Vraag je coach om iets te wijzigen.", "للعرض فقط. اطلب من مدربك أي تعديل."],
+  "After your first chat you'll see your training block, weekly volume and key sessions here.": ["Na je eerste gesprek zie je hier je trainingsblok, weekvolume en belangrijke trainingen.", "بعد أول محادثة، سترى هنا خطتك وحجم التدريب الأسبوعي والحصص المهمة."],
+  "Start the conversation": ["Begin het gesprek", "ابدأ المحادثة"],
+  "weeks": ["weken", "أسابيع"],
+  "Planned distance per week": ["Geplande afstand per week", "المسافة المخططة أسبوعيًا"],
+  "No planned runs in this period yet.": ["Nog geen trainingen gepland in deze periode.", "لا جري مخطط في هذه الفترة بعد."],
+  "Goal race": ["Doelwedstrijd", "السباق المستهدف"],
+  "Ask your coach to explain the purpose of this plan.": ["Vraag je coach om het doel van dit plan uit te leggen.", "اطلب من مدربك شرح هدف هذه الخطة."],
+  "Time range": ["Periode", "الفترة الزمنية"],
+  "8 wk": ["8 wk", "8 أسابيع"],
+  "12 wk": ["12 wk", "12 أسبوعًا"],
+  "16 wk": ["16 wk", "16 أسبوعًا"],
+  "Once you've logged a few runs, your weekly volume and trends show up here.": ["Na een paar geregistreerde trainingen verschijnen hier je weekvolume en trends.", "بعد تسجيل عدة مرات من الجري، تظهر هنا أحجام التدريب الأسبوعية واتجاهاته."],
+  "This week": ["Deze week", "هذا الأسبوع"],
+  "vs last week": ["t.o.v. vorige week", "مقارنة بالأسبوع الماضي"],
+  "Weekly distance": ["Weekafstand", "المسافة الأسبوعية"],
+  "Distance run per week": ["Gelopen afstand per week", "مسافة الجري أسبوعيًا"],
+  "No runs in this period yet.": ["Nog geen trainingen in deze periode.", "لا جري في هذه الفترة بعد."],
+  "Longest run each week": ["Langste loop per week", "أطول جري في كل أسبوع"],
+  "Longest run per week": ["Langste loop per week", "أطول جري أسبوعيًا"],
+  "Your long runs will show up here.": ["Je lange duurlopen verschijnen hier.", "تظهر هنا مرات الجري الطويلة."],
+  "Easy-run pace": ["Tempo van rustige lopen", "وتيرة الجري السهل"],
+  "Easy runs with heart rate. Faster at the same effort is a good sign.": ["Rustige lopen met hartslaggegevens. Sneller bij dezelfde inspanning is een goed teken.", "الجري السهل مع بيانات النبض. السرعة الأعلى بالجهد نفسه مؤشر جيد."],
+  "Pace of easy runs": ["Tempo van rustige lopen", "وتيرة الجري السهل"],
+  "Needs a few easy runs with heart-rate data.": ["Een paar rustige lopen met hartslaggegevens nodig.", "يحتاج إلى عدة مرات جري سهلة مع بيانات النبض."],
+  "Consistency": ["Regelmaat", "الانتظام"],
+  "Weeks with 3 or more runs": ["Weken met 3 of meer trainingen", "أسابيع فيها 3 مرات جري أو أكثر"],
+  "Missed weeks happen. What counts is the pattern over months.": ["Een week missen gebeurt. Het patroon over maanden telt.", "قد تفوتك بعض الأسابيع. الأهم هو الانتظام على مدى الأشهر."],
+  "Race results": ["Wedstrijdresultaten", "نتائج السباقات"],
+  "No race results yet.": ["Nog geen wedstrijdresultaten.", "لا نتائج سباقات بعد."],
+  "Cross-train": ["Crosstraining", "تدريب متنوع"],
+  "Tomorrow": ["Morgen", "غدًا"],
+  "Yesterday": ["Gisteren", "أمس"],
+  "is typing…": ["typt…", "يكتب…"],
+  "is thinking…": ["denkt na…", "يفكر…"],
+  "is working on it…": ["werkt eraan…", "يعمل على ذلك…"],
+  "Previous month": ["Vorige maand", "الشهر السابق"],
+  "Next month": ["Volgende maand", "الشهر التالي"],
+  "Previous week": ["Vorige week", "الأسبوع السابق"],
+  "Next week": ["Volgende week", "الأسبوع التالي"],
+  "Nothing planned.": ["Niets gepland.", "لا شيء مخطط."],
+  "Nothing planned": ["Niets gepland", "لا شيء مخطط"],
+  "Move here": ["Hierheen verplaatsen", "انقل إلى هنا"],
+  "Selected workout": ["Geselecteerde training", "التمرين المحدد"],
+  "Move": ["Verplaatsen", "نقل"]
 };
 export function translate(text: string, locale: string, extra?: Record<string, [string, string]>): string {
   const language = shellLanguage(locale);

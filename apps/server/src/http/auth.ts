@@ -83,8 +83,7 @@ export class SessionManager {
     if (remaining < RENEW_BELOW_MS) {
       const expiresAt = new Date(now + SESSION_TTL_MS).toISOString();
       try {
-        await store.deleteSession(rec.id);
-        await store.createSession({ ...rec, lastSeenAt: new Date(now).toISOString(), expiresAt });
+        await store.touchSession(rec.id, new Date(now).toISOString(), expiresAt);
         renewedUntil = expiresAt;
         this.lastTouch.set(rec.id, now);
       } catch {

@@ -231,6 +231,8 @@ describe('auth', () => {
     await expect(store.createSession({ ...s, id: 'ses_dup' })).rejects.toThrow(); // token_hash unique
     await store.touchSession('ses_1', '2026-10-07T09:00:00.000Z');
     expect((await store.getSessionByTokenHash('h1'))?.lastSeenAt).toBe('2026-10-07T09:00:00.000Z');
+    await store.touchSession('ses_1', '2026-10-07T10:00:00.000Z', '2027-01-05T10:00:00.000Z');
+    expect(await store.getSessionByTokenHash('h1')).toMatchObject({ lastSeenAt: '2026-10-07T10:00:00.000Z', expiresAt: '2027-01-05T10:00:00.000Z' });
     expect((await store.listSessions('ath_1')).map((x) => x.id)).toEqual(['ses_2', 'ses_1']); // newest first
     await store.deleteSession('ses_1');
     expect(await store.getSessionByTokenHash('h1')).toBeUndefined();

@@ -102,6 +102,8 @@ function applyEnv(raw: Raw, env: Record<string, string | undefined>): void {
   if (publicUrl) raw.publicUrl = publicUrl;
   const viewsUrl = present(env.VIEWS_URL);
   if (viewsUrl) raw.viewsUrl = viewsUrl;
+  const trustProxy = present(env.OPENCOACH_TRUST_PROXY);
+  if (trustProxy) raw.trustProxy = /^(true|false)$/i.test(trustProxy) ? trustProxy.toLowerCase() === 'true' : trustProxy;
   const host = present(env.HOST);
   if (host) raw.host = host;
   const logLevel = present(env.LOG_LEVEL);
@@ -334,7 +336,7 @@ function loadConfigDetailedUnchecked(opts: LoadConfigOptions, secrets: string[])
 /** Credential values are used by adapters only; configuration errors must not echo them [SEC-1]. */
 export function loadConfigDetailed(opts: LoadConfigOptions = {}): LoadedConfig {
   const env = opts.env ?? process.env;
-  const secrets = Object.entries(env).filter(([name, value]) => /(?:KEY|TOKEN|SECRET|PASSWORD)/i.test(name) && !!value).map(([, value]) => value!);
+  const secrets = Object.entries(env).filter(([name, value]) => /(?:KEY|TOKEN|SECRET|PASSWORD)/i.test(name) && (value?.length ?? 0) >= 8).map(([, value]) => value!);
   try { return loadConfigDetailedUnchecked(opts, secrets); }
   catch (error) {
     if (!(error instanceof ConfigError)) throw error;

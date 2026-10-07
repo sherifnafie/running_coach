@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { ModelProvider } from '@opencoach/protocol';
 import { createAnthropicProvider, createOpenAIProvider, createCompatibleProvider } from '@opencoach/engine';
 import { runScenario, type RunScenarioOptions } from './runner';
 import { loadScenario, type TraceBundle } from './scenarios';
@@ -17,6 +18,17 @@ function argument(args: string[], flag: string, fallback?: string): string | und
   if (!args[i + 1] || args[i + 1]!.startsWith('--')) throw new Error(`${flag} requires a value`);
   return args[i + 1];
 }
+/** Provider for a `provider:model` family, using that provider's key from the environment. */
+function providerFor(family: string | undefined): ModelProvider | undefined {
+  const env = process.env;
+  if (family === 'openai' && env.OPENAI_API_KEY) return createOpenAIProvider({ apiKey: env.OPENAI_API_KEY });
+  if (family === 'anthropic' && env.ANTHROPIC_API_KEY) return createAnthropicProvider({ apiKey: env.ANTHROPIC_API_KEY });
+  if (family === 'deepseek' && env.DEEPSEEK_API_KEY) return createCompatibleProvider({ id: 'deepseek', baseUrl: 'https://api.deepseek.com', apiKey: env.DEEPSEEK_API_KEY, vision: false, contextTokens: 128000, maxOutputTokens: 8192, replayReasoningContent: true });
+  if (family === 'opencode-go' && env.OPENCODE_GO_API_KEY) return createCompatibleProvider({ id: 'opencode-go', baseUrl: 'https://opencode.ai/zen/go/v1', apiKey: env.OPENCODE_GO_API_KEY, vision: false, contextTokens: 128000, maxOutputTokens: 16384, replayReasoningContent: true, thinking: true, reasoningEfforts: ['low', 'high', 'max'], sessionHeader: 'x-opencode-session' });
+  return undefined;
+}
+const PROVIDERS = 'openai|anthropic|deepseek|opencode-go';
+
 export async function selftest(outDir: string): Promise<void> {
   const successes: TraceBundle[] = [];
   for (const scenario of fixtureScenarios) {
@@ -56,10 +68,9 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   if (mode === 'reference' || mode === 'bad') model = mode;
   else {
     const provider = argument(args, '--provider', modelParts.length ? family : undefined);
-    if (provider === 'openai' && process.env.OPENAI_API_KEY) model = { provider: createOpenAIProvider({ apiKey: process.env.OPENAI_API_KEY }), model: mode };
-    else if (provider === 'anthropic' && process.env.ANTHROPIC_API_KEY) model = { provider: createAnthropicProvider({ apiKey: process.env.ANTHROPIC_API_KEY }), model: mode };
-    else if (provider === 'deepseek' && process.env.DEEPSEEK_API_KEY) model = { provider: createCompatibleProvider({ id: 'deepseek', baseUrl: 'https://api.deepseek.com', apiKey: process.env.DEEPSEEK_API_KEY, vision: false, contextTokens: 128000, maxOutputTokens: 8192, replayReasoningContent: true }), model: mode };
-    else throw new Error('Real model runs require --provider openai|anthropic and that provider’s API key');
+    const instance = providerFor(provider);
+    if (!instance) throw new Error(`Real model runs require --provider ${PROVIDERS} and that provider’s API key`);
+    model = { provider: instance, model: mode };
   }
   const suite = argument(args, '--suite', 'fast')!;
   const judgeArg = argument(args, '--judge');
@@ -67,10 +78,9 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     const [family, ...parts] = judgeArg.split(':');
     const name = parts.join(':');
     if (!name) throw new Error('--judge must be provider:model');
-    if (family === 'openai' && process.env.OPENAI_API_KEY) return { provider: createOpenAIProvider({ apiKey: process.env.OPENAI_API_KEY }), model: name, judgeFamily: family, coachFamily };
-    if (family === 'anthropic' && process.env.ANTHROPIC_API_KEY) return { provider: createAnthropicProvider({ apiKey: process.env.ANTHROPIC_API_KEY }), model: name, judgeFamily: family, coachFamily };
-    if (family === 'deepseek' && process.env.DEEPSEEK_API_KEY) return { provider: createCompatibleProvider({ id: 'deepseek', baseUrl: 'https://api.deepseek.com', apiKey: process.env.DEEPSEEK_API_KEY, vision: false, contextTokens: 128000, maxOutputTokens: 8192, replayReasoningContent: true }), model: name, judgeFamily: family, coachFamily };
-    throw new Error('--judge requires a supported provider and its API key');
+    const provider = providerFor(family);
+    if (!provider) throw new Error(`--judge requires one of ${PROVIDERS} and its API key`);
+    return { provider, model: name, judgeFamily: family, coachFamily };
   })() : undefined;
   const path = argument(args, '--scenario');
   const scenarios = path ? [await loadScenario(resolve(repo, path))] : suite === 'cohort' ? await cohortScenarios(join(repo, 'evals/personas')) : getSuite(suite);

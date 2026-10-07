@@ -11,7 +11,7 @@ if (command === 'serve') await import('./main');
 else if (['setup-code', 'export', 'import'].includes(command)) {
   const config = loadConfig();
   const clock = new SystemClock();
-  await mkdir(config.dataDir, { recursive: true });
+  await mkdir(config.dataDir, { recursive: true, mode: 0o700 });
   const store = await openSqliteStore({ path: join(config.dataDir, 'system.db'), clock });
   try {
     if (command === 'setup-code') {

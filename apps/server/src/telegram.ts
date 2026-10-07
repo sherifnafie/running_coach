@@ -69,11 +69,12 @@ export function createTelegramAdapter(opts: { token: string; store: Store; clock
           try {
             const updates = await api('getUpdates', { offset, timeout: 30, allowed_updates: ['message'] }, signal) as TelegramUpdate[];
             for (const update of updates) {
-              await handle(update);
+              // A failing update is logged and skipped so it cannot wedge the queue.
+              await handle(update).catch((error: Error) => opts.logger.warn('Telegram update failed', { updateId: update.update_id, error: error.name }));
               offset = update.update_id + 1;
               await opts.store.setKv('telegram-offset', String(offset));
             }
-          } catch (error) {
+          } catch {
             if (signal.aborted) break;
             // Errors can contain provider URLs with credentials; report only a generic operation failure.
             opts.logger.warn('Telegram polling failed; retrying');

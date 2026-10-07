@@ -219,7 +219,8 @@ export interface Store {
   hasAnyAthlete(): Promise<boolean>;
   createSession(r: SessionRecord): Promise<void>;
   getSessionByTokenHash(tokenHash: string): Promise<SessionRecord | undefined>;
-  touchSession(id: string, nowIso: string): Promise<void>;
+  /** Records activity; with `expiresAt`, also extends the session in place (atomic renewal). */
+  touchSession(id: string, nowIso: string, expiresAt?: string): Promise<void>;
   deleteSession(id: string): Promise<void>;
   listSessions(athleteId: string): Promise<SessionRecord[]>;
   addPasskey(r: PasskeyRecord): Promise<void>;

@@ -99,4 +99,5 @@ export async function postWorkerMutation(url: string, body: unknown, fetcher: ty
 export const API_CACHE = 'oc-api-v1';
 export const VIEWS_CACHE = 'oc-views-v1';
 
-export const API_PATH = /^\/v1\/(app|events|me)(\/|$|\?)/;
+/** Same-origin GET paths the worker serves network-first from API_CACHE (matched against `URL.pathname`). */
+export const API_PATH = /^\/v1\/(app|events|me)$/;

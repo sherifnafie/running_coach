@@ -4,7 +4,7 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
-import { API_CACHE, VIEWS_CACHE, notificationActionRequest, notificationOptions, parsePushPayload, postWorkerMutation, safeTargetUrl } from './sw-shared';
+import { API_CACHE, API_PATH, VIEWS_CACHE, notificationActionRequest, notificationOptions, parsePushPayload, postWorkerMutation, safeTargetUrl } from './sw-shared';
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<{ url: string; revision: string | null }> };
 
@@ -22,7 +22,7 @@ registerRoute(
 // ---- runtime caching ------------------------------------------------------------------------------------
 // App info and chat history: network first (fresh when online, last good copy offline).
 registerRoute(
-  ({ url, request }) => request.method === 'GET' && url.origin === self.location.origin && /^\/v1\/(app|events|me)$/.test(url.pathname),
+  ({ url, request }) => request.method === 'GET' && url.origin === self.location.origin && API_PATH.test(url.pathname),
   new NetworkFirst({
     cacheName: API_CACHE,
     networkTimeoutSeconds: 4,

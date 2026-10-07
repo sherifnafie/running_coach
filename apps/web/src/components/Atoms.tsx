@@ -3,7 +3,6 @@ import { clock } from '../lib/clock';
 import { formatDuration } from '../lib/format';
 import { renderMarkdown } from '../lib/markdown';
 import { Icon } from './Icon';
-import { useI18n } from '../lib/i18n';
 
 /** Sanitized markdown (see lib/markdown.ts). */
 export const Markdown = memo(function Markdown({ text }: { text: string }) {
@@ -175,12 +174,12 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
   return <span className="spinner" role="status" aria-label={label} />;
 }
 
+/** Title and hint arrive already translated by the caller. */
 export function Section({ title, children, hint }: { title: string; children: ReactNode; hint?: string }) {
-  const t = useI18n();
   return (
     <section className="settings-section">
-      <h3>{t(title)}</h3>
-      {hint && <p className="hint">{t(hint)}</p>}
+      <h3>{title}</h3>
+      {hint && <p className="hint">{hint}</p>}
       <div className="card">{children}</div>
     </section>
   );

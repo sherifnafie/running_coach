@@ -150,7 +150,7 @@ export async function gradeJudges(trace: TraceBundle, options: JudgeOptions): Pr
     let stopReason = '';
     try {
       const evidence = JSON.stringify(judgeEvidence(trace, assertion));
-      const images = options.images ?? [];
+      const images = assertion.rubric === 'ui' ? options.images ?? [] : [];
       if (images.length && !options.provider.capabilities(options.model).vision) { results.push(judgeResult(assertion, 'not_run', ['Configured judge model cannot consume supplied visual evidence.'])); continue; }
       for await (const event of options.provider.stream({
         model: options.model,

@@ -219,7 +219,10 @@ describe('compatible: stream parsing', () => {
     const out = await parse([chunk({ tool_calls: [{ index: 0, function: { name: 'read', arguments: '{"path":"a"}' } }] }, 'stop')]);
     expect(out.map((e) => e.type)).toEqual(['tool_call_start', 'tool_input_delta', 'tool_call_end', 'message_end']);
     const start = out[0] as Extract<ModelStreamEvent, { type: 'tool_call_start' }>;
-    expect(start.id).toMatch(/^call_c\d+$/);
+    expect(start.id).toMatch(/^call_[0-9a-f-]{36}$/);
+    // Generated ids must not repeat across streams of the same turn: the runtime replays tool results by id [RT-6].
+    const again = await parse([chunk({ tool_calls: [{ index: 0, function: { name: 'read', arguments: '{"path":"a"}' } }] }, 'stop')]);
+    expect((again[0] as typeof start).id).not.toBe(start.id);
     expect(endOf(out).stopReason).toBe('tool_use');
     expect(endOf(out).usage).toEqual({ inputTokens: 0, cachedInputTokens: 0, cacheWriteTokens: 0, outputTokens: 0 });
   });

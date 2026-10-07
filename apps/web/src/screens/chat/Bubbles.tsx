@@ -1,4 +1,4 @@
-import { t, useI18n } from '../../lib/i18n';
+import { useI18n } from '../../lib/i18n';
 import { memo, useState } from 'react';
 import type { Attachment, BlobRef, EventEnvelope } from '@opencoach/protocol';
 import { AudioPlayer, ImageThumb, Markdown, useLongPress } from '../../components/Atoms';
@@ -22,7 +22,6 @@ function isImage(b: BlobRef): boolean {
 }
 
 export function FileCard({ blob, name }: { blob: BlobRef; name?: string }) {
-  const t = useI18n();
   const label = name ?? blob.name ?? `file-${blob.sha256.slice(0, 8)}`;
   return (
     <a className="file-card" href={chat.blobUrl(blob.sha256)} download={label} target="_blank" rel="noopener noreferrer">
@@ -43,7 +42,6 @@ export function BlobView({ blob, label }: { blob: BlobRef; label?: string }) {
 }
 
 function Gallery({ blobs }: { blobs: BlobRef[] }) {
-  const t = useI18n();
   const images = blobs.filter(isImage);
   const others = blobs.filter((b) => !isImage(b));
   return (
@@ -63,7 +61,6 @@ function Gallery({ blobs }: { blobs: BlobRef[] }) {
 }
 
 function Time({ iso, ctx }: { iso: string; ctx: BubbleCtx }) {
-  const t = useI18n();
   return (
     <time className="bubble-time" dateTime={iso}>
       {formatTime(iso, ctx.tz, ctx.locale)}
@@ -102,6 +99,7 @@ export const AthleteUpload = memo(function AthleteUpload({ event, ctx }: { event
 export const AthleteVoiceNote = memo(function AthleteVoiceNote({ event, ctx }: { event: EventEnvelope<'user.voice_note'>; ctx: BubbleCtx }) {
   const { blob, durationS, transcript } = event.payload;
   const [open, setOpen] = useState(false);
+  const t = useI18n();
   return (
     <div className="msg me">
       <div className="bubble voice">
@@ -122,6 +120,7 @@ export const AthleteVoiceNote = memo(function AthleteVoiceNote({ event, ctx }: {
 
 export const PendingBubble = memo(function PendingBubble({ item }: { item: PendingMessage }) {
   const failed = item.status === 'failed';
+  const t = useI18n();
   return (
     <div className={`msg me pending ${item.status}`}>
       <div className="bubble">
@@ -208,6 +207,7 @@ export const CoachMessage = memo(function CoachMessage({
   const p = event.payload;
   const [menu, setMenu] = useState(false);
   const press = useLongPress(() => setMenu(true));
+  const t = useI18n();
   return (
     <div className="msg coach" data-unread-id={p.messageId}>
       <div className="bubble-row">
@@ -275,6 +275,7 @@ function MessageMenu({ messageId, text, reaction, onClose }: { messageId: string
 }
 
 export const ProvisionalBubble = memo(function ProvisionalBubble({ item }: { item: Provisional }) {
+  const t = useI18n();
   return (
     <div className="msg coach provisional" aria-busy="true">
       <div className="bubble">{item.text ? <Markdown text={item.text} /> : <span className="typing-dots" aria-label={t("Coach is writing")}><i /><i /><i /></span>}</div>

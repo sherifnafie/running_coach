@@ -175,10 +175,12 @@ function mapFinish(finish: string | null, hasToolCalls: boolean): StopReason {
   }
 }
 
-/** Chat Completions stream chunks -> neutral stream events. */
+/**
+ * Chat Completions stream chunks -> neutral stream events. Calls without a provider id get a random one:
+ * the runtime keys tool replay by call id, so ids must be unique within a turn [RT-6].
+ */
 export async function* parseCompatibleStream(chunks: AsyncIterable<Chunk>, ctx: { model: string; providerId: string }): AsyncGenerator<ModelStreamEvent> {
   const tools = new Map<number, ToolAcc>();
-  let seq = 0;
   let text = '';
   let reasoning = '';
   let finish: string | null = null;
@@ -209,7 +211,7 @@ export async function* parseCompatibleStream(chunks: AsyncIterable<Chunk>, ctx: 
       const index = tc.index ?? 0;
       let acc = tools.get(index);
       if (!acc) {
-        acc = { index, id: tc.id || `call_c${++seq}`, name: '', args: '', started: false };
+        acc = { index, id: tc.id || `call_${randomUUID()}`, name: '', args: '', started: false };
         tools.set(index, acc);
       } else if (tc.id && !acc.started) acc.id = tc.id;
       if (tc.function?.name) acc.name += tc.function.name;

@@ -1,4 +1,4 @@
-import { t, useI18n } from '../lib/i18n';
+import { useI18n } from '../lib/i18n';
 import { appStore } from '../lib/appState';
 import { dismissSafety } from '../lib/controller';
 import { guidanceFor } from '../lib/safety';

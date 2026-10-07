@@ -1,5 +1,5 @@
-import { t, useI18n } from '../../lib/i18n';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useI18n } from '../../lib/i18n';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { isValidTimeZone } from '@opencoach/protocol';
 import { Section, useTick } from '../../components/Atoms';
 import { describeError } from '../../lib/api';
@@ -55,7 +55,7 @@ export function SettingsScreen() {
         </header>
         <div className="settings-toolbar">
           <nav aria-label={t('Settings')} className="settings-jumps">
-            {[['personalize', t("Personalize")], ['coaching', t("Coaching")], ['account', t("Account & data")]].map(([id, label]) => <button type="button" key={id} onClick={() => document.getElementById(`settings-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{t(label!)}</button>)}
+            {[['personalize', t("Personalize")], ['coaching', t("Coaching")], ['account', t("Account & data")]].map(([id, label]) => <button type="button" key={id} onClick={() => document.getElementById(`settings-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{label}</button>)}
           </nav>
           <p className={`save-status ${status}`} role="status" aria-live="polite">
             {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'error' ? t('Could not save') : ''}
@@ -101,10 +101,10 @@ function ProfileSection() {
   const save = useCommit();
   return (
     <Section title={t("Profile")}>
-      <TextRow label="Your name" value={s.profile.name} maxLength={80} autoComplete="name" onCommit={(v) => save({ profile: { name: v } })} />
-      <TextRow label="Coach name" value={s.profile.coachName} maxLength={40} onCommit={(v) => save({ profile: { coachName: v } })} />
+      <TextRow label={t("Your name")} value={s.profile.name} maxLength={80} autoComplete="name" onCommit={(v) => save({ profile: { name: v } })} />
+      <TextRow label={t("Coach name")} value={s.profile.coachName} maxLength={40} onCommit={(v) => save({ profile: { coachName: v } })} />
       <SelectRow
-        label="Units"
+        label={t("Units")}
         value={s.profile.units}
         options={[
           { value: 'metric', label: t("Metric (km)") },
@@ -113,8 +113,8 @@ function ProfileSection() {
         onChange={(v) => save({ profile: { units: v } })}
       />
       <TextRow
-        label="Time zone"
-        hint="Quiet hours and your coach's schedule follow this."
+        label={t("Time zone")}
+        hint={t("Quiet hours and your coach's schedule follow this.")}
         value={s.profile.tz}
         list="tz-list-settings"
         validate={(v) => (isValidTimeZone(v) ? undefined : t("Unknown time zone"))}
@@ -140,22 +140,46 @@ function AppearanceSection() {
   const languages = [{ value: 'en', label: 'English' }, { value: 'nl', label: 'Nederlands' }, { value: 'ar', label: 'العربية' }];
   if (!languages.some((l) => l.value === s.profile.locale)) languages.push({ value: s.profile.locale, label: new Intl.DisplayNames([s.profile.locale], { type: 'language' }).of(s.profile.locale) ?? s.profile.locale });
   return (
-    <Section title="Appearance" hint="Saved across your devices. You can also ask your coach in chat.">
-      <SelectRow label="App and coach language" hint="Your coach replies in this language. Saved across your devices." value={s.profile.locale} options={languages} onChange={(locale) => save({ profile: { locale } })} />
+    <Section title={t("Appearance")} hint={t("Saved across your devices. You can also ask your coach in chat.")}>
+      <SelectRow label={t("App and coach language")} hint={t("Your coach replies in this language. Saved across your devices.")} value={s.profile.locale} options={languages} onChange={(locale) => save({ profile: { locale } })} />
       <fieldset className="theme-choices"><legend>{t('Theme')}</legend>
         {(['system', 'light', 'dark'] as ThemePref[]).map((value) => <button type="button" key={value} aria-pressed={theme === value} onClick={() => void save({ appearance: { theme: value } })}>
           <span className={`theme-preview ${value}`} aria-hidden="true"><span /><span /><span /></span>
-          <span>{t(value === 'system' ? t("Match my device") : value === 'light' ? t("Light") : t("Dark"))}</span>
+          <span>{value === 'system' ? t("Match my device") : value === 'light' ? t("Light") : t("Dark")}</span>
           {theme === value && <Icon name="check" size={14} />}
         </button>)}
       </fieldset>
       <fieldset className="accent-choices"><legend>{t('Accent color')}</legend>
         <div className="accent-swatches">{colors.map((color) => <button type="button" key={color} aria-label={`${t('Choose a color')} ${color}`} aria-pressed={accent === color} style={{ '--swatch': color } as React.CSSProperties} onClick={() => void save({ appearance: { accent: color } })}>{accent === color && <Icon name="check" size={18} />}</button>)}
-          <label className="custom-color" title={t('Choose a color')}><input aria-label={t('Choose a color')} type="color" value={accent ?? colors[0]} onChange={(e) => void save({ appearance: { accent: e.target.value } })} /><Icon name="plus" size={18} /></label>
+          <CustomColor value={accent ?? colors[0]!} />
           <button type="button" className="btn link small" onClick={() => void save({ appearance: { accent: null } })}>{t('Default')}</button>
         </div>
       </fieldset>
     </Section>
+  );
+}
+
+/** Native colour picker: preview while dragging, save once when the picker commits (native `change`). */
+function CustomColor({ value }: { value: string }) {
+  const t = useI18n();
+  const save = useCommit();
+  const [draft, setDraft] = useState(value);
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => setDraft(value), [value]);
+  useEffect(() => {
+    const input = ref.current;
+    if (!input) return;
+    const commit = () => {
+      if (input.value !== value) void save({ appearance: { accent: input.value } }).then((ok) => { if (!ok) setDraft(value); });
+    };
+    input.addEventListener('change', commit);
+    return () => input.removeEventListener('change', commit);
+  }, [value, save]);
+  return (
+    <label className="custom-color" title={t('Choose a color')}>
+      <input ref={ref} aria-label={t('Choose a color')} type="color" value={draft} onChange={(e) => setDraft(e.target.value)} />
+      <Icon name="plus" size={18} />
+    </label>
   );
 }
 
@@ -175,30 +199,30 @@ function NotificationsSection() {
   const pausedUntil = n.pauseUntil && Date.parse(n.pauseUntil) > clock.nowMs() ? n.pauseUntil : null;
 
   return (
-    <Section title={t("Notifications")} hint="Your limits. Your coach cannot change them: messages are held during quiet hours and capped by these budgets.">
+    <Section title={t("Notifications")} hint={t("Your limits. Your coach cannot change them: messages are held during quiet hours and capped by these budgets.")}>
       <Toggle
-        label="Quiet hours"
-        hint="Messages written during this window wait until it ends."
+        label={t("Quiet hours")}
+        hint={t("Messages written during this window wait until it ends.")}
         checked={!!qh}
         onChange={(on) => save({ notifications: { quietHours: on ? { start: '22:00', end: '07:00' } : null } })}
       />
       {qh && (
         <>
-          <TimeRow label="From" value={qh.start} onCommit={(v) => save({ notifications: { quietHours: { start: v, end: qh.end } } })} />
-          <TimeRow label="Until" value={qh.end} onCommit={(v) => save({ notifications: { quietHours: { start: qh.start, end: v } } })} />
+          <TimeRow label={t("From")} value={qh.start} onCommit={(v) => save({ notifications: { quietHours: { start: v, end: qh.end } } })} />
+          <TimeRow label={t("Until")} value={qh.end} onCommit={(v) => save({ notifications: { quietHours: { start: qh.start, end: v } } })} />
         </>
       )}
-      <NumberRow label="Maximum proactive messages per day" hint="Only messages your coach starts count. This is a ceiling, not a target. 0 means replies only." value={n.proactivePerDay} min={0} max={10} integer onCommit={(v) => save({ notifications: { proactivePerDay: v } })} />
-      <NumberRow label="Maximum proactive messages per week" hint="Across the last 7 days. Your coach decides when a message is useful, within both limits." value={n.proactivePerWeek} min={0} max={50} integer onCommit={(v) => save({ notifications: { proactivePerWeek: v } })} />
+      <NumberRow label={t("Maximum proactive messages per day")} hint={t("Only messages your coach starts count. This is a ceiling, not a target. 0 means replies only.")} value={n.proactivePerDay} min={0} max={10} integer onCommit={(v) => save({ notifications: { proactivePerDay: v } })} />
+      <NumberRow label={t("Maximum proactive messages per week")} hint={t("Across the last 7 days. Your coach decides when a message is useful, within both limits.")} value={n.proactivePerWeek} min={0} max={50} integer onCommit={(v) => save({ notifications: { proactivePerWeek: v } })} />
       <SelectRow
-        label="Minimum gap between them"
+        label={t("Minimum gap between them")}
         value={n.minGapMinutes}
         options={GAPS.concat(GAPS.includes(n.minGapMinutes) ? [] : [n.minGapMinutes])
           .sort((a, b) => a - b)
           .map((m) => ({ value: m, label: m === 0 ? t("No minimum") : new Intl.NumberFormat(s.profile.locale, { style: 'unit', unit: m < 60 ? 'minute' : 'hour', unitDisplay: 'long' }).format(m < 60 ? m : m / 60) }))}
         onChange={(v) => save({ notifications: { minGapMinutes: v } })}
       />
-      <Row label="Pause until" hint="Vacation mode: your coach stays quiet until this date." htmlFor="pause-until">
+      <Row label={t("Pause until")} hint={t("Vacation mode: your coach stays quiet until this date.")} htmlFor="pause-until">
         <div className="input-unit">
           <input
             id="pause-until"
@@ -219,7 +243,7 @@ function NotificationsSection() {
         </div>
       </Row>
       <Toggle
-        label="Push notifications"
+        label={t("Push notifications")}
         hint={
           support === 'unsupported'
             ? t("This browser does not support push notifications.")
@@ -262,7 +286,7 @@ function VoiceSection() {
   return (
     <Section title={t("Voice")}>
       <SelectRow
-        label="Call mode"
+        label={t("Call mode")}
         hint={calls.realtime || calls.cascaded ? t("Realtime is the most natural. Cascaded works with any model and keeps audio processing on the server.") : t("Calls are not available on this server.")}
         value={s.voice.callMode}
         options={[
@@ -272,13 +296,13 @@ function VoiceSection() {
         onChange={(v) => save({ voice: { callMode: v } })}
       />
       <SelectRow
-        label="Coach voice"
+        label={t("Coach voice")}
         value={s.voice.voice}
         options={(VOICES.includes(s.voice.voice) ? VOICES : [s.voice.voice, ...VOICES]).map((v) => ({ value: v, label: v[0]!.toUpperCase() + v.slice(1) }))}
         onChange={(v) => save({ voice: { voice: v } })}
       />
       <SelectRow
-        label="Reply with voice notes"
+        label={t("Reply with voice notes")}
         value={s.voice.replyWithVoiceNotes}
         options={[
           { value: 'never', label: t("Never") },
@@ -300,14 +324,14 @@ function PrivacySection() {
   return (
     <Section title={t("Privacy")}>
       <Toggle
-        label="Keep photo location"
-        hint="Off: GPS data is removed from photos before your coach sees them."
+        label={t("Keep photo location")}
+        hint={t("Off: GPS data is removed from photos before your coach sees them.")}
         checked={s.privacy.keepImageLocation}
         onChange={(v) => save({ privacy: { keepImageLocation: v } })}
       />
       <Toggle
-        label="Share feedback with developers"
-        hint="Off by default. Lets your coach's notes about the app reach its developers."
+        label={t("Share feedback with developers")}
+        hint={t("Off by default. Lets your coach's notes about the app reach its developers.")}
         checked={s.privacy.shareFeedbackWithDevelopers}
         onChange={(v) => save({ privacy: { shareFeedbackWithDevelopers: v } })}
       />
@@ -320,9 +344,9 @@ function BudgetSection() {
   const s = useSettings();
   const save = useCommit();
   return (
-    <Section title={t("Spending limits")} hint="Caps on what your coach may spend on AI each day and month. When a limit is reached your coach pauses.">
-      <NumberRow label="Daily limit" unit="USD" value={s.budgets.dailyUsd} min={0} max={1000} step={0.5} onCommit={(v) => save({ budgets: { dailyUsd: v } })} />
-      <NumberRow label="Monthly limit" unit="USD" value={s.budgets.monthlyUsd} min={0} max={10000} step={1} onCommit={(v) => save({ budgets: { monthlyUsd: v } })} />
+    <Section title={t("Spending limits")} hint={t("Caps on what your coach may spend on AI each day and month. When a limit is reached your coach pauses.")}>
+      <NumberRow label={t("Daily limit")} unit="USD" value={s.budgets.dailyUsd} min={0} max={1000} step={0.5} onCommit={(v) => save({ budgets: { dailyUsd: v } })} />
+      <NumberRow label={t("Monthly limit")} unit="USD" value={s.budgets.monthlyUsd} min={0} max={10000} step={1} onCommit={(v) => save({ budgets: { monthlyUsd: v } })} />
     </Section>
   );
 }
@@ -341,7 +365,7 @@ function DevicesSection() {
   }, [pair, remaining]);
 
   return (
-    <Section title={t("Devices")} hint="Sign in on another phone or computer with a one-time code, or add a passkey to this device.">
+    <Section title={t("Devices")} hint={t("Sign in on another phone or computer with a one-time code, or add a passkey to this device.")}>
       <div className="row stack">
         <button
           type="button"
@@ -363,7 +387,7 @@ function DevicesSection() {
         {pair && (
           <div className="code-box" role="status">
             <code aria-label={`Pairing code ${pair.code.split('').join(' ')}`}>{pair.code}</code>
-            <span className="hint">{t("Expires in")}{formatDuration(Math.max(0, remaining))}{t(". Enter it on the new device's sign-in screen.")}</span>
+            <span className="hint">{t("Expires in")} {formatDuration(Math.max(0, remaining))}. {t("Enter it on the new device's sign-in screen.")}</span>
             <button type="button" className="btn link small" onClick={() => void navigator.clipboard?.writeText(pair.code)}>
               {t("Copy")}</button>
           </div>
@@ -400,7 +424,7 @@ function CalendarSection() {
   const [msg, setMsg] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   return (
-    <Section title={t("Calendar")} hint="Subscribe in Google, Apple or Outlook calendar to see your coach's plan. Anyone with the link can see your schedule, so keep it private.">
+    <Section title={t("Calendar")} hint={t("Subscribe in Google, Apple or Outlook calendar to see your coach's plan. Anyone with the link can see your schedule, so keep it private.")}>
       <div className="row stack">
         {!url ? (
           <button
@@ -469,7 +493,6 @@ function AboutSection() {
 }
 
 function Item({ k, v }: { k: string; v: ReactNode }) {
-  const t = useI18n();
   return (
     <div>
       <dt>{k}</dt>
