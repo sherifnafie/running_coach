@@ -1,12 +1,55 @@
-/** Built-in presentation labels; athlete/coach content is never machine-rewritten by the shell. */
+/**
+ * Built-in presentation labels; athlete/coach content is never machine-rewritten by the shell.
+ *
+ * English is the source. Dutch and Arabic have curated tables. Every other language gets a generated label pack
+ * (`setLabelPack`), produced once per language by the server and cached; until it arrives, labels stay English.
+ */
 export type ShellLanguage = 'en' | 'nl' | 'ar';
 export function shellLanguage(locale: string): ShellLanguage {
   const language = locale.toLowerCase().split('-')[0];
   return language === 'ar' || language === 'nl' ? language : 'en';
 }
-export function languageDirection(locale: string): 'ltr' | 'rtl' {
-  return /^(ar|he|fa|ur)(-|$)/i.test(locale) ? 'rtl' : 'ltr';
+
+/** Languages with a curated table (no generated pack needed). */
+export function hasCuratedLabels(locale: string): boolean {
+  return ['en', 'nl', 'ar'].includes(labelLanguage(locale));
 }
+
+/**
+ * The key a generated label pack is stored under: the primary language subtag, plus the script for Chinese
+ * (Traditional for TW/HK/MO), e.g. "de", "pt", "zh-hans", "zh-hant". Invalid input yields "en".
+ */
+export function labelLanguage(locale: string): string {
+  const parts = locale.trim().toLowerCase().replace(/_/g, '-').split('-');
+  const primary = parts[0] ?? '';
+  if (!/^[a-z]{2,3}$/.test(primary)) return 'en';
+  if (primary === 'zh') return parts.some((p) => ['hant', 'tw', 'hk', 'mo'].includes(p)) ? 'zh-hant' : 'zh-hans';
+  if (primary === 'iw') return 'he';
+  if (primary === 'no' || primary === 'nn') return 'nb';
+  return primary;
+}
+
+const RTL = /^(ar|he|iw|fa|ur|ps|sd|ug|yi|dv|ckb|syr|arc|ku-arab|pa-arab)(-|$)/i;
+export function languageDirection(locale: string): 'ltr' | 'rtl' {
+  try {
+    const info = new Intl.Locale(locale) as Intl.Locale & { getTextInfo?: () => { direction?: string }; textInfo?: { direction?: string } };
+    const direction = info.getTextInfo?.().direction ?? info.textInfo?.direction;
+    if (direction === 'rtl' || direction === 'ltr') return direction;
+  } catch {
+    /* fall back to the list below */
+  }
+  return RTL.test(locale) ? 'rtl' : 'ltr';
+}
+
+const packs = new Map<string, Record<string, string>>();
+/** Install generated labels for a language (English source text → translation). */
+export function setLabelPack(language: string, labels: Record<string, string>): void {
+  packs.set(labelLanguage(language), labels);
+}
+export function labelPack(locale: string): Record<string, string> | undefined {
+  return packs.get(labelLanguage(locale));
+}
+
 const labels: Record<string, [string, string]> = {
   "of": ["van", "من"],
   "Pick a new day for": ["Kies een nieuwe dag voor", "اختر يومًا جديدًا لـ"],
@@ -199,7 +242,12 @@ const labels: Record<string, [string, string]> = {
   "week to go": ["week te gaan", "أسبوع متبقٍ"],
   "weeks to go": ["weken te gaan", "أسابيع متبقية"]
 };
+/** English source strings of the kit labels (the server generates packs from these plus the shell labels). */
+export const kitLabelSources: readonly string[] = Object.keys(labels);
+
 export function translate(text: string, locale: string, extra?: Record<string, [string, string]>): string {
-  const language = shellLanguage(locale);
-  return language === 'en' ? text : ((extra?.[text] ?? labels[text])?.[language === 'nl' ? 0 : 1] ?? text);
+  const language = labelLanguage(locale);
+  if (language === 'en') return text;
+  if (language === 'nl' || language === 'ar') return (extra?.[text] ?? labels[text])?.[language === 'nl' ? 0 : 1] ?? text;
+  return packs.get(language)?.[text] || text;
 }

@@ -19,7 +19,7 @@ You run the server yourself and open the PWA on a computer or phone. `SPEC.md` d
 | **Calendar** | Planned sessions, activities and goal events (races, meets, tests); move a session to another day. |
 | **Plan** | The current block, weekly training time by sport, key sessions, the next goal and why the plan looks the way it does. |
 | **Progress** | Training time by sport and consistency, plus distance for endurance sports and estimated 1RM trends for lifting when you log them. |
-| **Settings** | Language (English, Dutch, Arabic/RTL), theme, units, quiet hours, message and cost limits, privacy, devices, export and account deletion. |
+| **Settings** | Language (any language; right-to-left where needed), theme, units, quiet hours, message and cost limits, privacy, devices, export and account deletion. |
 
 How the coach knows your sport: running and strength training (including powerlifting) ship as first-party skills; for anything else it researches the sport, writes its own notes, and tells you what needs an in-person coach (see [ADR 0006](docs/adr/0006-multi-discipline-coaching.md)).
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import type { PublishedView, ViewEnv } from '@opencoach/protocol';
+import { hasCuratedLabels, kitLabelSources, labelPack, type PublishedView, type ViewEnv } from '@opencoach/protocol';
 import { appStore } from '../lib/appState';
 import { BridgeHost } from '../lib/bridge';
 import { emitWorkspaceChange, onWorkspaceChange } from '../lib/changeBus';
@@ -14,6 +14,14 @@ import { READY_TIMEOUT_MS, initialLoadState, reduceLoad } from '../lib/viewLoad'
 import { Icon } from './Icon';
 
 const CARD_HEIGHTS = { s: 120, m: 200, l: 320 } as const;
+
+/** Generated kit labels for the athlete's language, when it has no curated table (views get only the kit's strings). */
+function kitLabels(locale: string | undefined): Record<string, string> | undefined {
+  if (!locale || hasCuratedLabels(locale)) return undefined;
+  const pack = labelPack(locale);
+  if (!pack) return undefined;
+  return Object.fromEntries(kitLabelSources.filter((s) => pack[s]).map((s) => [s, pack[s]!]));
+}
 /** No view requests for this long after `ready` counts as a finished first paint. */
 const SETTLE_QUIET_MS = 80;
 /** Show the view after this long regardless (a view that polls or waits on a slow query still appears). */
@@ -85,6 +93,7 @@ export function ViewFrame({ view, params, active, mode }: ViewFrameProps) {
       viewId,
       params: paramsRef.current,
       mode: 'live',
+      ...(kitLabels(profile?.locale) ? { labels: kitLabels(profile?.locale) } : {}),
     };
   }, [viewId]);
 
@@ -167,10 +176,11 @@ export function ViewFrame({ view, params, active, mode }: ViewFrameProps) {
   const themePref = useStore(appStore, (s) => s.theme);
   const settings = useStore(appStore, (s) => s.me?.settings);
   const appAccent = useStore(appStore, (s) => s.app?.app.theme?.accent);
+  const labelsVersion = useStore(appStore, (s) => s.labelsVersion);
   const paramsKey = JSON.stringify(params);
   useEffect(() => {
     if (load.phase === 'ready') hostRef.current?.notifyEnvChanged();
-  }, [online, themePref, settings, appAccent, paramsKey, active, load.phase]);
+  }, [online, themePref, settings, appAccent, paramsKey, active, load.phase, labelsVersion]);
   useEffect(() => {
     const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
     const on = () => hostRef.current?.notifyEnvChanged();

@@ -7,8 +7,8 @@ import { emitWorkspaceChange, isWorkspaceChange } from './changeBus';
 import { chatReducer, noticeText, type ChatAction, type LocalAnswer, type PendingAttachment } from './chatModel';
 import { clock } from './clock';
 import { accentText, contrastText } from './color';
-import { languageDirection } from '@opencoach/protocol';
-import { account, aiApi, auth, chat, me as meApi, settingsApi, views } from './endpoints';
+import { hasCuratedLabels, labelLanguage, languageDirection, setLabelPack } from '@opencoach/protocol';
+import { account, aiApi, auth, chat, i18nApi, me as meApi, settingsApi, views } from './endpoints';
 import { OfflineQueue, idbQueueStorage, type QueuedRequest, type SendResult } from './offlineQueue';
 import { extensionForMime, type Recording } from './recorder';
 import { disablePush } from './push';
@@ -105,8 +105,47 @@ function applyPresentation(): void {
     setTheme(settings.appearance.theme);
     document.documentElement.lang = settings.profile.locale;
     document.documentElement.dir = languageDirection(settings.profile.locale);
+    void ensureLabels(settings.profile.locale);
   }
   applyAccent(settings?.appearance.accent ?? s.app?.app.theme?.accent);
+}
+
+// ---- interface labels in any language -----------------------------------------------------------------------------------
+
+let labelsFor: string | undefined;
+let labelsTimer: ReturnType<typeof setTimeout> | undefined;
+
+function installLabels(language: string, labels: Record<string, string>): void {
+  setLabelPack(language, labels);
+  patchApp({ labelsVersion: appStore.getState().labelsVersion + 1 });
+}
+
+/**
+ * Languages without a curated table get a generated label pack from the server (made once per language). The last
+ * pack is kept in localStorage so a reload shows the right language immediately; until one exists labels stay English.
+ */
+async function ensureLabels(locale: string, attempt = 0): Promise<void> {
+  const language = labelLanguage(locale);
+  if (hasCuratedLabels(language)) return;
+  if (attempt === 0) {
+    if (labelsFor === language) return;
+    labelsFor = language;
+    if (labelsTimer) clearTimeout(labelsTimer);
+    const cached = lsGetJson<Record<string, string> | null>(`oc.labels.${language}`, null);
+    if (cached) installLabels(language, cached);
+  }
+  try {
+    const pack = await i18nApi.labels(locale);
+    if (labelsFor !== language) return;
+    if (Object.keys(pack.labels).length) {
+      installLabels(language, pack.labels);
+      lsSetJson(`oc.labels.${language}`, pack.labels);
+    }
+    if (pack.ready && Object.keys(pack.labels).length) return;
+  } catch {
+    /* offline or server busy: retry below */
+  }
+  if (attempt < 30 && labelsFor === language) labelsTimer = setTimeout(() => void ensureLabels(locale, attempt + 1), Math.min(2000 + attempt * 1000, 10_000));
 }
 
 async function refreshSettings(): Promise<void> {

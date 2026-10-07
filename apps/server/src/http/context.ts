@@ -39,6 +39,8 @@ export interface GatewayDeps {
   /** Workspace helpers (injectable for tests). */
   exportAthlete?: (opts: { dataDir: string; athleteId: string; store: Store; clock: Clock }) => Promise<string>;
   stripImageLocation?: (data: Uint8Array, mime: string) => Promise<Uint8Array>;
+  /** Generated interface labels for languages without a curated table. */
+  labelPacks?: import('../label-packs').LabelPacks;
   /** Per-athlete provider keys (managed or bring-your-own) [SEC-1]. */
   credentials?: import('../credentials').CredentialService;
   /** Models offered through OpenRouter and where to verify keys. Absent when OpenRouter is not configured. */

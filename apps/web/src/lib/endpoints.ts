@@ -39,6 +39,10 @@ export const me = {
   get: (opts?: RequestOptions) => api.get<MeResponse>('/v1/me', opts),
 };
 
+export const i18nApi = {
+  labels: (locale: string) => api.get<{ language: string; ready: boolean; labels: Record<string, string>; dir: 'ltr' | 'rtl' }>(`/v1/i18n/${encodeURIComponent(locale)}`),
+};
+
 export const health = {
   sync: (body: { source: 'health_connect'; range: [string, string]; workouts: unknown[] }) => api.post<PostEventResponse>('/v1/sync/health', body),
 };

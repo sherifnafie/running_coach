@@ -42,6 +42,8 @@ export interface AppState {
   /** Show the optional post-sign-in steps (install, notifications, passkey). */
   onboarding: boolean;
   theme: ThemePref;
+  /** Bumped when a generated label pack is installed, so translated components re-render. */
+  labelsVersion: number;
 }
 
 export const appStore = createStore<AppState>({
@@ -59,6 +61,7 @@ export const appStore = createStore<AppState>({
   queued: 0,
   onboarding: false,
   theme: 'system',
+  labelsVersion: 0,
 });
 
 export function patchApp(patch: Partial<AppState>): void {

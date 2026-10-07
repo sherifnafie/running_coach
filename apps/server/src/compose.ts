@@ -18,6 +18,7 @@ import { DEFAULT_SEED_ROOT, DEFAULT_WEB_DIST } from './paths';
 import { createPushDelivery, createWebPushProvider } from './push';
 import { SetupCodeManager } from './setup-code';
 import { CredentialService, CredentialVault, keyFingerprint } from './credentials';
+import { LabelPacks } from './label-packs';
 import { createTelegramAdapter } from './telegram';
 
 export interface ComposeOptions {
@@ -131,6 +132,7 @@ export async function composeServer(opts: ComposeOptions = {}) {
       setupCodes, kitDir, webDist: opts.webDist ?? DEFAULT_WEB_DIST, features: { demoMode: isDemoConfig(config), webSearch: !!webSearch, imageGeneration: !!imageProvider },
       vapidPublicKey: push.publicKey?.(), exportAthlete, stripImageLocation,
       telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); credentials.forget(athleteId); },
+      labelPacks: new LabelPacks({ dataDir: config.dataDir, router: isDemoConfig(config) ? undefined : router, logger }),
       credentials, models: openrouter && !isDemoConfig(config) ? { catalog, defaultModel: openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL, openrouterBaseUrl: openrouter.baseUrl } : undefined,
     });
     cleanup.unshift(() => gateway.views.close(), () => gateway.app.close());

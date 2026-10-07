@@ -3,7 +3,7 @@
  * transport (bridge.ts) plus env/theme handling, error capture, render reporting and auto-resize.
  */
 import type { ViewEnv } from '@opencoach/protocol';
-import { languageDirection, translate } from '@opencoach/protocol/presentation';
+import { languageDirection, setLabelPack, translate } from '@opencoach/protocol/presentation';
 import { Bridge, type ParentLike } from './bridge';
 import { dates, weekStartsOnFor, type DateHelpers } from './dates';
 import { createFormat, type Formatters } from './format';
@@ -127,6 +127,7 @@ export function createCoach(opts: CreateCoachOptions): Coach {
       env.locale = e.locale;
       env.weekStartsOn = weekStartsOnFor(e.locale);
     }
+    if (e.labels && typeof e.labels === 'object') setLabelPack(env.locale, e.labels as Record<string, string>);
     if (e.units === 'metric' || e.units === 'imperial') env.units = e.units;
     if (typeof e.tz === 'string' && e.tz) env.tz = e.tz;
     if (typeof e.nowMs === 'number' && Number.isFinite(e.nowMs)) {

@@ -150,6 +150,8 @@ export interface ViewEnv {
   viewId: string;
   params: Record<string, string>;
   mode: 'live' | 'preview';
+  /** Generated kit labels for a language without a curated table (English source → translation). */
+  labels?: Record<string, string>;
 }
 
 /** Limits for view queries (Appendix C §C.4). */

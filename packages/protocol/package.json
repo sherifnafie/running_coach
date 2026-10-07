@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./presentation": "./src/presentation.ts"
+    "./presentation": "./src/presentation.ts",
+    "./presentation-shell": "./src/presentation-shell.ts"
   },
   "scripts": {
     "test": "vitest run --root ../.. packages/protocol"
