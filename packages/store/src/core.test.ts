@@ -103,6 +103,10 @@ describe('athletes and settings', () => {
     await store.updateAthlete('ath_fixed', { displayName: 'Bobby', isAdmin: true, status: 'deleted' });
     expect(await store.getAthlete('ath_fixed')).toMatchObject({ displayName: 'Bobby', isAdmin: true, status: 'deleted', createdAt: b.createdAt });
     await store.updateAthlete('ath_fixed', {}); // no-op on existing row
+    await store.updateAthlete('ath_fixed', { suspendedAt: '2026-10-07T10:00:00.000Z' });
+    expect((await store.getAthlete('ath_fixed'))?.suspendedAt).toBe('2026-10-07T10:00:00.000Z');
+    await store.updateAthlete('ath_fixed', { suspendedAt: null });
+    expect((await store.getAthlete('ath_fixed'))?.suspendedAt ?? null).toBeNull();
     await expect(store.updateAthlete('ghost', { displayName: 'x' })).rejects.toThrow(/athlete not found/);
   });
 

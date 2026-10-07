@@ -3,6 +3,7 @@ import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import websocket from '@fastify/websocket';
 import { kitDistDir } from '@opencoach/ui-kit';
+import { accountUsable } from '@opencoach/protocol';
 import { athleteForViewToken } from '@opencoach/runtime';
 import { createContext, type GatewayDeps } from './http/context';
 import { appSecurityHeaders, viewsSecurityHeaders } from './http/security';
@@ -78,7 +79,7 @@ export async function createGateway(deps: GatewayDeps) {
     const match = /^([a-z0-9][a-z0-9-]{0,31})@([0-9]+)$/.exec(bundle);
     if (!match) throw notFound();
     const athleteId = await athleteForViewToken(deps.store, token);
-    if (!athleteId || (await deps.store.getAthlete(athleteId))?.status !== 'active') throw notFound();
+    if (!athleteId || !accountUsable(await deps.store.getAthlete(athleteId))) throw notFound();
     const record = await deps.store.getUiVersion(athleteId, match[1]!, match[2]!);
     if (!record) throw notFound();
     const file = await resolveSafeFile(record.dir, rel || record.manifest.entry);

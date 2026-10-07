@@ -2,7 +2,7 @@ import { basename } from 'node:path';
 import { stat } from 'node:fs/promises';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { newId, pairingCode, randomToken, Tier, TierConfig } from '@opencoach/protocol';
+import { accountUsable, newId, pairingCode, randomToken, Tier, TierConfig } from '@opencoach/protocol';
 import { exportAthlete } from '@opencoach/workspace';
 import type { GatewayContext } from '../http/context';
 import { safeEqual } from '../http/auth';
@@ -53,9 +53,11 @@ export function accountRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     if (!st) throw notFound();
     return sendFile(request, reply, { path: job.path, size: st.size, mtimeMs: st.mtimeMs }, { contentType: 'application/gzip', cacheControl: 'no-store', attachmentName: basename(job.path) });
   });
-  app.delete('/v1/account', { preHandler: auth }, async (request, reply) => {
-    z.object({ confirm: z.literal('DELETE') }).parse(request.body);
-    const athleteId = ctx.athleteId(request);
+  /**
+   * Delete an account and everything it owns. Shared by self-service deletion and administrators, so both run the
+   * same drains and hooks (calls ended, credentials forgotten, workspace and store rows removed).
+   */
+  async function deleteAccount(athleteId: string, request: FastifyRequest): Promise<void> {
     if (deleting.has(athleteId)) throw conflict('Account deletion is already in progress.');
     deleting.add(athleteId);
     try {
@@ -78,13 +80,51 @@ export function accountRoutes(app: FastifyInstance, ctx: GatewayContext): void {
       await ctx.deps.onAthleteDeleting?.(athleteId);
       await runtime.deleteAthlete(athleteId);
       await ctx.deps.onAthleteDeleted?.(athleteId);
-      ctx.clearSessionCookie(reply);
-      reply.code(204).send();
     } catch (error) {
       // A provider/drain/filesystem failure should leave an existing account able to retry deletion.
       if (await store.getAthlete(athleteId)) await store.updateAthlete(athleteId, { status: 'active' });
       throw error;
     } finally { deleting.delete(athleteId); }
+  }
+
+  app.delete('/v1/account', { preHandler: auth }, async (request, reply) => {
+    z.object({ confirm: z.literal('DELETE') }).parse(request.body);
+    await deleteAccount(ctx.athleteId(request), request);
+    ctx.clearSessionCookie(reply);
+    reply.code(204).send();
+  });
+
+  // ---- administrators: suspend, reactivate or delete someone else's account
+  /** The target of an admin action: an existing account other than the administrator's own. */
+  async function otherAccount(request: FastifyRequest) {
+    const athleteId = params(request).id!;
+    const athlete = await store.getAthlete(athleteId);
+    if (!athlete || athlete.status !== 'active') throw notFound('Unknown account.');
+    if (athleteId === request.auth!.athleteId) throw conflict('You cannot do this to your own account here. Use Settings → Account & data for your own account.');
+    return athlete;
+  }
+  app.post('/admin/athletes/:id/suspend', { preHandler: admin }, async (request) => {
+    const athlete = await otherAccount(request);
+    const at = clock.now().toISOString();
+    if (!athlete.suspendedAt) await store.updateAthlete(athlete.id, { suspendedAt: at });
+    // Sign out everywhere now; the session check also refuses suspended accounts on every request.
+    for (const session of await store.listSessions(athlete.id)) await ctx.sessions.revoke(session.id);
+    ctx.sockets.closeAthlete(athlete.id);
+    await store.audit({ athleteId: athlete.id, at, actor: request.auth!.athleteId, action: 'account.suspended' });
+    return { athlete: await store.getAthlete(athlete.id) };
+  });
+  app.post('/admin/athletes/:id/reactivate', { preHandler: admin }, async (request) => {
+    const athlete = await otherAccount(request);
+    if (athlete.suspendedAt) await store.updateAthlete(athlete.id, { suspendedAt: null });
+    await store.audit({ athleteId: athlete.id, at: clock.now().toISOString(), actor: request.auth!.athleteId, action: 'account.reactivated' });
+    return { athlete: await store.getAthlete(athlete.id) };
+  });
+  app.delete('/admin/athletes/:id', { preHandler: admin }, async (request, reply) => {
+    const athlete = await otherAccount(request);
+    z.object({ confirm: z.literal(athlete.displayName) }).parse(request.body);
+    await deleteAccount(athlete.id, request);
+    await store.audit({ at: clock.now().toISOString(), actor: request.auth!.athleteId, action: 'account.deleted_by_admin', detail: { athleteId: athlete.id } });
+    reply.code(204).send();
   });
   async function calendarUrl(athleteId: string, rotate = false) {
     let token = (await store.getSettings(athleteId)).calendarToken;
@@ -100,7 +140,7 @@ export function accountRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     ctx.limitAuth(request);
     const token = query(request).token;
     const athleteId = token?.split('.')[0];
-    if (!token || !athleteId || !/^[A-Za-z0-9_-]{1,128}$/.test(athleteId) || token.length > 256 || (await store.getAthlete(athleteId))?.status !== 'active') throw notFound();
+    if (!token || !athleteId || !/^[A-Za-z0-9_-]{1,128}$/.test(athleteId) || token.length > 256 || !accountUsable(await store.getAthlete(athleteId))) throw notFound();
     const expected = (await store.getSettings(athleteId)).calendarToken;
     if (!expected || !safeEqual(token, expected)) throw notFound();
     const ics = await runtime.calendarIcs(athleteId);

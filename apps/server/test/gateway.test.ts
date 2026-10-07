@@ -383,6 +383,44 @@ describe('gateway views, history, export and administration [SEC-3] [SEC-5] [SEC
   });
 });
 
+describe('administrators suspend, reactivate and delete other accounts [SEC-4] [SEC-6]', () => {
+  it('suspension signs someone out and blocks every sign-in path until reactivated; deletion needs their name', async () => {
+    const f = await fixture();
+    const admin = await f.setup('Admin');
+    const adminHeaders = f.bearer(admin.token);
+    const invite = (await f.app.inject({ method: 'POST', url: '/admin/invites', headers: adminHeaders })).json().code;
+    const kid = (await f.app.inject({ method: 'POST', url: '/v1/auth/setup', payload: { code: invite, displayName: 'Kid', tz: 'UTC', locale: 'en', consents: { healthData: true, aiDisclosure: true, ageConfirmed18: true } } })).json();
+    const kidHeaders = f.bearer(kid.token);
+    expect((await f.app.inject({ url: '/v1/me', headers: kidHeaders })).statusCode).toBe(200);
+
+    // Not by the person themselves, and not on your own account.
+    expect((await f.app.inject({ method: 'POST', url: `/admin/athletes/${admin.athleteId}/suspend`, headers: kidHeaders })).statusCode).toBe(403);
+    expect((await f.app.inject({ method: 'POST', url: `/admin/athletes/${admin.athleteId}/suspend`, headers: adminHeaders })).statusCode).toBe(409);
+
+    const suspended = await f.app.inject({ method: 'POST', url: `/admin/athletes/${kid.athleteId}/suspend`, headers: adminHeaders });
+    expect(suspended.json().athlete.suspendedAt).toBeTruthy();
+    expect(await f.store.listSessions(kid.athleteId)).toEqual([]);
+    expect((await f.app.inject({ url: '/v1/me', headers: kidHeaders })).statusCode).toBe(401);
+    // A code minted by the admin cannot be used to sign back in while suspended.
+    const recovery = (await f.app.inject({ method: 'POST', url: `/admin/athletes/${kid.athleteId}/recovery-code`, headers: adminHeaders })).json().code;
+    const blocked = await f.app.inject({ method: 'POST', url: '/v1/auth/pair', payload: { code: recovery } });
+    expect(blocked.statusCode).toBe(403);
+    expect((await f.app.inject({ url: '/admin/athletes', headers: adminHeaders })).json().athletes.find((a: { id: string }) => a.id === kid.athleteId).suspendedAt).toBeTruthy();
+
+    await f.app.inject({ method: 'POST', url: `/admin/athletes/${kid.athleteId}/reactivate`, headers: adminHeaders });
+    const again = (await f.app.inject({ method: 'POST', url: `/admin/athletes/${kid.athleteId}/recovery-code`, headers: adminHeaders })).json().code;
+    const back = await f.app.inject({ method: 'POST', url: '/v1/auth/pair', payload: { code: again } });
+    expect(back.statusCode).toBe(200);
+    expect((await f.app.inject({ url: '/v1/me', headers: f.bearer(back.json().token) })).statusCode).toBe(200);
+
+    expect((await f.app.inject({ method: 'DELETE', url: `/admin/athletes/${kid.athleteId}`, headers: adminHeaders, payload: { confirm: 'kid' } })).statusCode).toBe(400);
+    expect((await f.app.inject({ method: 'DELETE', url: `/admin/athletes/${kid.athleteId}`, headers: adminHeaders, payload: { confirm: 'Kid' } })).statusCode).toBe(204);
+    expect(f.runtime.deleteAthlete).toHaveBeenCalledWith(kid.athleteId);
+    expect(await f.store.getAthlete(kid.athleteId)).toBeUndefined();
+    expect((await f.app.inject({ url: '/v1/me', headers: adminHeaders })).statusCode).toBe(200);
+  });
+});
+
 describe('WebSocket authentication, replay and session revocation [SEC-4]', () => {
   it('checks Origin, supports first-frame bearer auth, filters history and closes on logout', async () => {
     const f = await fixture(); const a = await f.setup();

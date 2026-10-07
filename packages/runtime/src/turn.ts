@@ -1,6 +1,7 @@
 import { parse as parsePartial } from 'partial-json';
 import {
   COACH_TOOLS,
+  accountUsable,
   newId,
   type AnyEvent,
   type Channel,
@@ -111,7 +112,7 @@ export class TurnRunner {
     const store = core.store;
     const skipped: TurnOutcome = { turnId: '', status: 'skipped', finalText: '', replyTexts: [], costUsd: 0 };
     const athlete = await store.getAthlete(athleteId);
-    if (!athlete || athlete.status !== 'active') return skipped;
+    if (!accountUsable(athlete)) return skipped; // deleted or suspended: no model calls, no messages
     const settings = await store.getSettings(athleteId);
     const now = core.clock.now();
     const tz = settings.profile.tz;

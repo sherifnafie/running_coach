@@ -24,6 +24,25 @@ async function greet(harness: Harness, athleteId: string) {
   await harness.settle(athleteId);
 }
 
+describe('runtime: suspended accounts [SEC-4] [COST-1]', () => {
+  it('runs no coach turns (and no model calls) while an account is suspended, and resumes after', async () => {
+    h = await makeHarness();
+    const id = await newAthlete(h);
+    await greet(h, id);
+    const before = h.requests.length;
+    await h.runtime.core.store.updateAthlete(id, { suspendedAt: '2026-10-07T09:00:00.000Z' });
+    h.setHandler(() => send('should not run'));
+    await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'hello?', clientId: 'c1', attachments: [] } });
+    await h.settle(id);
+    expect(h.requests.length).toBe(before);
+    await h.runtime.core.store.updateAthlete(id, { suspendedAt: null });
+    h.setHandler((req) => (lastItemKind(req) === 'tool_results' ? { text: 'ok' } : send('Back again.')));
+    await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'hello again', clientId: 'c2', attachments: [] } });
+    await h.settle(id);
+    expect(h.requests.length).toBeGreaterThan(before);
+  });
+});
+
 describe('runtime: onboarding & reactive turns', () => {
   it('creates a workspace, publishes seed views and greets on first contact', async () => {
     h = await makeHarness();

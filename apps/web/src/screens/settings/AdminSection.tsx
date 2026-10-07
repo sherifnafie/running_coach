@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import type { AiAccessSummary } from '@opencoach/protocol';
 import { Section, Spinner } from '../../components/Atoms';
 import { describeError } from '../../lib/api';
+import { appStore } from '../../lib/appState';
+import { useStore } from '../../lib/store';
 import { admin, type AdminAthlete } from '../../lib/endpoints';
 import { AiAccessPanel, KeyInput } from './AiSection';
 import { Row } from './Controls';
@@ -154,8 +156,9 @@ function Turns({ open }: { open: boolean }) {
 }
 
 /** One person: allowance, model, managed key and account recovery [COST-1] [SEC-1]. */
-function Person({ athlete }: { athlete: AdminAthlete }) {
+function Person({ athlete: initial, self, onDeleted }: { athlete: AdminAthlete; self: boolean; onDeleted: () => void }) {
   const t = useI18n();
+  const [athlete, setAthlete] = useState(initial);
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState<AiAccessSummary | undefined>();
   const [recovery, setRecovery] = useState<{ code: string; expiresAt: string } | undefined>();
@@ -165,10 +168,12 @@ function Person({ athlete }: { athlete: AdminAthlete }) {
     try { setSummary(await fn()); } catch (e) { setError(describeError(e)); }
   };
   useEffect(() => { if (open && !summary) void run(() => admin.ai(athlete.id)); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const suspended = !!athlete.suspendedAt;
   return (
     <div className="admin-block">
       <button type="button" className="list-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <span className="list-title">{athlete.displayName}{athlete.isAdmin ? ` · ${t('admin')}` : ''}</span>
+        <span className="list-title">{athlete.displayName}{athlete.isAdmin ? ` · ${t('admin')}` : ''}{self ? ` · ${t('you')}` : ''}</span>
+        {suspended && <span className="pill warn">{t('Suspended')}</span>}
       </button>
       {open && (
         <div className="admin-body">
@@ -184,7 +189,7 @@ function Person({ athlete }: { athlete: AdminAthlete }) {
                 )
               )}
               <Row label={t('Lost access?')} hint={t('A one-time code that signs this person in on a new device. Valid for 30 minutes.')}>
-                <button type="button" className="btn small" onClick={async () => {
+                <button type="button" className="btn small" disabled={suspended} onClick={async () => {
                   setError(undefined);
                   try { setRecovery(await admin.recoveryCode(athlete.id)); } catch (e) { setError(describeError(e)); }
                 }}>{t('Create recovery code')}</button>
@@ -192,7 +197,52 @@ function Person({ athlete }: { athlete: AdminAthlete }) {
               {recovery && <p role="status" className="code-box"><code>{recovery.code}</code></p>}
             </AiAccessPanel>
           )}
+          {!self && <AccountControls athlete={athlete} onChange={setAthlete} onDeleted={onDeleted} onError={setError} />}
           {summary && error && <p className="form-error" role="alert">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Suspend (reversible, data kept) or delete (permanent, typed confirmation) another person's account. */
+function AccountControls({ athlete, onChange, onDeleted, onError }: { athlete: AdminAthlete; onChange: (a: AdminAthlete) => void; onDeleted: () => void; onError: (e: string | undefined) => void }) {
+  const t = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState('');
+  const act = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    onError(undefined);
+    try { await fn(); } catch (e) { onError(describeError(e)); } finally { setBusy(false); }
+  };
+  const suspended = !!athlete.suspendedAt;
+  return (
+    <div className="admin-account">
+      <Row label={suspended ? t('Account suspended') : t('Suspend account')}
+        hint={suspended ? t('They are signed out and cannot sign in. Their coach is paused; nothing is deleted.') : t('Signs them out everywhere and pauses their coach. Their data is kept and you can reactivate them at any time.')}>
+        <button type="button" className="btn small" disabled={busy}
+          onClick={() => void act(async () => onChange(suspended ? await admin.reactivate(athlete.id) : await admin.suspend(athlete.id)))}>
+          {suspended ? t('Reactivate') : t('Suspend')}
+        </button>
+      </Row>
+      {!confirming ? (
+        <Row label={t('Delete account')} hint={t('Permanently deletes their coach, workspace, uploads and history.')}>
+          <button type="button" className="btn small danger" onClick={() => setConfirming(true)}>{t('Delete…')}</button>
+        </Row>
+      ) : (
+        <div className="row stack">
+          <label className="field">
+            <span>{t('Type')} <strong>{athlete.displayName}</strong> {t('to confirm')}</span>
+            <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" name="confirm-delete-person" />
+          </label>
+          <div className="row-actions">
+            <button type="button" className="btn small" onClick={() => { setConfirming(false); setTyped(''); }}>{t('Cancel')}</button>
+            <button type="button" className="btn small danger" disabled={busy || typed.trim() !== athlete.displayName}
+              onClick={() => void act(async () => { await admin.deleteAthlete(athlete.id, athlete.displayName); onDeleted(); })}>
+              {busy ? t('Deleting…') : t('Delete permanently')}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -201,12 +251,14 @@ function Person({ athlete }: { athlete: AdminAthlete }) {
 
 function People() {
   const t = useI18n();
+  const me = useStore(appStore, (s) => s.me?.athlete.id);
+  const [removed, setRemoved] = useState<string[]>([]);
   const s = useLoad(admin.athleteList, true);
   if (s.loading) return <Spinner />;
   if (s.error) return <p className="form-error">{s.error}</p>;
-  const people = (s.data ?? []).filter((a) => a.status === 'active');
+  const people = (s.data ?? []).filter((a) => a.status === 'active' && !removed.includes(a.id));
   if (people.length === 0) return <p className="hint">{t('Nothing to show.')}</p>;
-  return <>{people.map((a) => <Person key={a.id} athlete={a} />)}</>;
+  return <>{people.map((a) => <Person key={a.id} athlete={a} self={a.id === me} onDeleted={() => setRemoved((r) => [...r, a.id])} />)}</>;
 }
 
 const inviteLink = (code: string) => `${location.origin}/?invite=${encodeURIComponent(code)}`;

@@ -1,4 +1,4 @@
-import { randomToken, type Clock, type DeliveryHook, type Logger, type Store, type CoachRuntimeAPI } from '@opencoach/protocol';
+import { accountUsable, randomToken, type Clock, type DeliveryHook, type Logger, type Store, type CoachRuntimeAPI } from '@opencoach/protocol';
 
 type TelegramUpdate = { update_id: number; message?: { text?: string; chat: { id: number; type: string } } };
 
@@ -26,7 +26,7 @@ export function createTelegramAdapter(opts: { token: string; store: Store; clock
       const raw = await opts.store.getKv(codeKey);
       await opts.store.setKv(codeKey, '');
       const data = raw ? JSON.parse(raw) as { athleteId: string; expires: number } : undefined;
-      if (!data || data.expires <= opts.clock.now().getTime() || (await opts.store.getAthlete(data.athleteId))?.status !== 'active') {
+      if (!data || data.expires <= opts.clock.now().getTime() || !accountUsable(await opts.store.getAthlete(data.athleteId))) {
         await reply(chatId, 'This link code has expired. Create a new code in OpenCoach settings.'); return;
       }
       await unlink(data.athleteId);
@@ -37,7 +37,7 @@ export function createTelegramAdapter(opts: { token: string; store: Store; clock
       await reply(chatId, 'Linked to OpenCoach. Your messages here go to your coach.'); return;
     }
     const athleteId = await opts.store.getKv(key);
-    if (!athleteId || (await opts.store.getAthlete(athleteId))?.status !== 'active') return;
+    if (!athleteId || !accountUsable(await opts.store.getAthlete(athleteId))) return;
     if (message.text === '/unlink') { await unlink(athleteId); await reply(chatId, 'OpenCoach has been unlinked.'); return; }
     await opts.runtime.ingest(athleteId, { type: 'user.message', payload: { text: message.text.slice(0, 20_000), channel: 'telegram', clientId: `telegram:${update.update_id}` } });
   }

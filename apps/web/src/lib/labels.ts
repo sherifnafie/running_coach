@@ -1,5 +1,17 @@
 /** Shell-only labels are excluded from the isolated-view kit bundle. */
 export const shellLabels: Record<string, [string, string]> = {
+  "you": ["jij", "أنت"],
+  "Suspended": ["Geschorst", "موقوف"],
+  "Account suspended": ["Account geschorst", "الحساب موقوف"],
+  "Suspend account": ["Account schorsen", "إيقاف الحساب"],
+  "They are signed out and cannot sign in. Their coach is paused; nothing is deleted.": ["Ze zijn uitgelogd en kunnen niet inloggen. Hun coach staat stil; er wordt niets verwijderd.", "تم تسجيل خروجه ولا يمكنه تسجيل الدخول. مدربه متوقف مؤقتًا ولم يُحذف شيء."],
+  "Signs them out everywhere and pauses their coach. Their data is kept and you can reactivate them at any time.": ["Logt ze overal uit en zet hun coach stil. Hun gegevens blijven bewaard en je kunt ze altijd weer activeren.", "يسجّل خروجه من كل الأجهزة ويوقف مدربه مؤقتًا. تبقى بياناته ويمكنك إعادة تفعيله في أي وقت."],
+  "Reactivate": ["Weer activeren", "إعادة التفعيل"],
+  "Suspend": ["Schorsen", "إيقاف"],
+  "Permanently deletes their coach, workspace, uploads and history.": ["Verwijdert hun coach, werkruimte, uploads en geschiedenis definitief.", "يحذف مدربه ومساحة عمله وملفاته وسجله نهائيًا."],
+  "Delete…": ["Verwijderen…", "حذف…"],
+  "Delete permanently": ["Definitief verwijderen", "حذف نهائي"],
+  "Deleting…": ["Verwijderen…", "جارٍ الحذف…"],
   "Open chat": ["Chat openen", "فتح الدردشة"],
   "Dictate": ["Dicteren", "إملاء"],
   "Dictate a message": ["Een bericht dicteren", "إملاء رسالة"],

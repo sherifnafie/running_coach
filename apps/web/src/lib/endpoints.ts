@@ -154,7 +154,7 @@ export const aiApi = {
 };
 
 // ---- admin ----------------------------------------------------------------------------------
-export interface AdminAthlete { id: string; displayName: string; isAdmin: boolean; status: string; createdAt: string }
+export interface AdminAthlete { id: string; displayName: string; isAdmin: boolean; status: string; suspendedAt?: string | null; createdAt: string }
 export const admin = {
   athleteList: async (): Promise<AdminAthlete[]> => (await api.get<{ athletes: AdminAthlete[] }>('/admin/athletes')).athletes,
   ai: (id: string) => api.get<AiAccessSummary>(`/admin/athletes/${enc(id)}/ai`),
@@ -163,6 +163,10 @@ export const admin = {
   setKey: (id: string, key: string) => api.put<AiAccessSummary>(`/admin/athletes/${enc(id)}/openrouter-key`, { key }),
   removeKey: (id: string) => api.del<AiAccessSummary>(`/admin/athletes/${enc(id)}/openrouter-key`),
   recoveryCode: (id: string) => api.post<{ code: string; expiresAt: string }>(`/admin/athletes/${enc(id)}/recovery-code`),
+  suspend: async (id: string) => (await api.post<{ athlete: AdminAthlete }>(`/admin/athletes/${enc(id)}/suspend`)).athlete,
+  reactivate: async (id: string) => (await api.post<{ athlete: AdminAthlete }>(`/admin/athletes/${enc(id)}/reactivate`)).athlete,
+  /** `confirm` must equal the person's display name. */
+  deleteAthlete: (id: string, confirm: string) => request<void>('DELETE', `/admin/athletes/${enc(id)}`, { confirm }),
   athletes: () => api.get<unknown>('/admin/athletes'),
   invite: () => api.post<{ code: string }>('/admin/invites'),
   costs: () => api.get<unknown>('/admin/costs'),

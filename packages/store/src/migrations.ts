@@ -275,4 +275,9 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (athlete_id, provider)
   );
   `,
+  // ---------------------------------------------------------------------- v3: account suspension
+  // Additive on purpose: rebuilding `athletes` to widen its status CHECK would cascade through every child table.
+  `
+  ALTER TABLE athletes ADD COLUMN suspended_at TEXT;
+  `,
 ];

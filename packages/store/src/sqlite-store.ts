@@ -57,7 +57,7 @@ import { loadSqlite, type DatabaseSync, type SQLInputValue, type StatementSync }
 
 // ------------------------------------------------------------------------------------ field specs
 
-const ATHLETE: Field[] = [req('id'), req('displayName'), req('isAdmin', 'bool'), req('status'), req('createdAt')];
+const ATHLETE: Field[] = [req('id'), req('displayName'), req('isAdmin', 'bool'), req('status'), opt('suspendedAt', 'iso'), req('createdAt')];
 
 const PAIRING: Field[] = [req('code'), req('purpose'), opt('athleteId'), opt('createdBy'), opt('isAdmin', 'bool'), req('expiresAt', 'iso'), opt('consumedAt', 'iso')];
 
@@ -347,8 +347,8 @@ export class SqliteStore implements Store {
     return this.many<AthleteRecord>('athletes', ATHLETE, 'ORDER BY created_at, id');
   }
 
-  async updateAthlete(id: string, patch: Partial<Pick<AthleteRecord, 'displayName' | 'isAdmin' | 'status'>>): Promise<void> {
-    const allowed = { displayName: patch.displayName, isAdmin: patch.isAdmin, status: patch.status };
+  async updateAthlete(id: string, patch: Partial<Pick<AthleteRecord, 'displayName' | 'isAdmin' | 'status' | 'suspendedAt'>>): Promise<void> {
+    const allowed = { displayName: patch.displayName, isAdmin: patch.isAdmin, status: patch.status, suspendedAt: patch.suspendedAt };
     this.patchRow('athletes', ATHLETE, 'id', id, allowed, ['id', 'createdAt'], 'athlete');
   }
 

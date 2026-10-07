@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { newId, randomToken, type Clock, type SessionRecord, type Store } from '@opencoach/protocol';
+import { accountUsable, newId, randomToken, type Clock, type SessionRecord, type Store } from '@opencoach/protocol';
+import { forbidden } from './errors';
 
 export const SESSION_COOKIE = 'oc_session';
 export const CSRF_COOKIE = 'oc_csrf';
@@ -47,6 +48,9 @@ export class SessionManager {
   /** Create a session. Only the sha256 of the token is stored. */
   async create(athleteId: string, opts: { deviceName?: string; kind?: SessionRecord['kind'] } = {}): Promise<IssuedSession> {
     const { store, clock } = this.deps;
+    // Every sign-in path (pairing, passkey, recovery, invite, setup) ends here, so suspension is enforced once.
+    const athlete = await store.getAthlete(athleteId);
+    if (athlete?.suspendedAt) throw forbidden('This account is suspended. Ask your administrator.', 'account_suspended');
     const now = clock.now();
     const token = randomToken(32);
     const record: SessionRecord = {
@@ -76,7 +80,7 @@ export class SessionManager {
     const now = clock.now().getTime();
     if (new Date(rec.expiresAt).getTime() <= now) return undefined;
     const athlete = await store.getAthlete(rec.athleteId);
-    if (!athlete || athlete.status !== 'active') return undefined;
+    if (!athlete || !accountUsable(athlete)) return undefined;
 
     let renewedUntil: string | undefined;
     const remaining = new Date(rec.expiresAt).getTime() - now;

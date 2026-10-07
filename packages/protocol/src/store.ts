@@ -16,7 +16,14 @@ export interface AthleteRecord {
   displayName: string;
   isAdmin: boolean;
   status: 'active' | 'deleted';
+  /** Set while an administrator has suspended the account: no sign-in, no sessions, no coach turns. Data is kept. */
+  suspendedAt?: string | null;
   createdAt: string;
+}
+
+/** Whether an account may sign in, use sessions and have its coach run (not deleted, not suspended). */
+export function accountUsable(a: Pick<AthleteRecord, 'status' | 'suspendedAt'> | undefined | null): boolean {
+  return !!a && a.status === 'active' && !a.suspendedAt;
 }
 
 export interface SessionRecord {
@@ -219,7 +226,7 @@ export interface Store {
   createAthlete(input: { id?: string; displayName: string; isAdmin: boolean; settings: AthleteSettings }): Promise<AthleteRecord>;
   getAthlete(id: string): Promise<AthleteRecord | undefined>;
   listAthletes(): Promise<AthleteRecord[]>;
-  updateAthlete(id: string, patch: Partial<Pick<AthleteRecord, 'displayName' | 'isAdmin' | 'status'>>): Promise<void>;
+  updateAthlete(id: string, patch: Partial<Pick<AthleteRecord, 'displayName' | 'isAdmin' | 'status' | 'suspendedAt'>>): Promise<void>;
   /** Hard delete of every row belonging to the athlete (SPEC [SEC-6]). */
   deleteAthlete(id: string): Promise<void>;
   getSettings(athleteId: string): Promise<AthleteSettings>;
