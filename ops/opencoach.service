@@ -1,0 +1,21 @@
+# systemd user unit for a small self-hosted instance (see docs/self-hosting.md, "Small home instance").
+# Install: cp ops/opencoach.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+[Unit]
+Description=OpenCoach
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/opencoach-prod/app/apps/server
+EnvironmentFile=%h/opencoach-prod/opencoach.env
+Environment=PATH=/opt/opencoach-node22/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/opencoach-node22/bin/node --import tsx src/main.ts
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=45
+KillMode=control-group
+UMask=0077
+
+[Install]
+WantedBy=default.target
