@@ -99,7 +99,7 @@ Results feed a **public compatibility matrix**: per model, the conformance pass/
 
 | Trigger | What runs | Rough cost (to be measured) |
 |---|---|---|
-| PR touching `seed/`, constitution, skills, runtime or engine | Harness cassette tests + **fast eval subset** (~25 short scenarios incl. all gate suites' smoke sets) | ~$5–15 |
+| PR touching `seed/`, constitution, skills, runtime or engine | Harness cassette tests + **fast eval subset** (28 scenarios incl. gate smoke sets and achievements) | ~$5–15 |
 | Nightly on main | All focused suites (~250 scenarios) + 2 long-horizon sims | ~$100–250 |
 | Weekly | Full long-horizon cohort (10 personas × 16 weeks) + swap tests | ~$400–800 |
 | Release candidate | Everything + human-coach review sample | — |

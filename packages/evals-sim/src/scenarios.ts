@@ -34,6 +34,10 @@ export const Assertion = z.object({
   /** Universal checks on optional derived records may legitimately have no rows. */
   allowEmpty: z.boolean().optional(),
   path: z.string().optional(),
+  /** Select a value from a saved JSON file before applying content/length bounds. */
+  jsonPath: z.array(z.union([z.string(), z.number().int().nonnegative()])).optional(),
+  /** A selected JSON array must reference actual trace events, not invented IDs. */
+  referenceSet: z.literal('events').optional(),
   viewId: z.string().optional(),
   /** Compare against this earlier action without reloading or republishing the view. */
   continuousFrom: z.number().int().nonnegative().optional(),

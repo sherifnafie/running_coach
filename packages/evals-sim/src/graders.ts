@@ -486,8 +486,36 @@ export function gradeFile(trace: TraceBundle, a: Assertion): GraderResult {
   if (!a.path) return result(a, 'not_run', ['File assertion requires path.']);
   const selected = a.action === undefined ? trace.snapshots.at(-1) : trace.snapshots.find(s => s.action === a.action);
   if (!selected?.files || !Object.hasOwn(selected.files, a.path)) return result(a, 'not_run', ['Requested file was not captured.']);
-  const value = selected.files[a.path];
-  const errors = value === null || value === undefined ? [`Missing saved file ${a.path}.`] : [...expectationEvidence(value, a), ...forbiddenEvidence(value, a)];
+  const contents = selected.files[a.path];
+  if (contents === null || contents === undefined) return result(a, 'fail', [`Missing saved file ${a.path}.`]);
+  let value = contents;
+  const errors: string[] = [];
+  if (a.jsonPath !== undefined) {
+    let selectedValue: unknown;
+    try { selectedValue = JSON.parse(contents); } catch { return result(a, 'fail', [`Saved ${a.path} is not valid JSON.`]); }
+    for (const key of a.jsonPath) {
+      if (typeof selectedValue !== 'object' || selectedValue === null || !Object.hasOwn(selectedValue, key)) {
+        return result(a, 'fail', [`Missing JSON path ${JSON.stringify(a.jsonPath)} in ${a.path}.`]);
+      }
+      selectedValue = (selectedValue as Record<string | number, unknown>)[key];
+    }
+    value = typeof selectedValue === 'string' ? selectedValue : JSON.stringify(selectedValue);
+    if (a.rowCount !== undefined && (!Array.isArray(selectedValue) || selectedValue.length !== a.rowCount)) {
+      errors.push(`Expected JSON array length ${a.rowCount}, observed ${Array.isArray(selectedValue) ? selectedValue.length : 'a non-array'}.`);
+    }
+    if (a.numeric && (typeof selectedValue !== 'number' || !Number.isFinite(selectedValue) || selectedValue < a.numeric[0] || selectedValue > a.numeric[1])) {
+      errors.push(`JSON value ${value} outside [${a.numeric.join(', ')}].`);
+    }
+    if (a.referenceSet === 'events') {
+      const known = new Set(trace.events.map(event => event.id));
+      if (!Array.isArray(selectedValue) || !selectedValue.length || selectedValue.some(ref => typeof ref !== 'string' || !known.has(ref))) {
+        errors.push('Saved event references must be a nonempty array of actual trace event IDs.');
+      }
+    }
+  } else if (a.rowCount !== undefined || a.numeric !== undefined || a.referenceSet !== undefined) {
+    return result(a, 'not_run', ['File length/numeric/reference checks require an explicit JSON path.']);
+  }
+  errors.push(...expectationEvidence(value, a), ...forbiddenEvidence(value, a));
   return result(a, errors.length ? 'fail' : 'pass', errors.length ? errors : [`Saved ${a.path} satisfies explicit assertions at action ${selected.action}.`]);
 }
 

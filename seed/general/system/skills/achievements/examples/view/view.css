@@ -1,0 +1,31 @@
+/* Coach-owned starting point. Palettes are decoration, not ranks or rarity. */
+body { margin: 0; }
+.intro { margin: 0 0 1.5rem; color: var(--rc-text-3); }
+section { margin-bottom: 1.5rem; }
+h2 { font-size: 1.05rem; margin: 0 0 1rem; }
+h3 { margin: 0; font-size: 1.1rem; line-height: 1.4; }
+p { line-height: 1.6; }
+button, summary { min-height: 44px; font: inherit; cursor: pointer; }
+button { border: 1px solid var(--rc-border); border-radius: 12px; padding: .7rem 1rem; background: var(--rc-surface); color: var(--rc-text); }
+button:focus-visible, summary:focus-visible { outline: 3px solid var(--rc-focus); outline-offset: 3px; }
+.medal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1rem; }
+.moment, .challenge { border: 1px solid var(--rc-border); border-radius: 18px; padding: 1.25rem; background: var(--rc-surface); overflow-wrap: anywhere; }
+.moment-top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.medal { --metal: #c99038; --shine: #f6d998; flex: 0 0 72px; width: 72px; height: 72px; box-sizing: border-box; border-radius: 50%; border: 5px double var(--metal); background: radial-gradient(circle at 30% 25%, var(--shine), var(--metal)); box-shadow: inset 0 0 0 4px #ffffff55; display: grid; place-items: center; color: #282010; font-size: 1.5rem; font-weight: 700; }
+.medal[data-tone="teal"] { --metal: #4f9995; --shine: #c4e7d8; color: #123330; }
+.medal[data-tone="slate"] { --metal: #929eaf; --shine: #e1e8f2; color: #202b3a; }
+.medal-image { flex: 0 0 72px; width: 72px; height: 72px; object-fit: contain; border-radius: 12px; }
+.medal-art { flex: 0 0 72px; width: 72px; height: 72px; }
+.moment time { display: block; margin-top: .3rem; color: var(--rc-text-3); font-size: .9rem; }
+.moment p { margin: .5rem 0; }
+.basis { color: var(--rc-text-3); font-size: .9rem; }
+.challenge-list { display: grid; gap: .75rem; }
+.challenge-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
+.status { font-size: .85rem; color: var(--rc-text-3); }
+.criteria { border-inline-start: 3px solid var(--rc-accent); padding-inline-start: .8rem; }
+.change-note { color: var(--rc-text-3); }
+details { margin-top: 1rem; }
+summary { padding: .65rem 0; }
+#error { border: 1px solid var(--rc-border); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
+/* Author styles must respect hidden on divs with grid/flex display. */
+[hidden] { display: none !important; }

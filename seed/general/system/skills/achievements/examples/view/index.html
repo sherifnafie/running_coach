@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Achievements</title>
+  <link rel="stylesheet" href="/kit/1/kit.css">
+  <link rel="stylesheet" href="view.css">
+  <script type="module" src="/kit/1/kit.js"></script>
+  <script type="module" src="view.js"></script>
+</head>
+<body>
+<rc-page>
+  <rc-header heading="Achievements"></rc-header>
+  <p class="intro">Moments from your training worth remembering.</p>
+  <p id="loading" role="status">Loading your collection…</p>
+  <div id="error" role="status" hidden>
+    <p>Your collection couldn't refresh. Any moments already shown are from the last successful update.</p>
+    <button id="retry" type="button">Try again</button>
+    <button class="chat" type="button">Talk with coach</button>
+  </div>
+  <div id="content" hidden>
+    <section aria-labelledby="earned-heading">
+      <h2 id="earned-heading">Earned moments</h2>
+      <p id="empty" hidden>No achievements recorded yet. There is no rush to fill this.</p>
+      <div id="earned" class="medal-grid"></div>
+    </section>
+    <section id="challenges-section" aria-labelledby="challenges-heading" hidden>
+      <h2 id="challenges-heading">Challenges</h2>
+      <div id="challenges" class="challenge-list"></div>
+      <details id="past" hidden>
+        <summary>Past challenges</summary>
+        <div id="past-challenges" class="challenge-list"></div>
+      </details>
+    </section>
+    <button class="chat" type="button">Talk with coach</button>
+  </div>
+</rc-page>
+</body>
+</html>

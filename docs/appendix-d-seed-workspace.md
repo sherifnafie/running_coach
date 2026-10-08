@@ -341,6 +341,7 @@ The implementation also ships a `research` skill: depth selection, source retrie
 | `environment` | Heat, cold, altitude, air quality | Adjustments, acclimatization, warning signs, when to move indoors |
 | `fueling-basics` | Everyday and in-session fueling | Eating enough, protein and carbohydrate in plain terms, in-session carbohydrate, hydration, supplements; **explicit RED-S, ED and weight-cutting cautions**; when to refer to a dietitian |
 | `ui-kit` | Building views for the athlete's app | Kit components and tokens, bridge API, design rules, patterns, performance budget, publish workflow |
+| `achievements` | Occasional meaningful milestones or requested challenges | Honest earned recognition, restraint and kind pushback on unearned rewards; agreed/revised criteria, source references, opt-out and dedupe; optional editable JSON ledger and hidden gallery under the skill's examples, absent from day-zero navigation/data |
 | `calendar-export` | Maintaining `exports/calendar.ics` | ICS structure, timezone handling, stable UIDs, descriptions with session structure and exercises |
 | `data-hygiene` | Keeping the data trustworthy | Units, timezones, duplicates, provenance, lifting-set checks, corrections, re-derivation; `check_db.py` |
 

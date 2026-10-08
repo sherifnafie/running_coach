@@ -12,7 +12,7 @@ const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const seedRoot = join(root, 'seed');
 const packRoot = join(seedRoot, 'general');
 const requiredSkills = [
-  'calendar-export', 'coach-identity', 'competition-prep', 'data-hygiene', 'disciplines', 'environment', 'file-import',
+  'achievements', 'calendar-export', 'coach-identity', 'competition-prep', 'data-hygiene', 'disciplines', 'environment', 'file-import',
   'fueling-basics', 'illness-return', 'injury-and-pain', 'intake', 'plan-design', 'research', 'running',
   'screenshot-extraction', 'strength-training', 'training-load', 'ui-kit',
 ];
@@ -126,6 +126,16 @@ describe('general seed pack (Appendix D)', () => {
     }
     expect(await fs.stat(join(system, 'seed-workspace/skills/.gitkeep')).catch(() => null)).toBeNull();
     expect(await fs.readFile(join(system, 'CHANGELOG-for-coach.md'), 'utf8')).toContain('/system/seed-workspace/');
+  });
+
+  it('[SK-1] [UI-2] ships the optional gallery without installing records or navigation', async () => {
+    const example = join(system, 'skills/achievements/examples');
+    expect(JSON.parse(await fs.readFile(join(example, 'achievements.json'), 'utf8'))).toEqual({ version: 1, achievements: [], challenges: [] });
+    expect(JSON.parse(await fs.readFile(join(workspace, 'ui/app.json'), 'utf8')).nav).toEqual(['today', 'calendar', 'plan', 'progress']);
+    expect(await fs.stat(join(workspace, 'data/achievements.json')).catch(() => null)).toBeNull();
+    for (const file of ['README.md', 'view/view.json', 'view/index.html', 'view/view.js', 'view/view.css']) {
+      expect((await fs.stat(join(example, file))).isFile(), file).toBe(true);
+    }
   });
 
   it('indexes every Appendix D skill with valid frontmatter and existing bundled script references', async () => {

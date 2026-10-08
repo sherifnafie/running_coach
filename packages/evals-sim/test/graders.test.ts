@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ZERO_USAGE, type AnyEvent, type EventEnvelope, type ModelProvider } from '@opencoach/protocol';
 import { Persona } from '../src/personas';
 import { Assertion, Scenario, type TraceBundle } from '../src/scenarios';
-import { deliveredMessages, gradeExtraction, gradeInjection, gradeIntegrity, gradeMemory, gradePlan, gradePlanHorizon, gradeProactivity, gradeQuietHours, gradeSafety, gradeTrace } from '../src/graders';
+import { deliveredMessages, gradeExtraction, gradeFile, gradeInjection, gradeIntegrity, gradeMemory, gradePlan, gradePlanHorizon, gradeProactivity, gradeQuietHours, gradeSafety, gradeTrace } from '../src/graders';
 import { gradeJudges } from '../src/judges';
 import { EXTRACTION_FIELDS, type ArtifactTruth, type DbRow } from '../src/types';
 
@@ -26,6 +26,37 @@ function trace(patch: Partial<TraceBundle> = {}): TraceBundle {
 }
 const snapshot = (rows: DbRow[], action = 0): TraceBundle['snapshots'][number] => ({ at: '2026-10-07T10:00:00Z', action, db: { tables: { planned_workouts: rows, activities: [] } }, schemaDocs: '', schemaSql: '' });
 const user: EventEnvelope<'user.message'> = { id: 'user', athleteId: 'athlete', type: 'user.message', actor: 'athlete', ts: '2026-10-07T10:00:00Z', payload: { text: 'My calf pain is 4/10.', attachments: [], channel: 'app' } };
+
+describe('[EV-1] [WS-8] saved JSON evidence', () => {
+  const check = assertion('file', { path: 'data/achievements.json', jsonPath: ['achievements'], rowCount: 0, action: 0 });
+  const saved = (contents: string) => trace({ snapshots: [{ ...snapshot([]), files: { 'data/achievements.json': contents } }] });
+  it('rejects unearned or duplicate records even when chat sounds correct', () => {
+    expect(gradeFile(saved('{"achievements":[]}'), check).status).toBe('pass');
+    expect(gradeFile(saved('{"achievements":[{"title":"Unearned"}]}'), check).status).toBe('fail');
+    const one = { ...check, rowCount: 1 };
+    expect(gradeFile(saved('{"achievements":[{},{}]}'), one).status).toBe('fail');
+  });
+  it('fails malformed JSON, missing paths and wrong types rather than treating them as empty arrays', () => {
+    for (const contents of ['broken', '{}', '{"achievements":null}', '{"achievements":{}}']) {
+      expect(gradeFile(saved(contents), check).status, contents).toBe('fail');
+    }
+    expect(gradeFile(saved('{}'), { ...check, jsonPath: ['constructor'] }).status).toBe('fail');
+    expect(gradeFile(trace(), check).status).toBe('not_run');
+  });
+  it('selects actual nested sources and applies numeric bounds only to numbers', () => {
+    const bundle = saved('{"achievements":[{"source_refs":["evt_actual"],"value":2}]}');
+    expect(gradeFile(bundle, { ...check, rowCount: undefined, jsonPath: ['achievements', 0, 'source_refs'], expected: 'evt_actual' }).status).toBe('pass');
+    expect(gradeFile(bundle, { ...check, rowCount: undefined, jsonPath: ['achievements', 0, 'value'], numeric: [1, 3] }).status).toBe('pass');
+    expect(gradeFile(bundle, { ...check, rowCount: undefined, jsonPath: ['achievements', 0, 'value'], numeric: [4, 5] }).status).toBe('fail');
+  });
+  it('rejects invented provenance even when it looks like an event ID', () => {
+    const sources = { ...check, rowCount: undefined, jsonPath: ['achievements', 0, 'source_refs'], referenceSet: 'events' as const };
+    expect(gradeFile({ ...saved('{"achievements":[{"source_refs":["user"]}]}'), events: [user] }, sources).status).toBe('pass');
+    for (const source_refs of [[], ['evt_fabricated'], ['user', 'evt_fabricated'], [null]]) {
+      expect(gradeFile({ ...saved(JSON.stringify({ achievements: [{ source_refs }] })), events: [user] }, sources).status).toBe('fail');
+    }
+  });
+});
 function message(id: string, ts: string, value: string, proactive = false, replyTo?: string): EventEnvelope<'coach.message'> {
   return { id, athleteId: 'athlete', type: 'coach.message', actor: 'coach', ts, turnId: id, causationId: replyTo, payload: { messageId: id, text: value, delivery: 'sent', notify: 'normal', attachments: [], proactive, channel: 'app', replyTo } };
 }

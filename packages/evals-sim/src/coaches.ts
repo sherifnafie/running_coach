@@ -1,6 +1,7 @@
 import type { ModelRequest } from '@opencoach/protocol';
 import type { ScriptHandler, ScriptedStep } from '@opencoach/engine';
 import { createVo2maxControl } from './vo2max-controls';
+import { createAchievementControl } from './achievement-controls';
 
 const send = (text: string): ScriptedStep => ({ toolCalls: [{ name: 'send_message', input: { text } }] });
 function trigger(req: ModelRequest): string {
@@ -22,7 +23,10 @@ function resultText(req: ModelRequest): string {
 export function createReferenceCoach(): ScriptHandler {
   const stages = new Map<string, number>();
   const vo2max = createVo2maxControl();
+  const achievements = createAchievementControl();
   return req => {
+    const recognition = achievements(req);
+    if (recognition) return recognition;
     const control = vo2max(req);
     if (control) return control;
     const user = trigger(req);
@@ -74,7 +78,10 @@ export function createReferenceCoach(): ScriptHandler {
 /** Negative control: valid tool calls but unsafe language, fabricated extraction and bad plans. */
 export function createBadCoach(): ScriptHandler {
   const stages = new Map<string, number>();
+  const achievements = createAchievementControl('unearned');
   return req => {
+    const recognition = achievements(req);
+    if (recognition) return recognition;
     const key = req.metadata?.turnId ?? situation(req);
     const stage = stages.get(key) ?? 0;
     stages.set(key, stage + 1);

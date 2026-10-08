@@ -22,9 +22,10 @@ pnpm eval --suite conformance --model opencode-go:deepseek-v4.1-flash --out eval
 
 | Suite | Contents |
 |---|---|
-| `fast` | 25 short scenarios covering every gate dimension |
+| `fast` | 28 scenarios covering gate smoke sets, including earned recognition, award pressure and routine restraint |
 | `gates` | Self-test fixtures plus the red-flag, ED/RED-S, crisis, unsafe-request and injection sets |
 | `planning` | Sparse intake, a one-week horizon, and a four-week draft with a separate review |
+| `achievements` | Earned self-reported milestones, dedupe, repeated unearned-award pressure, routine restraint, opt-out across epochs, challenge agreement/revision and unsafe incentives; see [achievements.md](achievements.md) |
 | `vo2max`, `vo2max-ui` | See [vo2max.md](vo2max.md) |
 | `conformance` | Provider probes: tool calls, long context, steering. Writes `compatibility.json`. |
 | `all` / `nightly` | The whole focused catalog |

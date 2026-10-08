@@ -1,15 +1,38 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { VirtualClock, PREVIEW_VARIANTS } from '@opencoach/protocol';
 import { chromiumAvailable, createPlaywrightRenderer, kitDistDir } from '../src/index';
-import { makeWorkspace, NOW } from './helpers/workspace';
+import { makeWorkspace, NOW, REPO_ROOT } from './helpers/workspace';
 
 const dirs: string[] = [];
 afterEach(async () => { for (const d of dirs.splice(0)) await rm(d, { recursive: true, force: true }); });
 
 describe.skipIf(!chromiumAvailable())('[UI-1] [UI-3] Chromium seed view publish gates', () => {
+  it('renders the optional achievements example through the real bridge and all publish gates', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'achievement-render-'));
+    dirs.push(dir);
+    makeWorkspace(dir, { data: 'empty' });
+    const example = join(REPO_ROOT, 'seed/general/system/skills/achievements/examples');
+    await cp(join(example, 'view'), join(dir, 'ui/views/achievements'), { recursive: true });
+    await writeFile(join(dir, 'data/achievements.json'), JSON.stringify({ version: 1, achievements: [
+      { id: 'first-finish', title: 'The First Finish', description: 'Your first race, after the months you spent getting to the start line.', earned_on: '2026-10-04', basis: 'Result you reported', source_refs: ['evt_actual'], symbol: '5K', tone: 'amber' },
+      { id: 'strength', title: 'A little stronger', description: 'The lift you worked toward, without rushing the process.', earned_on: '2026-09-20', symbol: '↑', tone: 'teal' },
+    ], challenges: [
+      { id: 'rhythm', title: 'Finding a rhythm', description: 'A manageable month alongside everything else.', criteria: 'Three chosen planned sessions each week, with no catch-up sessions.', status: 'active', accepted_on: '2026-10-01', period: 'October 2026' },
+      { id: 'paused', title: 'A future goal', criteria: 'The agreed sessions when travel settles.', status: 'paused', accepted_on: '2026-10-01', change_note: 'Paused for travel. Your past achievements stay yours.' },
+    ] }));
+    const renderer = createPlaywrightRenderer({ clock: new VirtualClock(NOW), env: { locale: 'en-GB', tz: 'Europe/Amsterdam' } });
+    try {
+      const report = await renderer.preview({ athleteId: 'test-athlete', workspaceDir: dir, views: ['achievements'], kitDir: await kitDistDir(), outDir: join(dir, 'screenshots') });
+      expect(report.ok, JSON.stringify(report)).toBe(true);
+      expect(report.views[0]?.a11y.critical).toBe(0);
+      expect(report.views[0]?.a11y.serious, JSON.stringify(report.views[0]?.a11y)).toBe(0);
+      expect(report.views[0]?.screenshots.map(shot => shot.variant)).toEqual([...PREVIEW_VARIANTS]);
+    } finally { await renderer.dispose(); }
+  }, 180_000);
+
   it.each(['empty', 'sample'] as const)('renders all four views against %s data and empty fixture', async (data) => {
     const dir = await mkdtemp(join(tmpdir(), 'kit-render-'));
     dirs.push(dir);

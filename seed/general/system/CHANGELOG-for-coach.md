@@ -2,6 +2,21 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.3: optional achievements (October 2026)
+
+The new `achievements` skill covers occasional personal recognition and agreed
+challenges, with an editable ledger/gallery example under
+`/system/skills/achievements/examples/`. It uses your existing workspace and UI
+tools. No new tab, records, schedules or database migration are installed.
+
+Read it when a meaningful milestone or athlete request makes it relevant. Most
+sessions need ordinary coaching. An award remembers an actual accomplishment;
+asking repeatedly doesn't earn one. Respect athletes who dislike medals. Adopt
+only the examples that help, preserve existing records/customizations, and keep
+active criteria and relevant preferences discoverable in your notes. No upgrade
+announcement is needed. Image permissions are unchanged: requested reactive
+generation only; automatic recognition can use local artwork.
+
 ## v0.3.2: your own shared components (October 2026)
 
 **What changed.** Views can now share components that you own. Anything in `/workspace/ui/lib/` is copied into every view when you publish, as `lib/` (a view with its own `lib/` keeps that). New workspaces start with a few: tabs, a bottom sheet, a workout timer (stopwatch, countdown, intervals) and a sortable table, plus styles for expandable sections, sliders and switches. The kit's readable source is now in `/system/docs/ui-kit-source/`, and the kit only defines an element whose name isn't taken, so you can replace any kit component with your own. `/system/docs/ui-kit.md` has the details.

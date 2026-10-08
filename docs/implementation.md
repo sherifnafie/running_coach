@@ -41,7 +41,7 @@ athletes/<athleteId>/             see athletePaths() in protocol/src/config.ts
 ```
 seed/core/constitution.md              harness-generic constitution with {{pack_coaching}} and {{pack_safety}} slots
 seed/core/addenda/*.md                 helper, voice, consolidation, upgrade, safety-notice preambles
-seed/general/pack.json                 { "id": "general", "version": "0.2.0", "name": "General coaching" }
+seed/general/pack.json                 { "id": "general", "version": "0.3.3", "name": "General coaching" }
 seed/general/constitution/coaching.md  fills {{pack_coaching}} (any sport, chosen by the athlete; ADR 0006)
 seed/general/constitution/safety.md    fills {{pack_safety}} (red flags for all sports, weight-cut and high-risk rules)
 seed/general/system/                   → /system: docs/*.md, skills/<name>/SKILL.md (+ refs, scripts), CHANGELOG-for-coach.md
@@ -53,6 +53,12 @@ Placeholders rendered at workspace init: `{{athlete_name}}`, `{{coach_name}}`, `
 Placeholders rendered per epoch in the constitution: `{{coach_name}}`, `{{athlete_name}}`, `{{harness_version}}`, `{{pack_version}}`.
 
 The runtime builds a frozen per-epoch system prompt from the constitution (with the pack's addenda), a skill index (not the skill bodies), `AGENTS.md` with its pinned files, and `briefing.md`. Product guidance for the coach lives at `/system/docs/opencoach.md`. `capabilities.ts` adds configuration facts to each turn's situation report and to helper environments: granted tools, search/fetch, renderer, and model/vision routes. Credentials and deployment headers never enter model context.
+
+Optional achievement examples live under `system/skills/achievements/examples/`,
+outside the copied starter workspace. The coach can adopt the empty JSON ledger
+and hidden gallery when useful; no harness migration or award logic reads them
+([ADR 0009](adr/0009-coach-owned-achievements.md)). Generated-image blobs are
+private attachments, not workspace files; gallery art uses local assets.
 
 ## Views at runtime
 

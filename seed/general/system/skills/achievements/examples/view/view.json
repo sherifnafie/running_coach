@@ -1,0 +1,12 @@
+{
+  "id": "achievements",
+  "title": "Achievements",
+  "icon": "star",
+  "placement": { "hidden": true },
+  "entry": "index.html",
+  "kit": "1",
+  "reads": ["file:data/achievements.json"],
+  "writes": [],
+  "actions": [],
+  "refresh": "on-change"
+}
