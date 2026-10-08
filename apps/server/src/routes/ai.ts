@@ -21,7 +21,7 @@ const OAUTH_TTL_MS = 10 * 60_000;
 const RECOVERY_TTL_MS = 30 * 60_000;
 const Budgets = z.object({ dailyUsd: z.number().min(0).max(1000), monthlyUsd: z.number().min(0).max(10_000) }).strict();
 const KeyBody = z.object({ key: z.string().trim().min(1).max(512) }).strict();
-const ModelBody = z.object({ model: z.string().min(1).max(200) }).strict();
+const ModelBody = z.object({ model: z.string().min(1).max(200), tier: z.enum(['coach', 'deep']).default('coach') }).strict();
 
 export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
   const { store, runtime, clock, credentials, models } = ctx.deps;
@@ -38,11 +38,14 @@ export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     const settings = await store.getSettings(athleteId);
     const billing = credentials.billing(athleteId);
     const chosen = settings.models.coach?.provider === 'openrouter' ? settings.models.coach.model : undefined;
+    const chosenDeep = settings.models.deep?.provider === 'openrouter' ? settings.models.deep.model : undefined;
     return {
       billing,
       openrouterKey: credentials.summary(athleteId, 'openrouter') ?? null,
       model: chosen ?? models.defaultModel,
       defaultModel: models.defaultModel,
+      deepModel: chosenDeep ?? models.defaultDeepModel,
+      defaultDeepModel: models.defaultDeepModel,
       catalog: models.catalog.map((m: ModelCatalogEntry) => ({ id: m.id, label: m.label, description: m.description, vision: m.vision })),
       budgets: settings.budgets,
       usage: await usageSummary(athleteId),
@@ -59,11 +62,12 @@ export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     };
   }
 
-  async function setModel(athleteId: string, model: string) {
+  /** The chat model (coach tier) or the deep-work model (deep tier: background plans, reviews, research). */
+  async function setModel(athleteId: string, body: { model: string; tier: 'coach' | 'deep' }) {
     const { models } = requireModels();
-    if (!models.catalog.some((m) => m.id === model)) throw badRequest('Choose one of the offered models.');
-    // The picker chooses the coach's own model; deep background work keeps the server's deep-tier default.
-    await runtime.updateSettings(athleteId, { models: { coach: { provider: 'openrouter', model } } });
+    if (!models.catalog.some((m) => m.id === body.model)) throw badRequest('Choose one of the offered models.');
+    const choice = body.tier === 'deep' ? { deep: { provider: 'openrouter', model: body.model, effort: 'high' as const } } : { coach: { provider: 'openrouter', model: body.model } };
+    await runtime.updateSettings(athleteId, { models: choice });
   }
 
   async function storeKey(athleteId: string, key: string, owner: 'athlete' | 'admin') {
@@ -106,7 +110,7 @@ export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     const athleteId = ctx.athleteId(request);
     const { credentials } = requireModels();
     if (credentials.billing(athleteId) !== 'byok' && !request.auth!.isAdmin) throw forbidden('Your administrator chooses the model. Connect your own OpenRouter key to choose it yourself.', 'managed_billing');
-    await setModel(athleteId, ModelBody.parse(request.body).model);
+    await setModel(athleteId, ModelBody.parse(request.body));
     return summary(athleteId);
   });
 
@@ -161,7 +165,7 @@ export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
 
   app.put('/admin/athletes/:id/model', { preHandler: admin }, async (request) => {
     const athleteId = await target(request);
-    await setModel(athleteId, ModelBody.parse(request.body).model);
+    await setModel(athleteId, ModelBody.parse(request.body));
     return summary(athleteId);
   });
 

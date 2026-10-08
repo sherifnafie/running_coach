@@ -44,7 +44,7 @@ export interface GatewayDeps {
   /** Per-athlete provider keys (managed or bring-your-own) [SEC-1]. */
   credentials?: import('../credentials').CredentialService;
   /** Models offered through OpenRouter and where to verify keys. Absent when OpenRouter is not configured. */
-  models?: { catalog: import('@opencoach/protocol').ModelCatalogEntry[]; defaultModel: string; openrouterBaseUrl: string };
+  models?: { catalog: import('@opencoach/protocol').ModelCatalogEntry[]; defaultModel: string; defaultDeepModel: string; openrouterBaseUrl: string };
   /** Called after an account is deleted (adapters drop their mappings). */
   onAthleteDeleted?: (athleteId: string) => Promise<void>;
   /** Stop adapter producers and remove mappings before deleting the athlete's Store state. */

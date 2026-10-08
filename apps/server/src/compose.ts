@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ModelCatalogEntry, SystemClock, consoleLogger, type Clock, type Logger, type ModelProvider, type ServerConfig, type UiRenderer, type ImageProvider } from '@opencoach/protocol';
 import {
-  DEFAULT_OPENROUTER_CATALOG, DEFAULT_OPENROUTER_MODEL, createAgentLoop, createCompatibleProvider, createImageProvider, createModelRouter, createOpenRouterProvider,
+  DEFAULT_OPENROUTER_CATALOG, DEFAULT_OPENROUTER_DEEP_MODEL, DEFAULT_OPENROUTER_MODEL, createAgentLoop, createCompatibleProvider, createImageProvider, createModelRouter, createOpenRouterProvider,
   createScriptedProvider, demoCoachHandler, type OpenRouterProviderOptions,
 } from '@opencoach/engine';
 import { createCoachRuntime, createSafetyScreen, createWebSearchBackend, localDayStartIso, localMonthStartIso } from '@opencoach/runtime';
@@ -135,7 +135,7 @@ export async function composeServer(opts: ComposeOptions = {}) {
       vapidPublicKey: push.publicKey?.(), exportAthlete, stripImageLocation,
       telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); credentials.forget(athleteId); },
       labelPacks: new LabelPacks({ dataDir: config.dataDir, router: isDemoConfig(config) ? undefined : router, logger }),
-      credentials, models: openrouter && !isDemoConfig(config) ? { catalog, defaultModel: openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL, openrouterBaseUrl: openrouter.baseUrl } : undefined,
+      credentials, models: openrouter && !isDemoConfig(config) ? { catalog, defaultModel: openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL, defaultDeepModel: openrouter.deepModel ?? DEFAULT_OPENROUTER_DEEP_MODEL, openrouterBaseUrl: openrouter.baseUrl } : undefined,
     });
     cleanup.unshift(() => gateway.views.close(), () => gateway.app.close());
     await runtime.start();

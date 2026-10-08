@@ -20,11 +20,13 @@ export function AiAccessPanel({ summary, canEdit, onBudgets, onModel, children }
   summary: AiAccessSummary;
   canEdit: boolean;
   onBudgets: (b: { dailyUsd: number; monthlyUsd: number }) => void;
-  onModel: (model: string) => void;
+  onModel: (model: string, tier: 'coach' | 'deep') => void;
   children?: React.ReactNode;
 }) {
   const t = useI18n();
   const model = summary.catalog.find((m) => m.id === summary.model);
+  const deep = summary.catalog.find((m) => m.id === summary.deepModel);
+  const options = (fallback: string) => summary.catalog.map((m) => ({ value: m.id, label: m.id === fallback ? `${m.label} (${t('default')})` : m.label }));
   const { budgets, usage } = summary;
   const managed = summary.billing === 'managed';
   return (
@@ -36,9 +38,15 @@ export function AiAccessPanel({ summary, canEdit, onBudgets, onModel, children }
         <span>{t('Today')} {usd(usage.todayUsd)} / {usd(budgets.dailyUsd)} · {t('This month')} {usd(usage.monthUsd)} / {usd(budgets.monthlyUsd)}</span>
       </Row>
       {canEdit ? (
-        <SelectRow label={t('Coach model')} hint={model?.description} value={summary.model} options={summary.catalog.map((m) => ({ value: m.id, label: m.id === summary.defaultModel ? `${m.label} (${t('default')})` : m.label }))} onChange={onModel} />
+        <>
+          <SelectRow label={t('Chat model')} hint={t('Talks with you: replies, check-ins, quick changes. Speed matters here.')} value={summary.model} options={options(summary.defaultModel)} onChange={(m) => onModel(m, 'coach')} />
+          <SelectRow label={t('Deep work model')} hint={t('Works in the background on plans, reviews and research, where thinking matters more than speed.')} value={summary.deepModel} options={options(summary.defaultDeepModel)} onChange={(m) => onModel(m, 'deep')} />
+        </>
       ) : (
-        <Row label={t('Coach model')} hint={model?.description}><span>{model?.label ?? summary.model}</span></Row>
+        <>
+          <Row label={t('Chat model')} hint={model?.description}><span>{model?.label ?? summary.model}</span></Row>
+          <Row label={t('Deep work model')} hint={deep?.description}><span>{deep?.label ?? summary.deepModel}</span></Row>
+        </>
       )}
       {canEdit ? (
         <>
@@ -101,7 +109,7 @@ function ModelAccessSection() {
     }
   };
   useEffect(() => { aiApi.get().then(setSummary, (e) => setError(describeError(e))); }, []);
-  const hint = t('Your coach runs on AI models through OpenRouter. This shows who pays, what has been used and which model coaches you.');
+  const hint = t('Your coach runs on AI models through OpenRouter. This shows who pays, what has been used and which models coach you.');
   if (!summary) return <Section title={t('AI and costs')} hint={hint}>{error ? <p className="form-error">{error}</p> : <Spinner />}</Section>;
   const byok = summary.billing === 'byok';
   return (
@@ -109,7 +117,7 @@ function ModelAccessSection() {
       <AiAccessPanel
         summary={summary}
         canEdit={byok || isAdmin}
-        onModel={(model) => void run(() => aiApi.setModel(model))}
+        onModel={(model, tier) => void run(() => aiApi.setModel(model, tier))}
         onBudgets={(budgets) => void run(async () => { await settingsApi.put({ budgets }); return aiApi.get(); })}
       >
         {byok ? (

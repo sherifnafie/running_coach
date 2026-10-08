@@ -4,6 +4,11 @@
  * `setLabelPack`).
  */
 export const shellLabels: Record<string, [string, string]> = {
+  "Chat model": ["Chatmodel", "نموذج المحادثة"],
+  "Deep work model": ["Model voor diep werk", "نموذج العمل المتعمق"],
+  "Talks with you: replies, check-ins, quick changes. Speed matters here.": ["Praat met je: antwoorden, check-ins, snelle aanpassingen. Hier telt snelheid.", "يتحدث معك: الردود والمتابعات والتعديلات السريعة. السرعة مهمة هنا."],
+  "Works in the background on plans, reviews and research, where thinking matters more than speed.": ["Werkt op de achtergrond aan schema's, controles en onderzoek, waar nadenken belangrijker is dan snelheid.", "يعمل في الخلفية على الخطط والمراجعات والبحث، حيث التفكير أهم من السرعة."],
+  "Your coach runs on AI models through OpenRouter. This shows who pays, what has been used and which models coach you.": ["Je coach draait op AI-modellen via OpenRouter. Hier zie je wie betaalt, wat er is gebruikt en welke modellen je coachen.", "يعمل مدربك بنماذج ذكاء اصطناعي عبر OpenRouter. يعرض هذا من يدفع وما تم استخدامه وأي النماذج تدربك."],
   "Plans built from your own training, for any sport": ["Plannen op basis van je eigen training, voor elke sport", "خطط مبنية على تدريبك أنت، لأي رياضة"],
   "A coach that checks in, adapts and remembers": ["Een coach die bijhoudt, bijstuurt en onthoudt", "مدرب يتابعك ويتكيّف ويتذكّر"],
   "Your data stays on this server, and you can export or delete it": ["Je gegevens blijven op deze server en je kunt ze exporteren of verwijderen", "تبقى بياناتك على هذا الخادم، ويمكنك تصديرها أو حذفها"],

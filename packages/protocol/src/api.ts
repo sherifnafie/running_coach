@@ -54,8 +54,12 @@ export interface MeResponse {
 export interface AiAccessSummary {
   billing: 'managed' | 'byok';
   openrouterKey: { owner: 'athlete' | 'admin'; hint: string; updatedAt: string } | null;
+  /** The model that talks with the athlete (the coach and fast tiers). */
   model: string;
   defaultModel: string;
+  /** The model for deep background work: multi-week plans, reviews, research. */
+  deepModel: string;
+  defaultDeepModel: string;
   catalog: Array<{ id: string; label: string; description: string; vision: boolean }>;
   budgets: { dailyUsd: number; monthlyUsd: number };
   usage: { todayUsd: number; monthUsd: number };

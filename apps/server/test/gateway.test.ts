@@ -15,7 +15,7 @@ import { createFsBlobStore } from '@opencoach/workspace';
 import type { CallService, DictationService } from '@opencoach/voice';
 import { createGateway } from '../src/gateway';
 import { CredentialService, CredentialVault, keyHint } from '../src/credentials';
-import { DEFAULT_OPENROUTER_CATALOG, DEFAULT_OPENROUTER_MODEL } from '@opencoach/engine';
+import { DEFAULT_OPENROUTER_CATALOG, DEFAULT_OPENROUTER_DEEP_MODEL, DEFAULT_OPENROUTER_MODEL } from '@opencoach/engine';
 import { SetupCodeManager, issueSetupCode } from '../src/setup-code';
 import { SESSION_COOKIE, CSRF_COOKIE, sha256Hex } from '../src/http/auth';
 import { RESUMABLE_MAX_BYTES } from '../src/routes/resumable';
@@ -78,7 +78,7 @@ async function fixture(opts: { ai?: boolean; dictation?: DictationService } = {}
   await writeFile(exportPath, 'archive');
   const strip = vi.fn(async (_data: Uint8Array): Promise<Uint8Array> => Buffer.from('stripped'));
   const credentials = opts.ai ? new CredentialService({ store, vault: CredentialVault.fromKey(randomBytes(32)), clock, logger }) : undefined;
-  const models = opts.ai ? { catalog: DEFAULT_OPENROUTER_CATALOG.map((m) => ModelCatalogEntry.parse(m)), defaultModel: DEFAULT_OPENROUTER_MODEL, openrouterBaseUrl: 'https://openrouter.test/api/v1' } : undefined;
+  const models = opts.ai ? { catalog: DEFAULT_OPENROUTER_CATALOG.map((m) => ModelCatalogEntry.parse(m)), defaultModel: DEFAULT_OPENROUTER_MODEL, defaultDeepModel: DEFAULT_OPENROUTER_DEEP_MODEL, openrouterBaseUrl: 'https://openrouter.test/api/v1' } : undefined;
   const gateway = await createGateway({ config, clock, store, runtime, blobs, logger, setupCodes, callService: calls, dictation: opts.dictation,
     kitDir, webDist, stripImageLocation: strip, exportAthlete: async () => exportPath, vapidPublicKey: 'vapid-test', credentials, models });
   cleanups.push(async () => { await gateway.app.close(); await gateway.views.close(); });
@@ -540,6 +540,10 @@ describe('model access: managed allowance, own keys, model choice and recovery [
     expect(picked.json().model).toBe('z-ai/glm-5.3-flash');
     expect((await f.store.getSettings(sis.athleteId)).models.coach).toEqual({ provider: 'openrouter', model: 'z-ai/glm-5.3-flash' });
     expect((await f.store.getSettings(sis.athleteId)).models.deep).toBeUndefined();
+    expect(picked.json()).toMatchObject({ model: 'z-ai/glm-5.3-flash', deepModel: DEFAULT_OPENROUTER_DEEP_MODEL });
+    const deep = await f.app.inject({ method: 'PUT', url: '/v1/ai/model', headers, payload: { model: 'anthropic/claude-haiku-5.5', tier: 'deep' } });
+    expect(deep.json()).toMatchObject({ model: 'z-ai/glm-5.3-flash', deepModel: 'anthropic/claude-haiku-5.5' });
+    expect((await f.store.getSettings(sis.athleteId)).models.deep).toEqual({ provider: 'openrouter', model: 'anthropic/claude-haiku-5.5', effort: 'high' });
     const start = (await f.app.inject({ method: 'POST', url: '/v1/ai/openrouter/oauth/start', headers })).json().url as string;
     expect(new URL(start).origin).toBe('https://openrouter.test');
     expect(new URL(start).searchParams.get('code_challenge_method')).toBe('S256');

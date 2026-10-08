@@ -153,7 +153,7 @@ export const aiApi = {
   get: () => api.get<AiAccessSummary>('/v1/ai'),
   setKey: (key: string) => api.put<AiAccessSummary>('/v1/ai/openrouter-key', { key }),
   removeKey: () => api.del<AiAccessSummary>('/v1/ai/openrouter-key'),
-  setModel: (model: string) => api.put<AiAccessSummary>('/v1/ai/model', { model }),
+  setModel: (model: string, tier: 'coach' | 'deep' = 'coach') => api.put<AiAccessSummary>('/v1/ai/model', { model, tier }),
   oauthStart: () => api.post<{ url: string }>('/v1/ai/openrouter/oauth/start'),
   oauthFinish: (code: string) => api.post<AiAccessSummary>('/v1/ai/openrouter/oauth/finish', { code }),
 };
@@ -164,7 +164,7 @@ export const admin = {
   athleteList: async (): Promise<AdminAthlete[]> => (await api.get<{ athletes: AdminAthlete[] }>('/admin/athletes')).athletes,
   ai: (id: string) => api.get<AiAccessSummary>(`/admin/athletes/${enc(id)}/ai`),
   setBudgets: (id: string, budgets: { dailyUsd: number; monthlyUsd: number }) => api.put<AiAccessSummary>(`/admin/athletes/${enc(id)}/budgets`, budgets),
-  setModel: (id: string, model: string) => api.put<AiAccessSummary>(`/admin/athletes/${enc(id)}/model`, { model }),
+  setModel: (id: string, model: string, tier: 'coach' | 'deep' = 'coach') => api.put<AiAccessSummary>(`/admin/athletes/${enc(id)}/model`, { model, tier }),
   setKey: (id: string, key: string) => api.put<AiAccessSummary>(`/admin/athletes/${enc(id)}/openrouter-key`, { key }),
   removeKey: (id: string) => api.del<AiAccessSummary>(`/admin/athletes/${enc(id)}/openrouter-key`),
   recoveryCode: (id: string) => api.post<{ code: string; expiresAt: string }>(`/admin/athletes/${enc(id)}/recovery-code`),

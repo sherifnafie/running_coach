@@ -178,7 +178,7 @@ function Person({ athlete: initial, self, onDeleted }: { athlete: AdminAthlete; 
       {open && (
         <div className="admin-body">
           {!summary ? (error ? <p className="form-error">{error}</p> : <Spinner />) : (
-            <AiAccessPanel summary={summary} canEdit onBudgets={(b) => void run(() => admin.setBudgets(athlete.id, b))} onModel={(m) => void run(() => admin.setModel(athlete.id, m))}>
+            <AiAccessPanel summary={summary} canEdit onBudgets={(b) => void run(() => admin.setBudgets(athlete.id, b))} onModel={(m, tier) => void run(() => admin.setModel(athlete.id, m, tier))}>
               {summary.billing === 'managed' && (
                 summary.openrouterKey?.owner === 'admin' ? (
                   <Row label={t('Separate OpenRouter key')} hint={t('Calls for this person use this key, so its OpenRouter credit limit applies too.')}>
