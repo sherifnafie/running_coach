@@ -219,7 +219,7 @@ export type SendMessageResult =
 
 export interface MessagingPort {
   send(input: ToolInput<'send_message'>): Promise<SendMessageResult>;
-  noReply(reason: string): void;
+  noReply(reason: string): void | Promise<void>;
 }
 
 export interface SchedulerPort {

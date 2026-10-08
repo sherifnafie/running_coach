@@ -28,6 +28,7 @@ export const NoticeKind = z.enum([
   'budget_exhausted',
   'allowance_exhausted',
   'held_quiet_hours',
+  'held_outreach_superseded',
   'delivery_failed',
   'safety_flag',
   'fallback_used',

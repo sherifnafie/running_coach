@@ -131,6 +131,24 @@ All 801 harness/renderer tests, 164 web unit checks, 17 browser cases,
 build/typecheck and deterministic reference fast eval checks pass. Phone and
 desktop visual checks cover the inline identity control and both update notices.
 
+**Stale held outreach and restart input recovery (2026-10-08, [RT-3], [RT-4],
+[MSG-4], [ADR 0012](adr/0012-outreach-freshness-and-durable-inputs.md)):** owner
+logs confirmed a 19:40 local draft was delivered at 21:39 after intervening
+answers: minimum-gap release never checked freshness. A town message at 19:30
+was also persisted but absent from resumed coach context until the coach
+searched history after the complaint. Held outreach now cancels atomically on
+new reply-requiring input, with an append-order freshness check at release and
+no delivery/counting of cancelled drafts. A durable inbox recovers unanswered
+messages and undrained steering after restarts; reply/acknowledgement commits
+atomically, and retry wakes reuse the original pending input. Quiet hours,
+budgets and minimum gaps remain. Focused regressions cover both input paths,
+unchanged release, equal timestamps, migration, terminal-state races, debounce
+and active-turn shutdown, explicit no-reply and reactive retries.
+Verification: full unit/renderer suite, all 13 focused inbox/freshness checks,
+typecheck/build and the 28-scenario deterministic reference fast gates pass.
+The three existing optional achievement judge checks remain unrun; this is
+harness verification, not a claim about live-model coaching quality.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.

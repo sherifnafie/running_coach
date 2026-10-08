@@ -1,10 +1,12 @@
 import {
   newId,
+  ToolError,
   type AnyEvent,
   type Attachment,
   type BlobRef,
   type Channel,
   type EventEnvelope,
+  type EventType,
   type MessagingPort,
   type SendMessageResult,
   type ToolInput,
@@ -39,6 +41,24 @@ export interface TurnMessagingState {
 
 // Parallel send_message calls and scheduler releases must share policy reservations [MSG-4].
 const messageLocks = new WeakMap<Core, Map<string, Promise<unknown>>>();
+const OUTREACH_CONTEXT_TYPES: readonly EventType[] = [
+  'user.message', 'user.upload', 'user.voice_note', 'user.ui_action', 'user.ui_write',
+  'user.view_reverted', 'call.ended', 'user.message_deleted', 'data.synced',
+];
+
+/** Internal provenance, so the coach knows the draft was never delivered. Does not wake or notify. */
+export async function noteSupersededOutreach(core: Core, athleteId: string, messageIds: string[], causeEventId?: string): Promise<void> {
+  if (!messageIds.length) return;
+  const notice = await core.store.appendEvent({
+    athleteId, type: 'harness.notice', actor: 'harness', causationId: causeEventId,
+    payload: {
+      kind: 'held_outreach_superseded', athleteVisible: false,
+      text: 'Held outreach was cancelled because the conversation changed. These drafts were never delivered; use the current conversation for any next message.',
+      detail: { messageIds },
+    },
+  });
+  core.minds.get(athleteId).addPassive(notice);
+}
 function withMessageLock<T>(core: Core, athleteId: string, job: () => Promise<T>): Promise<T> {
   let locks = messageLocks.get(core);
   if (!locks) {
@@ -71,7 +91,8 @@ export function isProactiveTurn(cls: TriggerClass, triggers: AnyEvent[]): boolea
 
 export function createMessagingPort(core: Core, state: TurnMessagingState, callIdRef: { current: string }): MessagingPort {
   const port: MessagingPort = {
-    noReply(reason: string) {
+    async noReply(reason: string) {
+      await core.store.acknowledgeCoachInputs(state.athleteId, state.triggers.map((e) => e.id));
       state.replied = true;
       state.noReplyReason = reason;
     },
@@ -184,35 +205,44 @@ export function createMessagingPort(core: Core, state: TurnMessagingState, callI
       const messageId = newId('evt', core.clock);
       const delivery = heldUntil ? 'held' : 'sent';
       const replyTo = input.reply_to ?? (state.proactive ? undefined : state.triggers.find((e) => e.actor === 'athlete')?.id);
-      const event = (await core.store.appendEvent({
-        id: messageId,
-        athleteId: state.athleteId,
-        type: 'coach.message',
-        actor: 'coach',
-        turnId: state.turnId,
-        causationId: replyTo ?? state.triggers[0]?.id,
-        payload: {
-          messageId,
-          text: input.text,
-          attachments,
-          ui: input.ui,
-          voiceNote,
-          notify: input.notify ?? 'normal',
-          delivery,
-          heldUntil: heldUntil?.toISOString(),
-          proactive: state.proactive,
-          channel: state.channel,
-          replyTo,
-        },
-      })) as EventEnvelope<'coach.message'>;
-      await core.store.putMessageState({
-        messageId,
-        athleteId: state.athleteId,
-        delivery,
-        heldUntil: heldUntil?.toISOString(),
-        sentAt: delivery === 'sent' ? now.toISOString() : undefined,
-        proactive: state.proactive,
-      });
+      let event: EventEnvelope<'coach.message'>;
+      try {
+        event = await core.store.appendEvent({
+          id: messageId,
+          athleteId: state.athleteId,
+          type: 'coach.message',
+          actor: 'coach',
+          turnId: state.turnId,
+          causationId: replyTo ?? state.triggers[0]?.id,
+          payload: {
+            messageId,
+            text: input.text,
+            attachments,
+            ui: input.ui,
+            voiceNote,
+            notify: input.notify ?? 'normal',
+            delivery,
+            heldUntil: heldUntil?.toISOString(),
+            proactive: state.proactive,
+            channel: state.channel,
+            replyTo,
+          },
+        }, {
+          messageState: {
+            messageId,
+            athleteId: state.athleteId,
+            delivery,
+            heldUntil: heldUntil?.toISOString(),
+            sentAt: delivery === 'sent' ? now.toISOString() : undefined,
+            proactive: state.proactive,
+          },
+          acknowledgeInputs: state.proactive ? [] : state.triggers.map((e) => e.id),
+        });
+      } catch (error) {
+        if (!(error instanceof ToolError)) throw error;
+        cancelStream('new athlete input');
+        return { ok: false, code: error.code, message: error.message };
+      }
 
       state.replied = true;
       state.sentTexts.push(input.text);
@@ -262,7 +292,7 @@ async function releaseHeldInner(core: Core, athleteId: string): Promise<number> 
   for (const m of held) {
     const original = await core.store.getEvent(m.messageId);
     if (!original || original.type !== 'coach.message' || Object.hasOwn(original.payload, 'tombstoned')) {
-      await core.store.putMessageState({ ...m, delivery: 'sent', sentAt: now.toISOString() });
+      await core.store.putMessageState({ ...m, delivery: 'cancelled', heldUntil: undefined });
       continue;
     }
     if (m.proactive) {
@@ -283,15 +313,10 @@ async function releaseHeldInner(core: Core, athleteId: string): Promise<number> 
         continue;
       }
     }
-    const released = (await core.store.appendEvent({
-      athleteId,
-      type: 'coach.message',
-      actor: 'coach',
-      turnId: original.turnId,
-      causationId: original.id,
-      payload: { ...original.payload, delivery: 'sent', heldUntil: undefined },
-    })) as EventEnvelope<'coach.message'>;
-    await core.store.putMessageState({ ...m, delivery: 'sent', heldUntil: undefined, sentAt: now.toISOString() });
+    const result = await core.store.releaseHeldMessage(athleteId, m.messageId, OUTREACH_CONTEXT_TYPES);
+    if (result.status === 'cancelled') await noteSupersededOutreach(core, athleteId, [m.messageId]);
+    if (result.status !== 'released') continue;
+    const released = result.event;
     core.bus.publish(athleteId, { t: 'message.end', event: released });
     await deliver(core, athleteId, released);
     n++;

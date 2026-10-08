@@ -136,6 +136,11 @@ export class Scheduler {
       }
       case 'coach': {
         if (paused && !s.duringPause) return;
+        if ((s.payload as { kind?: string } | undefined)?.kind === 'reply_retry') {
+          // Retry original unanswered input as a reply, never as unsolicited outreach [RT-4].
+          for (const input of await core.store.listPendingCoachInputs(s.athleteId)) core.minds.get(s.athleteId).enqueue(input, 'reactive');
+          return;
+        }
         const firstContact = (s.payload as { kind?: string } | undefined)?.kind === 'first_contact';
         const e = await core.store.appendEvent({
           athleteId: s.athleteId,
@@ -313,7 +318,7 @@ export class Scheduler {
   }
 
   /** Schedule a harness-created retry wake (e.g. reply fallback). */
-  async harnessWake(athleteId: string, at: Date, purpose: string): Promise<void> {
+  async harnessWake(athleteId: string, at: Date, purpose: string, payload?: Record<string, unknown>): Promise<void> {
     const id = newId('sch', this.core.clock);
     await this.core.store.upsertSchedule({
       id,
@@ -321,6 +326,7 @@ export class Scheduler {
       kind: 'coach',
       spec: { at: at.toISOString() },
       purpose,
+      payload,
       duringPause: true,
       nextFireAt: at.toISOString(),
       status: 'active',

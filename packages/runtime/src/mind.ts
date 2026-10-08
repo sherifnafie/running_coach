@@ -87,6 +87,8 @@ export class AthleteMind {
     this.debounce?.timer.abort();
     this.debounce = null;
     this.queue = [];
+    // Unanswered athlete events remain in the durable inbox for the next runtime.
+    this.steering = [];
     this.notifyIdle();
   }
 
@@ -150,7 +152,7 @@ export class AthleteMind {
             this.inTurn = null;
             // steering events that arrived after the last tool boundary start a new turn
             const leftover = this.drainSteering();
-            for (const ev of leftover.reverse()) this.queue.unshift({ event: ev, cls: 'reactive' });
+            if (!this.stopped) for (const ev of leftover.reverse()) this.queue.unshift({ event: ev, cls: 'reactive' });
           }
         });
       }

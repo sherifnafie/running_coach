@@ -14,7 +14,8 @@ export const sendMessageTool: ToolDef<'send_message'> = {
     'Optional: attachments (raw blobs, workspace files such as charts you rendered, or a view card), micro-UI (quick_replies ' +
     'chips or a small form, e.g. RPE 1–10 as a scale), notification_actions for the push notification, voice_note:true to also ' +
     'send it as audio in your voice, reply_to = the athlete event id you answer. Proactive messages (in wakes/heartbeats) are ' +
-    'subject to the athlete\'s quiet hours, daily budget and pause; the result tells you if a message was held or rejected.',
+    'subject to the athlete\'s quiet hours, daily budget and pause; the result tells you if a message was held or rejected. ' +
+    'Held outreach is a draft: newer athlete input cancels it, so never assume it was delivered.',
   input: ToolInputs.send_message,
   availableTo: ['coach'],
   execute: (input, ctx) =>
@@ -26,7 +27,7 @@ export const sendMessageTool: ToolDef<'send_message'> = {
       const r = await ctx.messaging.send(input);
       if (!r.ok) return fail(r.code, r.message);
       if (r.delivery === 'held') {
-        return ok(`Message ${r.messageId} is HELD and will be delivered at ${r.heldUntil ? formatLocal(r.heldUntil, 'UTC') + ' UTC' : 'the end of quiet hours'}.`, [], r);
+        return ok(`Message ${r.messageId} is HELD, eligible for delivery at ${r.heldUntil ? formatLocal(r.heldUntil, 'UTC') + ' UTC' : 'the end of quiet hours'}. New athlete input cancels this draft; delivery policy is checked again at release.`, [], r);
       }
       return ok(`Sent (message id ${r.messageId}).`, [], r);
     }),
@@ -40,7 +41,7 @@ export const noReplyTool: ToolDef<'no_reply'> = {
   availableTo: ['coach'],
   execute: (input, ctx) =>
     guard(async () => {
-      ctx.messaging.noReply(input.reason);
+      await ctx.messaging.noReply(input.reason);
       return ok('Noted: no reply for this turn.');
     }),
 };

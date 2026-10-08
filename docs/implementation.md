@@ -41,7 +41,7 @@ athletes/<athleteId>/             see athletePaths() in protocol/src/config.ts
 ```
 seed/core/constitution.md              harness-generic constitution with {{pack_coaching}} and {{pack_safety}} slots
 seed/core/addenda/*.md                 helper, voice, consolidation, upgrade, safety-notice preambles
-seed/general/pack.json                 { "id": "general", "version": "0.3.9", "name": "General coaching" }
+seed/general/pack.json                 { "id": "general", "version": "0.3.10", "name": "General coaching" }
 seed/general/constitution/coaching.md  fills {{pack_coaching}} (any sport, chosen by the athlete; ADR 0006)
 seed/general/constitution/safety.md    fills {{pack_safety}} (red flags for all sports, weight-cut and high-risk rules)
 seed/general/system/                   → /system: docs/*.md, skills/<name>/SKILL.md (+ refs, scripts), CHANGELOG-for-coach.md
@@ -125,7 +125,8 @@ Images the athlete sent are attached as image parts after the text, when the coa
 ADRs 0001–0004 are in `docs/adr/`. In addition:
 - The coach reaches the athlete only through the `send_message` tool. Final assistant text is a private turn note. [RT-4] guarantees a reply to athlete messages.
 - Epochs are per athlete-day (boundary 04:00 local), and also roll over on model change and compaction. The system prompt is frozen per epoch (kv `epoch-system:<id>`) for prompt-cache hits.
-- Proactive messages are scheduled, heartbeat and most follow-up turns. Only those are subject to quiet hours, budgets and the minimum gap. A held message is released as a new event with the same `payload.messageId`.
+- Proactive messages are scheduled, heartbeat and most follow-up turns. Only those are subject to quiet hours, budgets and the minimum gap. A held message is released as a new event with the same `payload.messageId`. New reply-requiring input atomically cancels held outreach, and release checks newer context by event append order. Terminal delivery states cannot return to held. SQLite migration 4 adds internal `cancelled` delivery state and `pending_coach_inputs`; original held events remain immutable (ADR 0012).
+- Messages, uploads, voice notes and waking UI actions stay in the durable coach inbox until a reply commits with acknowledgement of consumed IDs, or `no_reply` explicitly acknowledges them. Restart recovery screens/requeues original pending events before background follow-ups. Harness reply retries reuse those original inputs as reactive turns and do nothing once answered.
 - Helpers run in `git worktree`s. Only files in their write scope are merged back. Grants intersect along the helper chain.
 - Coach views are served on a separate origin with capability tokens and run in `sandbox="allow-scripts"` iframes. Data access goes through the gateway, which enforces the view manifest.
 - Coach-visible upload paths are `/raw/<sha256>.<ext>`.

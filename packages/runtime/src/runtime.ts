@@ -38,6 +38,7 @@ import type { CoachRuntimeDeps } from './deps';
 import { HelperManager } from './helpers';
 import { McpManager } from './mcp';
 import { Minds } from './mind';
+import { noteSupersededOutreach } from './messaging';
 import { heuristicScreen, safetyBannerText } from './safety';
 import { Scheduler } from './scheduler';
 import { TurnRunner } from './turn';
@@ -142,6 +143,12 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     }
     for (const a of await store.listAthletes()) {
       if (a.status !== 'active') continue;
+      // Original athlete events survive a stopped debounce or undrained in-turn steering [RT-3].
+      for (const e of await store.listPendingCoachInputs(a.id)) {
+        const text = e.type === 'user.message' ? e.payload.text : e.type === 'user.upload' ? (e.payload.caption ?? '') : e.type === 'user.voice_note' ? e.payload.transcript : '';
+        if (text.trim()) await this.screen(a.id, e, text);
+        core.minds.get(a.id).enqueue(e, 'reactive');
+      }
       for (const task of await store.listTasks(a.id, { state: 'running' })) {
         await store.updateTask(task.id, { state: 'failed', endedAt: core.clock.now().toISOString(), error: 'server restarted' });
         const e = await store.appendEvent({
@@ -305,7 +312,7 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     if (!(CLIENT_SUBMITTABLE_TYPES as readonly string[]).includes(input.type)) throw new ToolError('NOT_ALLOWED', `Event type ${input.type} cannot be submitted by clients.`);
     const athlete = await core.store.getAthlete(athleteId);
     if (!athlete || athlete.status !== 'active') throw new ToolError('NOT_FOUND', 'Unknown athlete.');
-    parseEventPayload(input.type, input.payload); // validate early (throws ZodError)
+    const payload = parseEventPayload(input.type, input.payload); // validate and apply defaults early
     const mind = core.minds.get(athleteId);
 
     if (input.type === 'user.message_deleted') {
@@ -314,7 +321,12 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     }
     if (input.type === 'user.read') await core.store.markRead(input.payload.messageIds, core.clock.now().toISOString());
 
-    const e = (await core.store.appendEvent({ athleteId, type: input.type, actor: input.type === 'device.context' ? 'device' : 'athlete', payload: input.payload } as NewEvent)) as AnyEvent;
+    const needsReply = input.type === 'user.message' || input.type === 'user.upload' || input.type === 'user.voice_note'
+      || (input.type === 'user.ui_action' && (payload as { wake: boolean }).wake);
+    const incoming = { athleteId, type: input.type, actor: input.type === 'device.context' ? 'device' : 'athlete', payload } as NewEvent;
+    const recorded = needsReply ? await core.store.appendCoachInput(incoming) : { event: await core.store.appendEvent(incoming), cancelledMessageIds: [] };
+    const e = recorded.event as AnyEvent;
+    await noteSupersededOutreach(core, athleteId, recorded.cancelledMessageIds, e.id);
     if (input.type !== 'user.read') core.bus.publish(athleteId, { t: 'event', event: e });
 
     switch (e.type) {
@@ -385,7 +397,10 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
 
   async appendSystemEvent(e: NewEvent): Promise<AnyEvent> {
     const core = this.core;
-    const ev = (await core.store.appendEvent(e)) as AnyEvent;
+    const recorded = e.type === 'user.message' && e.actor === 'athlete'
+      ? await core.store.appendCoachInput(e) : { event: await core.store.appendEvent(e), cancelledMessageIds: [] };
+    const ev = recorded.event as AnyEvent;
+    await noteSupersededOutreach(core, ev.athleteId, recorded.cancelledMessageIds, ev.id);
     core.bus.publish(ev.athleteId, { t: 'event', event: ev });
     if (ev.type === 'call.ended') core.minds.get(ev.athleteId).enqueue(ev, 'followup');
     else if (ev.type === 'user.message' && ev.actor === 'athlete') core.minds.get(ev.athleteId).enqueue(ev, 'reactive');

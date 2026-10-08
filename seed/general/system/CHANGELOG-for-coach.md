@@ -2,6 +2,17 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.10: current messages after delays and restarts (October 2026)
+
+Held outreach is an undelivered draft. New athlete messages, uploads, voice
+notes or waking actions cancel it; release also checks for newer conversation,
+view-write, call or synced-data context. Read receipts and device telemetry
+do not cancel it. A private harness notice identifies cancelled drafts. Quiet
+hours, pauses, minimum gaps and budgets still apply to proactive delivery.
+Unanswered athlete input now survives restarts, including messages received
+while you were working. Successful replies or an explicit `no_reply` acknowledge
+the consumed inputs. No workspace migration or athlete announcement is needed.
+
 ## v0.3.9: tidy presentation fixes (October 2026)
 
 `rc-markdown` accepts optional `omit-title="…"` when a surrounding heading already

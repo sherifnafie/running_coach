@@ -22,6 +22,7 @@ import {
   newId,
   parseEventPayload,
   parseSettings,
+  ToolError,
   type AgentKind,
   type AnyEvent,
   type AthleteRecord,
@@ -541,7 +542,24 @@ export class SqliteStore implements Store {
    * Validates and defaults the payload (`parseEventPayload`), assigns `id` (default `newId('evt', clock)`)
    * and `ts` (default `clock.now()`, canonicalised to UTC), inserts the row and its FTS entry atomically.
    */
-  async appendEvent<T extends EventType>(e: NewEvent<T>): Promise<EventEnvelope<T>> {
+  async appendEvent<T extends EventType>(e: NewEvent<T>, options?: { messageState?: MessageStateRecord; acknowledgeInputs?: string[] }): Promise<EventEnvelope<T>> {
+    return this.tx(() => {
+      if (options?.messageState) {
+        const m = options.messageState;
+        if (e.type !== 'coach.message' || e.id !== m.messageId || e.athleteId !== m.athleteId) throw new Error('message state must match coach event');
+        if (m.proactive && this.hasPendingCoachInputs(e.athleteId)) {
+          throw new ToolError('NOT_ALLOWED', 'New athlete input arrived. This outreach was not queued or delivered. Process the new input before messaging.');
+        }
+      }
+      const event = this.appendEventRow(e);
+      if (options?.messageState) this.putMessageStateRow(options.messageState);
+      this.acknowledgeInputRows(e.athleteId, options?.acknowledgeInputs ?? []);
+      return event;
+    });
+  }
+
+  /** Synchronous helpers are used only inside a transaction: no await may split these writes. */
+  private appendEventRow<T extends EventType>(e: NewEvent<T>): EventEnvelope<T> {
     if (!Object.hasOwn(EventPayloads, e.type)) throw new Error(`unknown event type: ${String(e.type)}`);
     if (e.tombstoned && (!e.payload || typeof e.payload !== 'object' || Object.keys(e.payload).length !== 1 || (e.payload as { tombstoned?: unknown }).tombstoned !== true)) {
       throw new Error('tombstoned event payload must be exactly { tombstoned: true }');
@@ -550,16 +568,68 @@ export class SqliteStore implements Store {
     const id = e.id ?? newId('evt', this.clock);
     const ts = canonIso(e.ts ?? this.nowIso());
     const text = e.tombstoned ? undefined : extractSearchText(e.type, payload);
-    this.tx(() => {
-      const res = this.prep(
-        `INSERT INTO events (id, athlete_id, ts, type, actor, turn_id, causation_id, payload, tombstoned) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(id, e.athleteId, ts, e.type, e.actor, lit(e.turnId), lit(e.causationId), JSON.stringify(payload), e.tombstoned ? 1 : 0);
-      if (text !== undefined) this.run('INSERT INTO events_fts (rowid, text) VALUES (?, ?)', res.lastInsertRowid as number, text);
-    });
+    const res = this.prep(
+      `INSERT INTO events (id, athlete_id, ts, type, actor, turn_id, causation_id, payload, tombstoned) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(id, e.athleteId, ts, e.type, e.actor, lit(e.turnId), lit(e.causationId), JSON.stringify(payload), e.tombstoned ? 1 : 0);
+    if (text !== undefined) this.run('INSERT INTO events_fts (rowid, text) VALUES (?, ?)', res.lastInsertRowid as number, text);
     const env: EventEnvelope<T> = { id, athleteId: e.athleteId, ts, type: e.type, actor: e.actor, payload };
     if (e.turnId !== undefined) env.turnId = e.turnId;
     if (e.causationId !== undefined) env.causationId = e.causationId;
     return env;
+  }
+
+  async appendCoachInput<T extends EventType>(e: NewEvent<T>): Promise<{ event: EventEnvelope<T>; cancelledMessageIds: string[] }> {
+    return this.tx(() => {
+      const event = this.appendEventRow(e);
+      this.run('INSERT INTO pending_coach_inputs (event_id, athlete_id) VALUES (?, ?)', event.id, event.athleteId);
+      const cancelledMessageIds = this.all(
+        "SELECT message_id FROM message_state WHERE athlete_id = ? AND delivery = 'held' AND proactive = 1", e.athleteId,
+      ).map((r) => String(r.message_id));
+      this.run("UPDATE message_state SET delivery = 'cancelled', held_until = NULL WHERE athlete_id = ? AND delivery = 'held' AND proactive = 1", e.athleteId);
+      return { event, cancelledMessageIds };
+    });
+  }
+
+  async listPendingCoachInputs(athleteId: string): Promise<AnyEvent[]> {
+    return this.all(`SELECT e.* FROM pending_coach_inputs p JOIN events e ON e.id = p.event_id
+      WHERE p.athlete_id = ? AND e.tombstoned = 0 ORDER BY e.seq`, athleteId).map((r) => this.rowToEvent(r));
+  }
+
+  private hasPendingCoachInputs(athleteId: string): boolean {
+    return !!this.get(`SELECT 1 FROM pending_coach_inputs p JOIN events e ON e.id = p.event_id
+      WHERE p.athlete_id = ? AND e.tombstoned = 0 LIMIT 1`, athleteId);
+  }
+
+  private acknowledgeInputRows(athleteId: string, eventIds: string[]): void {
+    for (const id of eventIds) this.run('DELETE FROM pending_coach_inputs WHERE athlete_id = ? AND event_id = ?', athleteId, id);
+  }
+
+  async acknowledgeCoachInputs(athleteId: string, eventIds: string[]): Promise<void> {
+    this.tx(() => this.acknowledgeInputRows(athleteId, eventIds));
+  }
+
+  async releaseHeldMessage(athleteId: string, messageId: string, contextTypes: readonly EventType[]): ReturnType<Store['releaseHeldMessage']> {
+    return this.tx(() => {
+      const m = this.one<MessageStateRecord>('message_state', MESSAGE_STATE, 'message_id = ? AND athlete_id = ?', messageId, athleteId);
+      if (!m || m.delivery !== 'held') return { status: 'gone' };
+      if (!m.heldUntil || m.heldUntil > this.nowIso()) return { status: 'gone' };
+      const row = this.get('SELECT * FROM events WHERE id = ? AND athlete_id = ?', messageId, athleteId);
+      const changed = m.proactive && (this.hasPendingCoachInputs(athleteId) || (row && contextTypes.length > 0 && !!this.get(
+        `SELECT 1 FROM events WHERE athlete_id = ? AND seq > ? AND type IN (${contextTypes.map(() => '?').join(', ')}) LIMIT 1`,
+        athleteId, row.seq as number, ...contextTypes,
+      )));
+      if (!row || row.tombstoned || row.type !== 'coach.message' || changed) {
+        this.putMessageStateRow({ ...m, delivery: 'cancelled', heldUntil: undefined });
+        return { status: 'cancelled' };
+      }
+      const original = this.rowToEvent(row) as EventEnvelope<'coach.message'>;
+      const event = this.appendEventRow({
+        athleteId, type: 'coach.message', actor: 'coach', turnId: original.turnId, causationId: original.id,
+        payload: { ...original.payload, delivery: 'sent', heldUntil: undefined },
+      });
+      this.putMessageStateRow({ ...m, delivery: 'sent', heldUntil: undefined, sentAt: this.nowIso() });
+      return { status: 'released', event };
+    });
   }
 
   private rowToEvent(row: Row): AnyEvent {
@@ -703,16 +773,22 @@ export class SqliteStore implements Store {
       if (!row) return;
       this.run('DELETE FROM events_fts WHERE rowid = ?', row.seq as number);
       this.run('UPDATE events SET payload = ?, tombstoned = 1 WHERE id = ?', JSON.stringify(TOMBSTONE_PAYLOAD), id);
+      this.run('DELETE FROM pending_coach_inputs WHERE event_id = ?', id);
     });
   }
 
   // ------------------------------------------------------------------------- message delivery
 
   async putMessageState(r: MessageStateRecord): Promise<void> {
+    this.putMessageStateRow(r);
+  }
+
+  private putMessageStateRow(r: MessageStateRecord): void {
     // Upsert; a read mark already recorded is never lost when a later put omits readAt.
     const sql = `${insertSql('message_state', MESSAGE_STATE)} ON CONFLICT (message_id) DO UPDATE SET
       athlete_id = excluded.athlete_id, delivery = excluded.delivery, held_until = excluded.held_until,
-      sent_at = excluded.sent_at, read_at = COALESCE(excluded.read_at, message_state.read_at), proactive = excluded.proactive`;
+      sent_at = excluded.sent_at, read_at = COALESCE(excluded.read_at, message_state.read_at), proactive = excluded.proactive
+      WHERE message_state.delivery = 'held' OR message_state.delivery = excluded.delivery`;
     this.run(sql, ...toParams(MESSAGE_STATE, r));
   }
 

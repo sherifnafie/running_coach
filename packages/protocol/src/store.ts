@@ -192,7 +192,7 @@ export interface UiVersionRecord {
 export interface MessageStateRecord {
   messageId: string;
   athleteId: string;
-  delivery: 'held' | 'sent';
+  delivery: 'held' | 'sent' | 'cancelled';
   heldUntil?: string;
   sentAt?: string;
   readAt?: string;
@@ -261,7 +261,16 @@ export interface Store {
   deleteCredential(athleteId: string, provider: CredentialRecord['provider']): Promise<void>;
 
   // events (append-only; FTS5 over text-bearing payloads)
-  appendEvent<T extends EventType>(e: NewEvent<T>): Promise<EventEnvelope<T>>;
+  /** A coach reply, its delivery projection and acknowledgement of consumed inputs commit together. */
+  appendEvent<T extends EventType>(e: NewEvent<T>, options?: { messageState?: MessageStateRecord; acknowledgeInputs?: string[] }): Promise<EventEnvelope<T>>;
+  /** Persist reply-requiring input and cancel superseded held outreach atomically [RT-3, MSG-4]. */
+  appendCoachInput<T extends EventType>(e: NewEvent<T>): Promise<{ event: EventEnvelope<T>; cancelledMessageIds: string[] }>;
+  listPendingCoachInputs(athleteId: string): Promise<AnyEvent[]>;
+  acknowledgeCoachInputs(athleteId: string, eventIds: string[]): Promise<void>;
+  /** Release only a still-held draft whose conversation context has not changed. */
+  releaseHeldMessage(athleteId: string, messageId: string, contextTypes: readonly EventType[]): Promise<
+    { status: 'released'; event: EventEnvelope<'coach.message'> } | { status: 'cancelled' | 'gone' }
+  >;
   getEvent(id: string): Promise<AnyEvent | undefined>;
   listEvents(q: EventQuery): Promise<AnyEvent[]>;
   searchEvents(q: { athleteId: string; query: string; from?: string; to?: string; types?: string[]; limit?: number }): Promise<Array<{ event: AnyEvent; snippet: string }>>;

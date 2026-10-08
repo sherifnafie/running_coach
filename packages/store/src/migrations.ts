@@ -280,4 +280,37 @@ export const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE athletes ADD COLUMN suspended_at TEXT;
   `,
+  // ---------------------------------------------------------------------- v4: durable inbox and superseded outreach
+  `
+  CREATE TABLE message_state_v4 (
+    message_id TEXT PRIMARY KEY,
+    athlete_id TEXT NOT NULL,
+    delivery TEXT NOT NULL CHECK (delivery IN ('held', 'sent', 'cancelled')),
+    held_until TEXT,
+    sent_at TEXT,
+    read_at TEXT,
+    proactive INTEGER NOT NULL DEFAULT 0
+  );
+  INSERT INTO message_state_v4 SELECT * FROM message_state;
+  DROP TABLE message_state;
+  ALTER TABLE message_state_v4 RENAME TO message_state;
+  CREATE INDEX message_state_athlete_idx ON message_state (athlete_id, delivery, sent_at);
+  CREATE INDEX message_state_held_idx ON message_state (delivery, held_until);
+
+  CREATE TABLE pending_coach_inputs (
+    event_id TEXT PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE,
+    athlete_id TEXT NOT NULL
+  );
+  CREATE INDEX pending_coach_inputs_athlete_idx ON pending_coach_inputs (athlete_id);
+  -- Recover only the unanswered tail on upgrade, never replay an already answered conversation.
+  INSERT INTO pending_coach_inputs (event_id, athlete_id)
+    SELECT e.id, e.athlete_id FROM events e JOIN athletes a ON a.id = e.athlete_id
+    WHERE a.status = 'active' AND e.tombstoned = 0 AND e.actor = 'athlete'
+      AND (e.type IN ('user.message', 'user.upload', 'user.voice_note')
+        OR (e.type = 'user.ui_action' AND json_extract(e.payload, '$.wake') = 1))
+      AND e.seq > COALESCE((SELECT MAX(r.seq) FROM events r
+        WHERE r.athlete_id = e.athlete_id AND r.type = 'coach.message' AND r.tombstoned = 0
+          AND json_extract(r.payload, '$.delivery') = 'sent'
+          AND json_extract(r.payload, '$.proactive') = 0), 0);
+  `,
 ];

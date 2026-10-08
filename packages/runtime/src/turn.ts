@@ -580,6 +580,7 @@ export class TurnRunner {
       athleteId,
       new Date(core.clock.now().getTime() + 10 * 60_000),
       `Follow-up (set by the harness): your previous turn ended without replying to the athlete${ref ? ` (event ${ref.id})` : ''}. Reply to them now. Reason: ${reason.slice(0, 300)}`,
+      { kind: 'reply_retry' },
     );
   }
 
