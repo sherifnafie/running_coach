@@ -7,7 +7,7 @@ import { loadOlder, markRead } from '../../lib/controller';
 import { formatDayLabel, localDayKey } from '../../lib/format';
 import { navigate } from '../../lib/router';
 import { useStore } from '../../lib/store';
-import { AthleteMessage, AthleteUpload, AthleteVoiceNote, CoachMessage, PendingBubble, ProvisionalBubble, SystemLine } from './Bubbles';
+import { AthleteMessage, AthleteUpload, AthleteVoiceNote, CoachMessage, PendingBubble, ProvisionalBubble, SystemLine, ViewUpdateMessage } from './Bubbles';
 
 const INITIAL_WINDOW = 80;
 const WINDOW_STEP = 40;
@@ -196,6 +196,7 @@ function renderItem(item: TimelineItem, ctx: { tz?: string; locale?: string }, r
     case 'pending':
       return <PendingBubble item={item.item} />;
     case 'system':
+      if (item.viewUpdate && item.viewId) return <ViewUpdateMessage title={item.viewUpdate.title} summary={item.viewUpdate.summary} onOpen={() => navigate({ name: 'view', viewId: item.viewId!, params: {} })} />;
       return <SystemLine text={item.text} onOpen={item.viewId ? () => navigate({ name: 'view', viewId: item.viewId!, params: {} }) : undefined} />;
   }
 }

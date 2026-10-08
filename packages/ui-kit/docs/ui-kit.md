@@ -72,7 +72,7 @@ plain semantic HTML so your CSS and accessibility tools can inspect them.
 | `rc-workout` | `structure` JSON (or `.structure`), `compact` | Renders endurance steps, repeats, exercises (sets × reps @ load), targets and notes |
 | `rc-form` | `.fields = [{id,type,label,...}]`, `submit-label`, `busy` | `submit`: `event.detail.values`; `.reset()` |
 | `rc-body-map` | `multi`, `readonly`, `label`, `.value`, `heat` JSON | `change`: selected body-region values |
-| `rc-markdown` | `file` workspace path, `src` markdown text, `empty` | Sanitized markdown; file must be declared in `reads` |
+| `rc-markdown` | `file` workspace path, `src` markdown text, `empty`, optional `omit-title` | Sanitized markdown; file must be declared in `reads`. `omit-title` omits only a matching first heading when the surrounding view already supplies it; the source and other headings stay intact. |
 
 `rc-stat`, `rc-trend`, `rc-progress-ring`, `rc-list`, `rc-week-strip`,
 `rc-calendar`, `rc-chart`, and `rc-workout` accept `sql`, optional `params` JSON

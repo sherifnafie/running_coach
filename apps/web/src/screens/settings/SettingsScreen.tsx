@@ -106,11 +106,9 @@ function ProfileSection() {
   return (
     <Section title={t("Profile")}>
       <TextRow label={t("Your name")} value={s.profile.name} maxLength={80} autoComplete="name" onCommit={(v) => save({ profile: { name: v } })} />
-      <TextRow label={t("Coach name")} value={s.profile.coachName} maxLength={40} onCommit={(v) => save({ profile: { coachName: v } })} />
-      <Row label={t("Coach avatar")}>
-        <CoachAvatar name={s.profile.coachName} sha256={s.coachIdentity?.avatarSha256} />
-        {s.coachIdentity?.avatarSha256 && <button type="button" className="btn" onClick={() => void save({ coachIdentity: { avatarSha256: null } })}>{t('Reset avatar')}</button>}
-      </Row>
+      <TextRow label={t("Coach name")} value={s.profile.coachName} maxLength={40} onCommit={(v) => save({ profile: { coachName: v } })}
+        leading={<CoachAvatar name={s.profile.coachName} sha256={s.coachIdentity?.avatarSha256} />}
+        trailing={s.coachIdentity?.avatarSha256 ? <button type="button" className="avatar-reset" aria-label={t('Reset avatar')} onClick={() => void save({ coachIdentity: { avatarSha256: null } })}>{t('Reset')}</button> : undefined} />
       <Toggle label={t("Let my coach change its name and avatar")} hint={t("Optional. Ask in chat for a name or image; turn this off at any time.")} checked={s.coachIdentity?.allowChanges ?? false} onChange={(allowChanges) => void save({ coachIdentity: { allowChanges } })} />
       <p className="section-hint">{t(imageGeneration ? 'Image generation has its own permission and allowance under Images.' : 'Image generation is not configured. Your coach can still change its name when allowed.')}</p>
       <SelectRow

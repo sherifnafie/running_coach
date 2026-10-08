@@ -2,6 +2,16 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.9: tidy presentation fixes (October 2026)
+
+`rc-markdown` accepts optional `omit-title="…"` when a surrounding heading already
+supplies the same title. Only a matching first heading is omitted from display;
+the source file and other headings stay intact. The starter Plan uses this for
+its “Why this plan” disclosure. Settings puts the avatar beside the coach name.
+Published-view notices and chat entries are more compact, with screen history
+available from the notice. Summaries and undo remain in history. No workspace
+or training-data migration is required.
+
 ## v0.3.8: supporting detail on demand (October 2026)
 
 The kit now styles native `details.rc-disclosure` and tap/keyboard info

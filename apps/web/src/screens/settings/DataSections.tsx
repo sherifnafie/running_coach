@@ -74,7 +74,7 @@ export function ViewHistorySection() {
   const t = useI18n();
   const appViews = useStore(appStore, (s) => s.app?.views);
   return (
-    <Section title={t("Screen history")} hint={t("Don't like a change to one of your screens? Go back to an earlier version.")}>
+    <Section id="settings-settings-history" title={t("Screen history")} hint={t("Don't like a change to one of your screens? Go back to an earlier version.")}>
       {!appViews || appViews.length === 0 ? (
         <p className="hint">{t("Your coach hasn't published any screens yet.")}</p>
       ) : (

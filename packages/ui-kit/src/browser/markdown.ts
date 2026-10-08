@@ -157,9 +157,16 @@ function indentOf(line: string): number {
   return ws.replace(/\t/g, '    ').length;
 }
 
-export function parseMarkdown(src: string): Block[] {
+export interface MarkdownOptions { omitTitle?: string }
+
+export function parseMarkdown(src: string, options: MarkdownOptions = {}): Block[] {
   const lines = String(src ?? '').replace(/\r\n?/g, '\n').split('\n');
-  return parseBlocks(lines);
+  const blocks = parseBlocks(lines);
+  const first = blocks[0];
+  const plain = (parts: Inline[]): string => parts.map(p => p.t === 'br' ? ' ' : 'v' in p ? p.v : plain(p.c)).join('');
+  const normalized = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
+  if (options.omitTitle && first?.t === 'h' && normalized(plain(first.c)) === normalized(options.omitTitle)) return blocks.slice(1);
+  return blocks;
 }
 
 function parseBlocks(lines: string[]): Block[] {
@@ -422,8 +429,8 @@ function blockToDom(b: Block, doc: Document): Node {
 }
 
 /** Render markdown into a DocumentFragment. Heading levels are shifted down one (# -> h2) so the page keeps a single h1. */
-export function renderMarkdown(src: string, doc: Document = document): DocumentFragment {
+export function renderMarkdown(src: string, doc: Document = document, options: MarkdownOptions = {}): DocumentFragment {
   const frag = doc.createDocumentFragment();
-  for (const b of parseMarkdown(src)) frag.append(blockToDom(b, doc));
+  for (const b of parseMarkdown(src, options)) frag.append(blockToDom(b, doc));
   return frag;
 }

@@ -236,7 +236,7 @@ export type TimelineItem =
   | { kind: 'user.upload'; key: string; ts: string; event: EventEnvelope<'user.upload'> }
   | { kind: 'user.voice_note'; key: string; ts: string; event: EventEnvelope<'user.voice_note'> }
   | { kind: 'coach.message'; key: string; ts: string; event: EventEnvelope<'coach.message'>; answer?: AnswerView }
-  | { kind: 'system'; key: string; ts: string; text: string; viewId?: string }
+  | { kind: 'system'; key: string; ts: string; text: string; viewId?: string; viewUpdate?: { title: string; summary: string } }
   | { kind: 'provisional'; key: string; ts: string; item: Provisional }
   | { kind: 'pending'; key: string; ts: string; item: PendingMessage };
 
@@ -316,7 +316,8 @@ export function buildTimeline(state: ChatState, opts: TimelineOptions = {}): Tim
       }
       case 'coach.ui_published': {
         const title = opts.viewTitle?.(e.payload.viewId) ?? e.payload.viewId;
-        out.push({ kind: 'system', key: e.id, ts: e.ts, text: `Your coach updated ${title}${e.payload.summary ? `: ${e.payload.summary}` : ''}`, viewId: e.payload.viewId });
+        out.push({ kind: 'system', key: e.id, ts: e.ts, text: `Your coach updated ${title}${e.payload.summary ? `: ${e.payload.summary}` : ''}`, viewId: e.payload.viewId,
+          viewUpdate: { title, summary: e.payload.summary } });
         break;
       }
       case 'call.started':

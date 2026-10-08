@@ -297,11 +297,12 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     const workspace = athletePaths(server.config.dataDir, athleteId).workspace;
     const privateNotes = 'INTERNAL_PLAN_CANARY: reconcile data/coach.db planned_workouts; helper task bookkeeping.';
     const explanation = 'Easy runs build consistency while leaving you fresh for your longer run.';
+    const displaySource = `# Why this plan\n\n${explanation}`;
     await writeFile(join(workspace, 'plan/current.md'), privateNotes);
-    await writeFile(join(workspace, 'plan/athlete-summary.md'), explanation);
+    await writeFile(join(workspace, 'plan/athlete-summary.md'), displaySource);
 
     await expect(server.runtime.views.readFile(athleteId, 'plan', 'plan/current.md')).rejects.toMatchObject({ code: 'NOT_ALLOWED' });
-    expect(await server.runtime.views.readFile(athleteId, 'plan', 'plan/athlete-summary.md')).toBe(explanation);
+    expect(await server.runtime.views.readFile(athleteId, 'plan', 'plan/athlete-summary.md')).toBe(displaySource);
     await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'More', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Plan', exact: true }).click();
     const frame = page.frameLocator('iframe[title="Plan"]');
@@ -310,6 +311,7 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     expect(await explanationPanel.evaluate((el: HTMLDetailsElement) => el.open)).toBe(false);
     await explanationPanel.locator('summary').click();
     await frame.getByText(explanation, { exact: true }).waitFor();
+    expect(await frame.getByRole('heading', { name: 'Why this plan', exact: true }).count()).toBe(1);
     const visible = await frame.locator('body').innerText();
     expect(visible).toContain('Planned weekly training');
     for (const internal of ['INTERNAL_PLAN_CANARY', 'data/coach.db', 'planned_workouts', 'helper task bookkeeping']) expect(visible).not.toContain(internal);
@@ -418,6 +420,19 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     const anonymous = await fetch(`${appUrl}/v1/blobs/${blob.sha256}`);
     expect(anonymous.status).toBe(401);
     await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Settings', exact: true }).click();
+    const nameRow = page.locator('.row').filter({ has: page.getByLabel('Coach name', { exact: true }) });
+    const picture = nameRow.locator('.avatar');
+    await picture.scrollIntoViewIfNeeded();
+    const pictureBox = (await picture.boundingBox())!;
+    const nameBox = (await page.getByLabel('Coach name', { exact: true }).boundingBox())!;
+    expect(Math.abs(pictureBox.y + pictureBox.height / 2 - nameBox.y - nameBox.height / 2)).toBeLessThan(3);
+    expect(await page.getByText('Coach avatar', { exact: true }).count()).toBe(0);
+    if (process.env.OPENCOACH_CAPTURE_POLISH === '1') {
+      await nameRow.screenshot({ path: join(repo, 'work/coach-name-avatar-phone.png') });
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await nameRow.screenshot({ path: join(repo, 'work/coach-name-avatar-desktop.png') });
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
     await page.getByRole('button', { name: 'Reset avatar', exact: true }).click();
     await expect.poll(async () => (await server.store.getSettings(athleteId)).coachIdentity.avatarSha256).toBeNull();
     await page.getByRole('switch', { name: 'Let my coach change its name and avatar' }).click();
@@ -428,7 +443,34 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     expect(browserErrors).toEqual([]);
   }, 60_000);
 
+  it('[UI-1] presents compact view updates with history and a direct chat link', async () => {
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await nav.getByRole('button', { name: 'Today', exact: true }).click();
+    const workspace = athletePaths(server.config.dataDir, athleteId).workspace;
+    const index = join(workspace, 'ui/views/today/index.html');
+    await writeFile(index, await readFile(index, 'utf8') + '\n<!-- update notice fixture -->\n');
+    const summary = 'Updated the session layout and kept the full instructions. '.repeat(6).trim();
+    const result = await server.runtime.core.ui.publish(athleteId, ['today'], summary);
+    expect(result.ok).toBe(true);
+    const notice = page.getByRole('status', { name: 'View updated', exact: true });
+    await notice.waitFor();
+    expect((await notice.boundingBox())!.height).toBeLessThan(105);
+    if (process.env.OPENCOACH_CAPTURE_POLISH === '1') await notice.screenshot({ path: join(repo, 'work/view-update-notice-phone.png') });
+    await notice.getByRole('button', { name: 'View history', exact: true }).click();
+    await page.locator('#settings-settings-history').getByRole('heading', { name: 'Screen history', exact: true }).waitFor();
+    await page.locator('#settings-settings-history').getByRole('button', { name: /^Today/ }).click();
+    await page.locator('#settings-settings-history .history').getByText(summary, { exact: false }).waitFor();
+    await nav.getByRole('button', { name: 'Chat', exact: true }).click();
+    await page.reload();
+    const card = page.locator('.chat-view-update').filter({ hasText: 'Updated the session layout' });
+    await card.waitFor();
+    if (process.env.OPENCOACH_CAPTURE_POLISH === '1') await card.screenshot({ path: join(repo, 'work/view-update-chat-phone.png') });
+    await card.click();
+    await page.waitForURL(/#\/view\/today/);
+  }, 120_000);
+
   it('[WS-4] presents local coach history readably and persists maximum message limits [MSG-4]', async () => {
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Settings', exact: true }).click();
     const workspace = server.runtime.core.paths(athleteId).workspace;
     await mkdir(join(workspace, 'research'), { recursive: true });
     await writeFile(join(workspace, 'research/history-check.md'), 'Synthetic history check.');

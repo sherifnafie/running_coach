@@ -333,7 +333,7 @@ class RcSegmented extends RcElement {
 // ----------------------------------------------------------------------------- markdown
 
 class RcMarkdown extends RcElement {
-  static observedAttributes = ['src', 'file', 'empty'];
+  static observedAttributes = ['src', 'file', 'empty', 'omit-title'];
   private text: string | null = null;
   private initial = '';
   private state: 'idle' | 'loading' | 'error' = 'idle';
@@ -399,7 +399,7 @@ class RcMarkdown extends RcElement {
       this.replaceChildren(empty ? h('p', { class: 'rc-md__empty' }, empty) : '');
       return;
     }
-    this.replaceChildren(renderMarkdown(src));
+    this.replaceChildren(renderMarkdown(src, document, { omitTitle: this.getAttribute('omit-title') ?? undefined }));
   }
 }
 
@@ -417,4 +417,3 @@ export function registerBasic(): void {
   define('rc-segmented', RcSegmented);
   define('rc-markdown', RcMarkdown);
 }
-

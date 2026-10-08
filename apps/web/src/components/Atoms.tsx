@@ -142,9 +142,9 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
 }
 
 /** Title and hint arrive already translated by the caller. */
-export function Section({ title, children, hint, help }: { title: string; children: ReactNode; hint?: string; help?: string }) {
+export function Section({ title, children, hint, help, id }: { title: string; children: ReactNode; hint?: string; help?: string; id?: string }) {
   return (
-    <section className="settings-section">
+    <section id={id} className="settings-section">
       <div className="section-title-row"><h3>{title}</h3>{help && <InfoButton label={title} text={help} />}</div>
       {hint && <p className="hint">{hint}</p>}
       <div className="card">{children}</div>

@@ -344,6 +344,16 @@ export const ProvisionalBubble = memo(function ProvisionalBubble({ item }: { ite
   );
 });
 
+export function ViewUpdateMessage({ title, summary, onOpen }: { title: string; summary: string; onOpen: () => void }) {
+  const t = useI18n();
+  return <button type="button" className="chat-view-update" onClick={onOpen}>
+    <span className="view-update-icon" aria-hidden="true"><Icon name="check" size={16} /></span>
+    <span className="view-update-copy"><strong>{t(title)} <span className="view-update-tag">{t('Updated')}</span></strong>
+      {summary && <span className="view-update-summary">{summary}</span>}
+    </span><Icon name="chevron" size={16} />
+  </button>;
+}
+
 export function SystemLine({ text, onOpen }: { text: string; onOpen?: () => void }) {
   const t = useI18n();
   return (

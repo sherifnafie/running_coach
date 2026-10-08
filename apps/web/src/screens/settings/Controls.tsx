@@ -70,6 +70,8 @@ export function TextRow({
   list,
   validate,
   autoComplete,
+  leading,
+  trailing,
 }: {
   label: string;
   hint?: string;
@@ -80,6 +82,8 @@ export function TextRow({
   list?: string;
   validate?: (v: string) => string | undefined;
   autoComplete?: string;
+  leading?: ReactNode;
+  trailing?: ReactNode;
 }) {
   const id = useId();
   const [draft, setDraft] = useState(value);
@@ -93,9 +97,7 @@ export function TextRow({
     }
     onCommit(v);
   };
-  return (
-    <Row label={label} hint={hint} help={help} htmlFor={id}>
-      <input
+  const input = <input
         id={id}
         value={draft}
         maxLength={maxLength}
@@ -105,7 +107,10 @@ export function TextRow({
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-      />
+      />;
+  return (
+    <Row label={label} hint={hint} help={help} htmlFor={id}>
+      {leading || trailing ? <div className="text-row-affixes">{leading}{input}{trailing}</div> : input}
       {error && <small className="err">{error}</small>}
     </Row>
   );

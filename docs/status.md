@@ -114,6 +114,16 @@ the release, current bundles and preserved metric method/history. All 798
 harness/renderer tests, 163 web unit tests (12 existing skips), 16 browser cases,
 build/typecheck and deterministic reference fast eval checks pass.
 
+**Presentation fixes (0.3.9, 2026-10-08):** Plan opts into `rc-markdown`
+`omit-title` to avoid repeating “Why this plan”; only a matching first heading
+is omitted from the display, preserving the source document and subsections.
+Settings places the avatar/reset beside the coach name. View updates now use
+a compact personal notice with bounded summary, dismissal and a history link;
+expiry pauses while hovered or keyboard-focused. Chat uses a concise linked
+update entry. Full summaries and existing undo stay in screen history. Regression
+coverage checks title composition/source preservation, inline avatar placement
+and reset, history navigation, long summaries and focus-aware dismissal.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.
