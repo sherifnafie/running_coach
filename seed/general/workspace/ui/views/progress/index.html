@@ -34,30 +34,42 @@
         label="Training time per week, by sport" data-i18n-label="Training time per week, by sport" empty="No sessions in this period yet." data-i18n-empty="No sessions in this period yet."></rc-chart>
     </rc-card>
 
-    <rc-card id="distance-card" heading="Weekly distance" data-i18n-heading="Weekly distance" hidden>
+    <rc-card id="distance-card" heading="Distance" data-i18n-heading="Distance" hidden>
+      <rc-stat id="s-distance-week" label="This week" data-i18n-label="This week" format="distance"></rc-stat>
+      <details class="rc-disclosure"><summary data-i18n="Weekly distance">Weekly distance</summary>
       <rc-chart id="distance" type="bar" stacked y-format="distance" height="170" label="Distance per week, by sport" data-i18n-label="Distance per week, by sport"></rc-chart>
       <rc-stat id="s-longest" label="Longest session" data-i18n-label="Longest session" format="distance"></rc-stat>
+      </details>
     </rc-card>
 
     </div>
 
-    <rc-card id="strength-card" heading="Strength" data-i18n-heading="Strength" subheading="Estimated 1RM per week from your working sets (up to 10 reps). An estimate, not a tested max." data-i18n-subheading="Estimated 1RM per week from your working sets (up to 10 reps). An estimate, not a tested max." hidden>
+    <rc-card id="strength-card" hidden>
+      <div class="rc-row-between"><h2 class="rc-card__title" data-i18n="Strength">Strength</h2><button type="button" class="rc-info-button" aria-haspopup="dialog" popovertarget="strength-info" aria-label="About estimated 1RM" data-i18n-aria-label="About estimated 1RM"><span aria-hidden="true">i</span></button></div>
+      <p class="rc-muted" data-i18n="Estimated, not a tested maximum.">Estimated, not a tested maximum.</p>
+      <div id="strength-info" popover="auto" role="dialog" aria-labelledby="strength-info-title" aria-describedby="strength-info-text" class="rc-info-popover">
+        <div class="rc-info-head"><strong id="strength-info-title" data-i18n="Estimated 1RM">Estimated 1RM</strong><button type="button" popovertarget="strength-info" popovertargetaction="hide" data-i18n="Close">Close</button></div>
+        <p id="strength-info-text" data-i18n="Estimated 1RM per week from your working sets (up to 10 reps). An estimate, not a tested max.">Estimated 1RM per week from your working sets (up to 10 reps). An estimate, not a tested max.</p>
+      </div>
       <rc-chart id="e1rm" type="line" y-format="weight" height="190" label="Estimated 1RM per week" data-i18n-label="Estimated 1RM per week"></rc-chart>
-      <rc-list id="lifts" empty="No lifts in this period yet." data-i18n-empty="No lifts in this period yet."></rc-list>
+      <details class="rc-disclosure"><summary data-i18n="Lift details">Lift details</summary><rc-list id="lifts" empty="No lifts in this period yet." data-i18n-empty="No lifts in this period yet."></rc-list></details>
     </rc-card>
 
     <div class="rc-grid-wide">
     <!-- Calm consistency: no streak counter, no flames, nothing to lose. -->
     <section class="rc-stack-sm" aria-labelledby="consistency-heading">
-      <h2 id="consistency-heading" class="rc-card__title" data-i18n="Consistency">Consistency</h2>
-      <rc-stat id="consistency" label="Weeks with 2 or more sessions" data-i18n-label="Weeks with 2 or more sessions"
-        hint="Missed weeks happen. What counts is the pattern over months." data-i18n-hint="Missed weeks happen. What counts is the pattern over months."></rc-stat>
+      <div class="rc-row-between"><h2 id="consistency-heading" class="rc-card__title" data-i18n="Consistency">Consistency</h2><button type="button" class="rc-info-button" aria-haspopup="dialog" popovertarget="consistency-info" aria-label="About consistency" data-i18n-aria-label="About consistency"><span aria-hidden="true">i</span></button></div>
+      <rc-stat id="consistency" label="Weeks with 2 or more sessions" data-i18n-label="Weeks with 2 or more sessions"></rc-stat>
+      <div id="consistency-info" popover="auto" role="dialog" aria-labelledby="consistency-info-title" aria-describedby="consistency-info-text" class="rc-info-popover">
+        <div class="rc-info-head"><strong id="consistency-info-title" data-i18n="Consistency">Consistency</strong><button type="button" popovertarget="consistency-info" popovertargetaction="hide" data-i18n="Close">Close</button></div>
+        <p id="consistency-info-text" data-i18n="Completed weeks with at least two logged sessions, within the selected range. The current week is excluded.">Completed weeks with at least two logged sessions, within the selected range. The current week is excluded.</p>
+      </div>
     </section>
 
-    <section class="rc-stack-sm" aria-labelledby="results-heading">
-      <h2 id="results-heading" class="rc-card__title" data-i18n="Results">Results</h2>
+    <details class="rc-disclosure">
+      <summary><h2 id="results-heading" class="rc-card__title" data-i18n="Results">Results</h2></summary>
       <rc-list id="results" empty="No results yet." data-i18n-empty="No results yet."></rc-list>
-    </section>
+    </details>
     </div>
   </div>
 </rc-page>

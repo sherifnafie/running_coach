@@ -39,8 +39,8 @@ export function AiAccessPanel({ summary, canEdit, onBudgets, onModel, children }
       </Row>
       {canEdit ? (
         <>
-          <SelectRow label={t('Chat model')} hint={t('Talks with you: replies, check-ins, quick changes. Speed matters here.')} value={summary.model} options={options(summary.defaultModel)} onChange={(m) => onModel(m, 'coach')} />
-          <SelectRow label={t('Deep work model')} hint={t('Works in the background on plans, reviews and research, where thinking matters more than speed.')} value={summary.deepModel} options={options(summary.defaultDeepModel)} onChange={(m) => onModel(m, 'deep')} />
+          <SelectRow label={t('Chat model')} help={t('Talks with you: replies, check-ins, quick changes. Speed matters here.')} value={summary.model} options={options(summary.defaultModel)} onChange={(m) => onModel(m, 'coach')} />
+          <SelectRow label={t('Deep work model')} help={t('Works in the background on plans, reviews and research, where thinking matters more than speed.')} value={summary.deepModel} options={options(summary.defaultDeepModel)} onChange={(m) => onModel(m, 'deep')} />
         </>
       ) : (
         <>

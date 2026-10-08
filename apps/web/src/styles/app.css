@@ -2574,3 +2574,25 @@ input[aria-invalid='true'] {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--rc-accent) 45%, transparent); }
   50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--rc-accent) 0%, transparent); }
 }
+
+/* Optional tap/keyboard help; supporting text stays inline on older browsers. */
+.rc-info-button { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--rc-text); cursor: pointer; font: inherit; }
+.rc-info-button > span { display: grid; place-items: center; width: 19px; height: 19px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 12px; line-height: 1; font-weight: 700; }
+.rc-info-button:hover { background: var(--rc-surface-2); }
+.rc-info-button:focus-visible { outline: 3px solid var(--rc-focus, var(--rc-accent)); outline-offset: 1px; }
+.rc-info-popover { max-width: min(26rem, calc(100vw - 32px)); padding: 18px; border: 1px solid var(--rc-border); border-radius: 14px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 10px 40px rgb(0 0 0 / 18%); font: inherit; line-height: 1.55; }
+.rc-info-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.rc-info-head button { flex: none; min-height: 44px; padding: 0 12px; border: 1px solid var(--rc-border); border-radius: 9px; background: var(--rc-surface); color: var(--rc-text); cursor: pointer; font: inherit; }
+.rc-info-popover p { margin: 0; }
+@supports selector(:popover-open) {
+  .rc-info-popover[popover] { position: fixed; inset: 0; margin: auto; max-height: 75vh; overflow: auto; }
+}
+
+.section-title-row, .row-label-line { display: flex; align-items: center; gap: 4px; }
+.section-title-row { justify-content: space-between; margin-bottom: 8px; }
+.settings-section .section-title-row h3 { margin: 0; }
+.row-label-line > label { flex: 0 1 auto; }
+.info-fallback { display: inline-block; }
+.info-fallback > summary { list-style: none; }
+.info-fallback > summary::-webkit-details-marker { display: none; }
+.info-inline { margin: 4px 0 10px; font-size: .85rem; line-height: 1.5; }

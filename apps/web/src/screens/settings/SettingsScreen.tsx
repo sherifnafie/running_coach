@@ -124,7 +124,7 @@ function ProfileSection() {
       />
       <TextRow
         label={t("Time zone")}
-        hint={t("Quiet hours and your coach's schedule follow this.")}
+        help={t("Quiet hours and your coach's schedule follow this.")}
         value={s.profile.tz}
         list="tz-list-settings"
         validate={(v) => (isValidTimeZone(v) ? undefined : t("Unknown time zone"))}
@@ -165,8 +165,8 @@ function AppearanceSection() {
   const { theme, accent } = s.appearance;
   const languages = languageOptions(s.profile.locale);
   return (
-    <Section title={t("Appearance")} hint={t("Saved across your devices. You can also ask your coach in chat.")}>
-      <SelectRow label={t("App and coach language")} hint={t("Your coach replies in this language. Saved across your devices.")} value={s.profile.locale} options={languages} onChange={(locale) => save({ profile: { locale } })} />
+    <Section title={t("Appearance")} help={t("Saved across your devices. You can also ask your coach in chat.")}>
+      <SelectRow label={t("App and coach language")} value={s.profile.locale} options={languages} onChange={(locale) => save({ profile: { locale } })} />
       <fieldset className="theme-choices"><legend>{t('Theme')}</legend>
         {(['system', 'light', 'dark'] as ThemePref[]).map((value) => <button type="button" key={value} aria-pressed={theme === value} onClick={() => void save({ appearance: { theme: value } })}>
           <span className={`theme-preview ${value}`} aria-hidden="true"><span /><span /><span /></span>
@@ -220,7 +220,7 @@ function NotificationsSection() {
   const pausedUntil = n.pauseUntil && Date.parse(n.pauseUntil) > clock.nowMs() ? n.pauseUntil : null;
 
   return (
-    <Section title={t("Notifications")} hint={t("Your limits. Your coach cannot change them: messages are held during quiet hours and capped by these budgets.")}>
+    <Section title={t("Notifications")} help={t("Your limits. Your coach cannot change them: messages are held during quiet hours and capped by these budgets.")}>
       <Toggle
         label={t("Quiet hours")}
         hint={t("Messages written during this window wait until it ends.")}
@@ -233,8 +233,8 @@ function NotificationsSection() {
           <TimeRow label={t("Until")} value={qh.end} onCommit={(v) => save({ notifications: { quietHours: { start: qh.start, end: v } } })} />
         </div>
       )}
-      <NumberRow label={t("Maximum proactive messages per day")} hint={t("Only messages your coach starts count. This is a ceiling, not a target. 0 means replies only.")} value={n.proactivePerDay} min={0} max={10} integer onCommit={(v) => save({ notifications: { proactivePerDay: v } })} />
-      <NumberRow label={t("Maximum proactive messages per week")} hint={t("Across the last 7 days. Your coach decides when a message is useful, within both limits.")} value={n.proactivePerWeek} min={0} max={50} integer onCommit={(v) => save({ notifications: { proactivePerWeek: v } })} />
+      <NumberRow label={t("Maximum proactive messages per day")} hint={t("0 means replies only.")} help={t("Only messages your coach starts count. This is a ceiling, not a target.")} value={n.proactivePerDay} min={0} max={10} integer onCommit={(v) => save({ notifications: { proactivePerDay: v } })} />
+      <NumberRow label={t("Maximum proactive messages per week")} help={t("Across the last 7 days. Your coach decides when a message is useful, within both limits.")} value={n.proactivePerWeek} min={0} max={50} integer onCommit={(v) => save({ notifications: { proactivePerWeek: v } })} />
       <SelectRow
         label={t("Minimum gap between them")}
         value={n.minGapMinutes}
@@ -280,7 +280,8 @@ function VoiceSection() {
     <Section title={t("Voice")}>
       <SelectRow
         label={t("Call mode")}
-        hint={calls.realtime || calls.cascaded ? t("Realtime is the most natural. Cascaded works with any model and keeps audio processing on the server.") : t("Calls are not available on this server.")}
+        hint={!calls.realtime && !calls.cascaded ? t("Calls are not available on this server.") : undefined}
+        help={calls.realtime || calls.cascaded ? t("Realtime is the most natural. Cascaded works with any model and keeps audio processing on the server.") : undefined}
         value={s.voice.callMode}
         options={[
           { value: 'realtime', label: calls.realtime ? t("Realtime") : t("Realtime (unavailable)") },

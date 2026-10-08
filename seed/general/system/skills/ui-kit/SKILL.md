@@ -32,6 +32,12 @@ keep long instructions and primary tasks readable. A simple view may need no
 grid or cards at all. Missing optional content should be omitted, not printed
 as `null` or `undefined`.
 
+Optional detail controls are described in the kit's docs: native disclosures,
+tap/keyboard info popovers, and the workspace's sheet component. They can make
+long explanations, definitions and history available without crowding the
+first screen. Keep actionable session instructions and important consequences
+visible. Use judgment: not every view needs hidden detail or help icons.
+
 Use text written for the athlete: training instructions, useful rationale,
 assumptions and uncertainty. Do not display raw working notes, briefings,
 helper drafts, SQL or file/tool bookkeeping. Keep a dedicated display source

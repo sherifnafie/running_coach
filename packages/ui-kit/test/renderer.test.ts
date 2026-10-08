@@ -37,6 +37,12 @@ describe.skipIf(!chromiumAvailable())('[UI-1] [UI-3] Chromium seed view publish 
     const dir = await mkdtemp(join(tmpdir(), 'kit-render-'));
     dirs.push(dir);
     makeWorkspace(dir, { data });
+    if (data === 'sample') {
+      // Exercise the expanded state as well as default/empty previews. Keep
+      // full-page capture independent of which details starters fold away.
+      const script = join(dir, 'ui/views/plan/view.js');
+      await writeFile(script, await readFile(script, 'utf8') + '\nfor (const detail of document.querySelectorAll("details.rc-disclosure")) detail.open = true;\n');
+    }
     const renderer = createPlaywrightRenderer({ clock: new VirtualClock(NOW), env: { locale: 'en-GB', tz: 'Europe/Amsterdam' } });
     try {
       const report = await renderer.preview({ athleteId: 'test-athlete', workspaceDir: dir, views: ['today', 'calendar', 'plan', 'progress'],
@@ -52,9 +58,9 @@ describe.skipIf(!chromiumAvailable())('[UI-1] [UI-3] Chromium seed view publish 
         expect(view.ok, JSON.stringify(view)).toBe(true);
       }
       if (data === 'sample') {
-        // Today now fits on a phone; Progress still proves full-page capture.
-        const progress = report.views.find(v => v.viewId === 'progress');
-        const shot = progress?.screenshots.find(s => s.variant === 'phone-light');
+        // The expanded sample plan deliberately extends below the viewport.
+        const plan = report.views.find(v => v.viewId === 'plan');
+        const shot = plan?.screenshots.find(s => s.variant === 'phone-light');
         expect(shot).toBeDefined();
         const png = await readFile(shot!.path);
         expect(png.readUInt32BE(20), 'full-page screenshot includes content below the viewport').toBeGreaterThan(844);

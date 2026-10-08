@@ -2,6 +2,17 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.8: supporting detail on demand (October 2026)
+
+The kit now styles native `details.rc-disclosure` and tap/keyboard info
+popovers (`rc-info-button`, `rc-info-popover`). The kit docs contain small
+examples; your workspace's sheet component remains available for larger panels.
+These are optional presentation tools, not a new rule for every screen. Useful
+definitions, rationale and historical breakdowns can be opened when wanted;
+the athlete should still see the information needed to act and important
+consequences. Starter Plan/Progress/Calendar demonstrate selective use. No
+automatic rewrite of customized views or new model calls for opening detail.
+
 ## v0.3.7: clearer starter views (October 2026)
 
 The starter Today view no longer includes Quick check-in. Its unused form,

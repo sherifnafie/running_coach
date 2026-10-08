@@ -151,6 +151,8 @@ export const shellLabels: Record<string, [string, string]> = {
   "Until": ["Tot", "إلى"],
   "Maximum proactive messages per day": ["Maximum aantal coachberichten per dag", "الحد الأقصى لرسائل المدرب الاستباقية يوميًا"],
   "Only messages your coach starts count. This is a ceiling, not a target. 0 means replies only.": ["Alleen berichten die je coach zelf begint tellen mee. Dit is een bovengrens, geen doel. Bij 0 krijg je alleen antwoorden.", "تُحسب فقط الرسائل التي يبدأها مدربك. هذا حد أقصى، وليس هدفًا. القيمة 0 تعني الردود فقط."],
+  "0 means replies only.": ["Bij 0 krijg je alleen antwoorden.", "القيمة 0 تعني الردود فقط."],
+  "Only messages your coach starts count. This is a ceiling, not a target.": ["Alleen berichten die je coach zelf begint tellen mee. Dit is een bovengrens, geen doel.", "تُحسب فقط الرسائل التي يبدأها مدربك. هذا حد أقصى، وليس هدفًا."],
   "Maximum proactive messages per week": ["Maximum aantal coachberichten per week", "الحد الأقصى لرسائل المدرب الاستباقية أسبوعيًا"],
   "Across the last 7 days. Your coach decides when a message is useful, within both limits.": ["Over de afgelopen 7 dagen. Je coach bepaalt wanneer een bericht nuttig is, binnen beide grenzen.", "خلال آخر 7 أيام. يقرر مدربك متى تكون الرسالة مفيدة، ضمن كلا الحدين."],
   "Minimum gap between them": ["Minimale tijd ertussen", "أقل فترة بين الرسائل"],

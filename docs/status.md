@@ -94,6 +94,20 @@ harness/renderer tests, 15 browser cases, build/typecheck and deterministic
 reference fast eval checks pass; visual review covered phone/tablet, both
 themes and empty states.
 
+**Supporting detail on demand (0.3.8, 2026-10-08):** optional native disclosures
+and tap/keyboard help popovers are styled/documented by the kit, with a small
+opt-in help control in Settings. Starter Plan folds phases, weekly breakdowns,
+key sessions and rationale; Progress keeps current metrics visible with
+optional distance charts, lift details and results; Calendar folds its legend.
+The owner's VO₂max adaptation retains the latest value and an honest short
+caveat, with its original explanation, trend and tests available on demand.
+No runtime policy requires these patterns and opening them calls no model.
+Session instructions, status and consequential settings warnings stay visible.
+Phone/tablet, dark/light and empty-state previews pass with zero serious or
+critical accessibility findings. Browser coverage exercises expanding rationale,
+help inside a sandboxed view, keyboard opening, Escape/focus return, Close and
+outside dismissal, plus viewport fit and unchanged settings behavior.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.

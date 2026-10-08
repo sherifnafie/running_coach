@@ -306,6 +306,9 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await page.getByRole('menuitem', { name: 'Plan', exact: true }).click();
     const frame = page.frameLocator('iframe[title="Plan"]');
     await frame.getByRole('heading', { name: 'Why this plan', exact: true }).waitFor();
+    const explanationPanel = frame.locator('details').filter({ has: frame.getByRole('heading', { name: 'Why this plan', exact: true }) });
+    expect(await explanationPanel.evaluate((el: HTMLDetailsElement) => el.open)).toBe(false);
+    await explanationPanel.locator('summary').click();
     await frame.getByText(explanation, { exact: true }).waitFor();
     const visible = await frame.locator('body').innerText();
     expect(visible).toContain('Planned weekly training');
@@ -346,6 +349,24 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     expect(text).not.toMatch(/\b(null|undefined)\b/);
     expect(text).toContain('Distance');
     expect(text).toContain('Ask coach about this');
+  }, 60_000);
+
+  it('[UI-1] opens coach-view help by keyboard without hiding the primary measurements', async () => {
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await nav.getByRole('button', { name: 'More', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Progress', exact: true }).click();
+    const frame = page.frameLocator('iframe[title="Progress"]');
+    await frame.getByRole('heading', { name: 'Progress', exact: true }).waitFor();
+    await frame.locator('#s-week').getByText('This week', { exact: true }).waitFor();
+    const trigger = frame.getByRole('button', { name: 'About consistency', exact: true });
+    await trigger.focus();
+    await trigger.press('Enter');
+    const note = frame.getByRole('dialog', { name: 'Consistency', exact: true });
+    await note.waitFor();
+    expect(await note.innerText()).toContain('current week is excluded');
+    await page.keyboard.press('Escape');
+    await note.waitFor({ state: 'hidden' });
+    expect(await trigger.evaluate(el => el === document.activeElement)).toBe(true);
   }, 60_000);
 
   it('[SAFE-2] displays the harness safety banner, then persists settings through the gateway', async () => {
@@ -438,7 +459,10 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await daily.waitFor();
     expect(await daily.inputValue()).toBe('0');
     expect(await weekly.inputValue()).toBe('2');
-    expect(await page.getByText('Only messages your coach starts count. This is a ceiling, not a target. 0 means replies only.', { exact: true }).isVisible()).toBe(true);
+    expect(await page.getByText('0 means replies only.', { exact: true }).isVisible()).toBe(true);
+    await page.getByRole('button', { name: 'About Maximum proactive messages per day', exact: true }).click();
+    expect(await page.getByRole('dialog', { name: 'About Maximum proactive messages per day', exact: true }).innerText()).toContain('This is a ceiling, not a target.');
+    await page.keyboard.press('Escape');
     await daily.fill('3');
     await daily.press('Enter');
     await weekly.fill('12');
@@ -463,6 +487,26 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await nav().getByRole('button', { name: 'Settings', exact: true }).click();
     await page.getByRole('heading', { name: 'Your coach, your way' }).waitFor();
     await audit();
+    const help = page.getByRole('button', { name: 'About Appearance', exact: true });
+    await help.focus();
+    await help.press('Enter');
+    const helpPanel = page.getByRole('dialog', { name: 'About Appearance', exact: true });
+    await helpPanel.waitFor();
+    expect(await helpPanel.innerText()).toContain('Saved across your devices');
+    const bounds = await helpPanel.boundingBox();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+    await audit();
+    if (process.env.OPENCOACH_CAPTURE_DISCLOSURE === '1') await page.screenshot({ path: join(repo, 'work/settings-help-phone.png') });
+    await page.keyboard.press('Escape');
+    await helpPanel.waitFor({ state: 'hidden' });
+    expect(await help.evaluate(el => el === document.activeElement)).toBe(true);
+    await help.click();
+    await helpPanel.getByRole('button', { name: 'Close', exact: true }).click();
+    await helpPanel.waitFor({ state: 'hidden' });
+    await help.click();
+    await page.getByRole('heading', { name: 'Your coach, your way', exact: true }).click();
+    await helpPanel.waitFor({ state: 'hidden' });
     if (process.env.OPENCOACH_CAPTURE_LAYOUT === '1') {
       await page.locator('#settings-personalize').screenshot({ path: join(repo, 'work/settings-personalize-phone.png') });
       await page.setViewportSize({ width: 1440, height: 1100 });

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useI18n } from '../../lib/i18n';
+import { InfoButton } from '../../components/InfoButton';
 
 /** Save status shared by the settings controls ("Saving…" / "Saved"). */
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -7,13 +8,12 @@ export const SaveContext = createContext<{ commit: (patch: unknown) => Promise<b
 export const useCommit = () => useContext(SaveContext).commit;
 
 /** Labels and hints arrive already translated by the caller. */
-export function Row({ label, hint, children, htmlFor }: { label: string; hint?: string; children: ReactNode; htmlFor?: string }) {
+export function Row({ label, hint, help, children, htmlFor }: { label: string; hint?: string; help?: string; children: ReactNode; htmlFor?: string }) {
   return (
     <div className="row">
       <div className="row-text">
-        <label htmlFor={htmlFor} className="row-label">
-          {label}
-        </label>
+        <div className="row-label-line"><label htmlFor={htmlFor} className="row-label">{label}</label>
+          {help && <InfoButton label={label} text={help} />}</div>
         {hint && <p className="row-hint">{hint}</p>}
       </div>
       <div className="row-control">{children}</div>
@@ -21,10 +21,10 @@ export function Row({ label, hint, children, htmlFor }: { label: string; hint?: 
   );
 }
 
-export function Toggle({ label, hint, checked, onChange, disabled }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+export function Toggle({ label, hint, help, checked, onChange, disabled }: { label: string; hint?: string; help?: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const id = useId();
   return (
-    <Row label={label} hint={hint} htmlFor={id}>
+    <Row label={label} hint={hint} help={help} htmlFor={id}>
       <input id={id} type="checkbox" role="switch" className="switch" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
     </Row>
   );
@@ -33,19 +33,21 @@ export function Toggle({ label, hint, checked, onChange, disabled }: { label: st
 export function SelectRow<T extends string | number>({
   label,
   hint,
+  help,
   value,
   options,
   onChange,
 }: {
   label: string;
   hint?: string;
+  help?: string;
   value: T;
   options: Array<{ value: T; label: string }>;
   onChange: (v: T) => void;
 }) {
   const id = useId();
   return (
-    <Row label={label} hint={hint} htmlFor={id}>
+    <Row label={label} hint={hint} help={help} htmlFor={id}>
       <select id={id} value={String(value)} onChange={(e) => onChange((typeof value === 'number' ? Number(e.target.value) : e.target.value) as T)}>
         {options.map((o) => (
           <option key={String(o.value)} value={String(o.value)}>
@@ -61,6 +63,7 @@ export function SelectRow<T extends string | number>({
 export function TextRow({
   label,
   hint,
+  help,
   value,
   onCommit,
   maxLength,
@@ -70,6 +73,7 @@ export function TextRow({
 }: {
   label: string;
   hint?: string;
+  help?: string;
   value: string;
   onCommit: (v: string) => void;
   maxLength?: number;
@@ -90,7 +94,7 @@ export function TextRow({
     onCommit(v);
   };
   return (
-    <Row label={label} hint={hint} htmlFor={id}>
+    <Row label={label} hint={hint} help={help} htmlFor={id}>
       <input
         id={id}
         value={draft}
@@ -111,6 +115,7 @@ export function TextRow({
 export function NumberRow({
   label,
   hint,
+  help,
   value,
   min,
   max,
@@ -121,6 +126,7 @@ export function NumberRow({
 }: {
   label: string;
   hint?: string;
+  help?: string;
   value: number;
   min: number;
   max: number;
@@ -142,7 +148,7 @@ export function NumberRow({
     if (n !== value) onCommit(n);
   };
   return (
-    <Row label={label} hint={hint} htmlFor={id}>
+    <Row label={label} hint={hint} help={help} htmlFor={id}>
       <div className="input-unit">
         <input
           id={id}

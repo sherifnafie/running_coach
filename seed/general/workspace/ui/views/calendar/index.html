@@ -37,9 +37,11 @@
   <!-- Details of the tapped item, filled by view.js -->
   <rc-card id="detail" hidden></rc-card>
 
-  <rc-card id="key-card" hidden heading="Key" data-i18n-heading="Key" subheading="Colour and letter show the type. Solid means done." data-i18n-subheading="Colour and letter show the type. Solid means done.">
+  <details id="key-card" class="rc-disclosure" hidden>
+    <summary data-i18n="Calendar key">Calendar key</summary>
+    <p class="rc-muted" data-i18n="Colour and letter show the type. Solid means done.">Colour and letter show the type. Solid means done.</p>
     <ul class="key" id="key"></ul>
-  </rc-card>
+  </details>
 </rc-page>
 </body>
 </html>

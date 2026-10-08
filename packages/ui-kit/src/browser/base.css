@@ -116,3 +116,24 @@ button, input, select, textarea { font: inherit; color: inherit; }
     scroll-behavior: auto !important;
   }
 }
+
+/* Optional tap/keyboard help; supporting text stays inline on older browsers. */
+.rc-info-button { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--rc-text); cursor: pointer; font: inherit; }
+.rc-info-button > span { display: grid; place-items: center; width: 19px; height: 19px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 12px; line-height: 1; font-weight: 700; }
+.rc-info-button:hover { background: var(--rc-surface-2); }
+.rc-info-button:focus-visible { outline: 3px solid var(--rc-focus, var(--rc-accent)); outline-offset: 1px; }
+.rc-info-popover { max-width: min(26rem, calc(100vw - 32px)); padding: 18px; border: 1px solid var(--rc-border); border-radius: 14px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 10px 40px rgb(0 0 0 / 18%); font: inherit; line-height: 1.55; }
+.rc-info-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.rc-info-head button { flex: none; min-height: 44px; padding: 0 12px; border: 1px solid var(--rc-border); border-radius: 9px; background: var(--rc-surface); color: var(--rc-text); cursor: pointer; font: inherit; }
+.rc-info-popover p { margin: 0; }
+@supports selector(:popover-open) {
+  .rc-info-popover[popover] { position: fixed; inset: 0; margin: auto; max-height: 75vh; overflow: auto; }
+}
+
+/* Native disclosure for longer supporting detail, chosen by the view author. */
+details.rc-disclosure { border-block-start: 1px solid var(--rc-border); }
+.rc-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; cursor: pointer; list-style: none; font-weight: 650; }
+.rc-disclosure > summary::-webkit-details-marker { display: none; }
+.rc-disclosure > summary::after { content: '+'; font-size: 1.2rem; font-weight: 400; color: var(--rc-text-2); }
+.rc-disclosure[open] > summary::after { content: '−'; }
+.rc-disclosure > :not(summary) { margin-block: 4px 16px; }

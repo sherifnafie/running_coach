@@ -93,6 +93,7 @@ function renderDistance(shown, mondays) {
   const data = stacked(shown, mondays, (r) => r.dist);
   $('distance-card').hidden = data.every((d) => !d.y);
   $('distance').data = data;
+  $('s-distance-week').setAttribute('value', shown.filter(r => r.week === thisWeek).reduce((sum, r) => sum + r.dist, 0));
   const longest = Math.max(0, ...shown.map((r) => r.longest ?? 0));
   if (longest > 0) $('s-longest').setAttribute('value', longest);
 }

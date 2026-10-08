@@ -133,6 +133,41 @@ instructions or a single primary task full width. A heading and plain section
 can be clearer than another card. Do not turn every view into a dashboard or
 force columns onto small screens.
 
+### Optional supporting detail
+
+The kit styles native `<details class="rc-disclosure">` for longer explanations
+and `.rc-info-button` / `.rc-info-popover` for short, tap-to-open help. These
+interactions use ordinary browser controls, with no coach turn or bridge call.
+Existing `ui/lib/sheet.js` provides a bottom sheet when a larger focused panel
+is useful. Choose a pattern for the content; a small view may need none.
+
+```html
+<details class="rc-disclosure">
+  <summary>Weekly breakdown</summary>
+  <!-- Supporting table or explanation -->
+</details>
+
+<button type="button" class="rc-info-button" popovertarget="metric-help"
+        aria-label="About this metric"><span aria-hidden="true">i</span></button>
+<div id="metric-help" popover="auto" class="rc-info-popover" role="dialog"
+     aria-labelledby="metric-title" aria-describedby="metric-description">
+  <div class="rc-info-head"><strong id="metric-title">About this metric</strong>
+    <button type="button" popovertarget="metric-help" popovertargetaction="hide">Close</button>
+  </div>
+  <p id="metric-description">A short definition or calculation note.</p>
+</div>
+```
+
+Use unique IDs and a descriptive button label. Native auto popovers open on
+tap/keyboard and dismiss with Escape, outside click or Close; older browsers
+keep the explanation inline. This follows the browser's [popover accessibility
+behavior](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using#popover_accessibility_features).
+Long rationale, history and duplicate chart/table breakdowns can be available
+on demand. Session steps, targets, important warnings, current errors and
+consequences of money/privacy/destructive controls still belong at the point
+of use. Avoid hover-only help, nested disclosures, or an info icon on every
+label; sometimes removing redundant prose is the better choice.
+
 Build one clear primary action per view. Day zero must explain what to do next;
 missing measurements must remain missing rather than appearing as zero.
 Provide a chat shortcut when the athlete needs judgment. Keep queries focused
