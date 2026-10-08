@@ -107,6 +107,12 @@ Phone/tablet, dark/light and empty-state previews pass with zero serious or
 critical accessibility findings. Browser coverage exercises expanding rationale,
 help inside a sandboxed view, keyboard opening, Escape/focus return, Close and
 outside dismissal, plus viewport fit and unchanged settings behavior.
+Deployed 0.3.8 (`7988669`) after backups and published the owner's Calendar v3,
+Plan v4 and Progress v5 through normal preview/history; Today remains focused
+on its existing session instructions. Authenticated production checks confirm
+the release, current bundles and preserved metric method/history. All 798
+harness/renderer tests, 163 web unit tests (12 existing skips), 16 browser cases,
+build/typecheck and deterministic reference fast eval checks pass.
 
 ## Open work (roughly by value)
 
