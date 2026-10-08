@@ -383,6 +383,197 @@ input[aria-invalid='true'] {
 }
 
 /* ---- auth / onboarding ----------------------------------------------------------------------------------- */
+/* First visit: landing (sign in / invite), account form and "can't reach". Two columns on wide screens. */
+.landing {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: calc(28px + var(--safe-top)) 16px calc(28px + var(--safe-bottom));
+  background:
+    radial-gradient(900px 520px at 0% 0%, color-mix(in srgb, var(--rc-accent) 13%, transparent), transparent 65%),
+    radial-gradient(700px 480px at 100% 100%, color-mix(in srgb, var(--rc-accent) 7%, transparent), transparent 60%),
+    var(--rc-bg);
+}
+.landing-inner {
+  width: 100%;
+  max-width: 460px;
+  display: grid;
+  gap: 24px;
+}
+.landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+.landing-brand img {
+  border-radius: 11px;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--rc-accent) 35%, transparent);
+}
+.landing-intro h1 {
+  margin: 22px 0 10px;
+  font-size: clamp(1.75rem, 6vw, 2.6rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+.landing-lead {
+  margin: 0;
+  color: var(--rc-muted);
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+.landing-features {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.landing-features li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+.landing-feature-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--rc-accent-text, var(--rc-accent));
+  background: color-mix(in srgb, var(--rc-accent) 12%, var(--rc-surface));
+}
+/* Form pages on phones: the card has its own title, so the intro shrinks to the brand row. */
+.landing-intro.compact h1,
+.landing-intro.compact .landing-lead,
+.landing-intro.compact .landing-features {
+  display: none;
+}
+.landing-card {
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  border-radius: 22px;
+  padding: 24px 20px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%), 0 18px 48px rgb(0 0 0 / 8%);
+}
+.landing-card-head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+.landing-card-head p {
+  margin: 6px 0 18px;
+  color: var(--rc-muted);
+}
+.landing-actions {
+  display: grid;
+  gap: 10px;
+}
+.btn.lg {
+  min-height: 50px;
+  font-size: 1rem;
+}
+.text-btn {
+  background: none;
+  border: none;
+  padding: 10px 4px;
+  color: var(--rc-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+.text-btn:hover {
+  color: var(--rc-text);
+}
+.text-btn.block {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+}
+.pair-form {
+  margin-top: 14px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rc-border);
+}
+.code-chip,
+.prefs-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin: 12px 0;
+  border-radius: var(--rc-radius-sm);
+  background: var(--rc-surface-2);
+  font-size: 0.92rem;
+}
+.code-chip svg {
+  color: var(--rc-success);
+}
+.code-chip strong {
+  white-space: nowrap;
+}
+.prefs-summary svg {
+  color: var(--rc-muted);
+}
+.code-chip > span,
+.prefs-summary > span {
+  flex: 1;
+  min-width: 0;
+}
+.code-chip .text-btn,
+.prefs-summary .text-btn {
+  padding: 4px;
+  color: var(--rc-accent-text, var(--rc-accent));
+}
+.landing .consents {
+  margin: 18px 0;
+  padding: 12px 14px 4px;
+  border-radius: var(--rc-radius-sm);
+  border: 1px solid var(--rc-border);
+}
+.landing .consents legend {
+  padding: 0 6px;
+  margin-inline-start: -6px;
+}
+.landing .check {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.landing .btn.primary:disabled {
+  opacity: 0.45;
+}
+@media (min-width: 900px) {
+  .landing-inner {
+    max-width: 1020px;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 64px;
+    align-items: center;
+  }
+  .landing-intro.compact h1,
+  .landing-intro.compact .landing-lead {
+    display: block;
+  }
+  .landing-intro.compact .landing-features {
+    display: grid;
+  }
+  .landing-intro.compact h1,
+  .landing-intro h1 {
+    font-size: 2.75rem;
+  }
+  .landing-card {
+    padding: 32px 30px;
+  }
+}
+@media (max-width: 899px) {
+  /* On phones the card is the point; the full intro shows only on the landing itself. */
+  .landing-intro:not(.compact) .landing-features {
+    margin-top: 16px;
+  }
+}
+
 .auth {
   min-height: 100%;
   max-width: 480px;

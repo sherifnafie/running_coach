@@ -193,6 +193,8 @@ async function handleSignedOut(): Promise<void> {
   try {
     const { needsSetup } = await auth.setupStatus();
     patchApp({ boot: needsSetup ? 'needs-setup' : 'signed-out', me: undefined });
+    // The first-visit screens follow the browser's language (an existing generated pack, if the server has one).
+    void ensureLabels(navigator.language || 'en');
   } catch (e) {
     patchApp({ boot: e instanceof NetworkError ? 'unreachable' : 'signed-out', bootError: describeError(e), me: undefined });
   }
