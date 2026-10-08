@@ -25,6 +25,8 @@ export interface AppState {
   app?: AppInfo;
   /** `app` came from the offline cache and has not been refreshed yet. */
   appFromCache: boolean;
+  /** The server has answered (or the fetch failed): only then may a view be reported missing. */
+  appChecked: boolean;
   online: boolean;
   ws: StreamStatus;
   presence: PresenceState;
@@ -49,6 +51,7 @@ export interface AppState {
 export const appStore = createStore<AppState>({
   boot: 'loading',
   appFromCache: false,
+  appChecked: false,
   online: typeof navigator === 'undefined' ? true : navigator.onLine,
   ws: 'closed',
   presence: 'idle',

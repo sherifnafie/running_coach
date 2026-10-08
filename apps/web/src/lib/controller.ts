@@ -217,6 +217,11 @@ export function finishOnboarding(): void {
 
 async function startSession(me: MeResponse, opts: { offline?: boolean } = {}): Promise<void> {
   void cacheSet(ME_CACHE_KEY, me);
+  // Read the cached app and conversation before the shell first renders, so a refresh goes straight to the last
+  // known screen instead of passing through an empty nav and an empty chat.
+  const [cachedApp, cachedEvents] = await Promise.all([cacheGet<AppInfo>(APP_CACHE_KEY), cacheGet<AnyEvent[]>(EVENTS_CACHE_KEY)]);
+  if (cachedApp) patchApp({ app: cachedApp, appFromCache: true });
+  if (cachedEvents?.length) dispatchChat({ type: 'history', events: cachedEvents, mode: 'initial', hasMore: true });
   patchApp({
     me,
     boot: 'ready',
@@ -224,11 +229,8 @@ async function startSession(me: MeResponse, opts: { offline?: boolean } = {}): P
   });
   initQueue();
   applyPresentation();
-  const cachedApp = await cacheGet<AppInfo>(APP_CACHE_KEY);
-  if (cachedApp) setApp(cachedApp, true);
-  const cachedEvents = await cacheGet<AnyEvent[]>(EVENTS_CACHE_KEY);
-  if (cachedEvents?.length) dispatchChat({ type: 'history', events: cachedEvents, mode: 'initial', hasMore: true });
   if (opts.offline) {
+    patchApp({ appChecked: true });
     startStream();
     return;
   }
@@ -277,6 +279,7 @@ function teardownSession(): void {
     ...s,
     app: undefined,
     appFromCache: false,
+    appChecked: false,
     ws: 'closed',
     presence: 'idle',
     progress: undefined,
@@ -359,6 +362,8 @@ export async function refreshApp(): Promise<void> {
     void cacheSet(APP_CACHE_KEY, app);
   } catch (e) {
     if (!(e instanceof NetworkError)) console.warn('GET /v1/app failed', e);
+  } finally {
+    patchApp({ appChecked: true });
   }
 }
 

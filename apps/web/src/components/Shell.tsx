@@ -24,6 +24,7 @@ export function Shell() {
   const shellRef = useRef<HTMLDivElement>(null);
   const route = useRoute();
   const app = useStore(appStore, (s) => s.app);
+  const appChecked = useStore(appStore, (s) => s.appChecked);
   const nav = useMemo(() => computeNav(app), [app]);
   const [moreOpen, setMoreOpen] = useState(false);
   const [visited, setVisited] = useState<Record<string, Record<string, string>>>({});
@@ -74,11 +75,16 @@ export function Shell() {
             </section>
           );
         })}
-        {route.name === 'view' && !activeView && (
+        {route.name === 'view' && !activeView && (appChecked ? (
           <section className="screen" aria-label={t("View unavailable")}>
             <MissingView viewId={route.viewId} />
           </section>
-        )}
+        ) : (
+          // Still loading the app after a refresh: a quiet cover, not an error.
+          <section className="screen" aria-busy="true">
+            <div className="view-loading" aria-hidden="true"><span className="spinner" /></div>
+          </section>
+        ))}
         {route.name === 'settings' && (
           <section className="screen scroll" aria-label={t("Settings")}>
             <SettingsScreen />
