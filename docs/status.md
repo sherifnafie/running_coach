@@ -86,6 +86,13 @@ updated starter URLs bypass old caches. Owner-account updates preserve the
 coach's VO₂max widget and date formatting and use the normal preview/publish
 and workspace history paths. Current/empty sample and owner previews pass
 all gates with zero serious/critical accessibility findings.
+Deployed 0.3.7 (`643d902`) after backups and published the owner's views through
+the normal gates/history: Today v3, Calendar v2, Plan v3, Progress v4. Verified
+those versions through the authenticated app API, preserved VO₂max markup,
+removed Quick check-in, fresh kit URLs and live cache headers. All 798
+harness/renderer tests, 15 browser cases, build/typecheck and deterministic
+reference fast eval checks pass; visual review covered phone/tablet, both
+themes and empty states.
 
 ## Open work (roughly by value)
 
