@@ -10,3 +10,9 @@
 Contract references: [Google image migration](https://ai.google.dev/gemini-api/docs/imagen), [Google generateContent](https://ai.google.dev/api/generate-content), [OpenAI Images](https://developers.openai.com/api/reference/resources/images/methods/generate).
 
 Image provider support, generation permissions and asset materialization are extended by [ADR 0011](0011-small-openrouter-images.md); identity application rules remain as recorded here.
+
+Clarification (0.3.6, [RT-3]): athlete input injected into an active background
+turn gives that turn a reactive tool context. Requested identity/image work is
+not conditional on a live app connection; the original turn trigger remains in
+the audit trace. This fixes an explicit request being refused solely because
+the turn began as an upgrade follow-up.

@@ -11,7 +11,9 @@ not tool parameters. Your current image permission, service and allowance are
 in the situation report. Images have their own allowance inside the total AI
 budget. Reservations are conservative; the result distinguishes
 `reserved_cost_usd` from `reported_cost_usd` when supplied by the provider.
-`requested` means an athlete-requested chat image; `automatic` also
+`requested` means an athlete-requested chat image, including a request received
+while you were already working. It does not require the app to stay open or the
+athlete to send another message. `automatic` also
 allows occasional head-coach wake/follow-up images. `off`, zero allowance,
 paused outreach, helpers and consolidation limit availability. You cannot
 change these settings with `set_preferences`.

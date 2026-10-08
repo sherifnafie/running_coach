@@ -84,6 +84,8 @@ controls. Automatic mode permits head-coach wake/follow-up images, respects
 pause, and never allows helpers or consolidation. Switching off keeps old art.
 Name/avatar application separately requires **Let my coach change its name and
 avatar** in Profile and a requested chat turn; generating a preview doesn't.
+Requests received while the coach is already working count as chat input too.
+You do not need to keep the app open or send another message for that work.
 
 Optional server override:
 

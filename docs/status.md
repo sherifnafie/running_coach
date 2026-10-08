@@ -53,6 +53,24 @@ Notification changes pass typecheck, all 796 harness/renderer tests, 163 web uni
 
 Deployed notification fixes (`4baffbe`) to production with a pre-deploy backup. Verified the active service, newly served notification controls and service worker, and 401 responses for unauthenticated device-status/test requests. Physical Android/Chrome receipt remains pending the owner's on-device permission and test.
 
+**Mid-turn identity requests (2026-10-08):** an owner's explicit name/avatar
+request arrived during an upgrade follow-up. The coach attempted both tools;
+both returned `NOT_ALLOWED` because permissions used the turn's original
+`followup` class even after chat input was injected. The header correctly kept
+the unsaved name. Release 0.3.6 switches the tool context to reactive at the
+steering boundary and supplies a trusted context update, preserving original
+trace classification and all opt-in/ownership/cost checks. Skills clarify that
+no open app or extra message is needed, and a name in prose does not save it.
+The owner's agreed display name was repaired to Miles through the normal
+settings API with an audited, immediately revoked maintenance session. Physical
+avatar generation was not retried as part of that name repair.
+
+Validation: all 798 harness/renderer tests, typecheck, all 14 browser cases and
+the 28-scenario reference fast subset pass. The new runtime regression injects
+name/avatar requests during a follow-up and checks both successful completion
+and continued refusal when permissions are off. The existing browser test
+checks the header/avatar after `settings.changed` and reload.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.

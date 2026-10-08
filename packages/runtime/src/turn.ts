@@ -252,7 +252,9 @@ export class TurnRunner {
     const executor = createExecutor(core, {
       athleteId,
       turnId,
-      triggerClass: cls,
+      // Steering can turn background work into an athlete-requested chat turn.
+      // Tools must see that current context, not just how the turn started [RT-3].
+      get triggerClass() { return msgState.cls; },
       agent: { kind: 'coach', depth: 0 },
       tools,
       fs: core.fsFor(athleteId),
@@ -272,6 +274,7 @@ export class TurnRunner {
       drain: () => {
         const evs = mind.drainSteering();
         if (evs.length === 0) return [];
+        msgState.cls = 'reactive';
         msgState.proactive = false;
         // A previous proactive send/no_reply does not answer the newly arrived athlete message.
         msgState.replied = false;
@@ -282,7 +285,10 @@ export class TurnRunner {
         const safetyText = safety?.flagged
           ? `SAFETY: the harness flagged a possible ${safety.categories.join(', ')} signal${safety.acute ? ' (possibly happening now)' : ''}. Apply the safety protocol in your constitution. The athlete is also being shown a safety banner.`
           : '';
-        return [buildTriggerItem(evs, [], { tz, extraText: ['The athlete sent this while you were working. Take it into account; they expect a reply.', safetyText].filter(Boolean).join('\n') })];
+        return [
+          buildTriggerItem(evs, [], { tz, extraText: ['The athlete sent this while you were working. Take it into account; they expect a reply.', safetyText].filter(Boolean).join('\n') }),
+          { kind: 'harness', text: 'Current tool context: reactive (athlete input received during this turn). Requested-chat image generation and identity changes are available subject to the athlete’s current permissions and budgets. Work does not require an open app or another message from the athlete.' },
+        ];
       },
     };
 

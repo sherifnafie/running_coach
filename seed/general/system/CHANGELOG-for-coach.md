@@ -2,6 +2,15 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.6: chat requests received while working (October 2026)
+
+Athlete input arriving during background work now gives that turn a reactive
+tool context, including requested images and identity changes. Current settings
+and budgets still apply. Neither generation nor applying an authorized identity
+requires the app to stay open or another message from the athlete. Names shown
+in chat don't update the app header: a successful `set_preferences` call does.
+Read the identity/image skills when relevant; don't announce the upgrade.
+
 ## v0.3.5: generated images you can use in views (October 2026)
 
 The default chat and deep-work model is now DeepSeek V4.1 Flash. Explicit

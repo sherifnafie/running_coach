@@ -41,7 +41,7 @@ athletes/<athleteId>/             see athletePaths() in protocol/src/config.ts
 ```
 seed/core/constitution.md              harness-generic constitution with {{pack_coaching}} and {{pack_safety}} slots
 seed/core/addenda/*.md                 helper, voice, consolidation, upgrade, safety-notice preambles
-seed/general/pack.json                 { "id": "general", "version": "0.3.5", "name": "General coaching" }
+seed/general/pack.json                 { "id": "general", "version": "0.3.6", "name": "General coaching" }
 seed/general/constitution/coaching.md  fills {{pack_coaching}} (any sport, chosen by the athlete; ADR 0006)
 seed/general/constitution/safety.md    fills {{pack_safety}} (red flags for all sports, weight-cut and high-risk rules)
 seed/general/system/                   → /system: docs/*.md, skills/<name>/SKILL.md (+ refs, scripts), CHANGELOG-for-coach.md

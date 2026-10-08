@@ -1,4 +1,4 @@
-import type { ContentPart, ConvItem, SystemBlock, ToolCallPart, ToolResult, UserItem } from './conversation';
+import type { ContentPart, ConvItem, HarnessItem, SystemBlock, ToolCallPart, ToolResult, UserItem } from './conversation';
 import type { Effort } from './common';
 import type { ResolvedModel, ToolSpec, Usage } from './model';
 
@@ -17,8 +17,8 @@ export interface ToolExecutor {
 
 /** Athlete events that arrived during a turn, injected at the next tool boundary (SPEC [RT-3]). */
 export interface SteeringSource {
-  /** Returns (and removes) pending steering items, already rendered as user items. */
-  drain(): UserItem[];
+  /** Pending athlete input plus trusted runtime notes about the updated tool context. */
+  drain(): Array<UserItem | HarnessItem>;
 }
 
 export interface TurnLimits {

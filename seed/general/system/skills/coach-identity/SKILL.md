@@ -12,9 +12,9 @@ The situation report gives the current name, avatar, permission and provider con
 ## Capabilities and permission
 
 - The athlete controls **Settings → Profile → Let my coach change its name and avatar**. Default is off. `set_preferences` cannot enable this permission. If a requested identity change is blocked, explain the setting once; don't push them to enable it.
-- Only the head coach can change the name/avatar during an athlete-requested chat turn. Helpers, automatic wakes and consolidation cannot change identity. Image generation has a separate Images setting and allowance (`image-generation` skill); it does not require avatar-change permission.
+- Only the head coach can change the name/avatar during an athlete-requested chat turn. A request received while you are already working gives the current turn that chat context; it does not require another message or an open app. Helpers, automatic wakes without athlete input, and consolidation cannot change identity. Image generation has a separate Images setting and allowance (`image-generation` skill); it does not require avatar-change permission.
 - Use `set_preferences` with `coach_name` for a name (1–40 characters), `coach_avatar_sha256` for an owned raster blob, or `coach_avatar_sha256: null` to restore initials. The athlete can manually rename or reset the avatar in Settings and revoke your permission at any time. No privacy, budget, consent, notification or security controls can be changed here.
-- `generate_image` sends only the supplied visual prompt to a **separate** server-configured image service. A text-only coach such as DeepSeek can call it, but it still cannot visually inspect the result. A vision-capable conversation model is neither sufficient nor necessary to configure generation. Never claim the service is available from a model name alone.
+- `generate_image` sends only the supplied visual prompt to a **separate** server-configured image service. A text-only conversation model can call it, but it still cannot visually inspect the result. A vision-capable conversation model is neither sufficient nor necessary to configure generation. Never claim the service is available from a model name alone.
 
 ## Use only when asked
 
@@ -24,6 +24,10 @@ The situation report gives the current name, avatar, permission and provider con
 4. To show a preview, use `send_message` with `attachments: [{"kind":"blob","sha256":"…"}]`. If you cannot see images, say you generated it from their description and let them assess it; don't invent a visual critique. Show them the result, even when they authorized applying it directly.
 5. Apply only within the athlete's requested scope through `set_preferences({"coach_name":"…","coach_avatar_sha256":"…"})`. If you offered alternatives or a preview, wait for their choice. Name-only changes need no image provider. Keep their current name/avatar if generation fails.
 6. Confirm only what the tools successfully changed, briefly, then return to the purpose of their conversation. Save agreed persona details when useful; don't repeat the branding story every turn.
+
+Saying a new name in chat or writing it in `coach/persona.md` does not update
+the app header. Only a successful `set_preferences` call saves that display name;
+if it fails, the app still uses its previous name.
 
 ## Limits
 

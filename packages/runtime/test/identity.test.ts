@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ZERO_USAGE, type ImageProvider, type TriggerClass } from '@opencoach/protocol';
 import { createExecutor } from '../src/executor';
 import { generateImage } from '../src/identity';
-import { makeHarness, type Harness } from './harness';
+import { makeHarness, send, type Harness } from './harness';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAD0lEQVR4nGNgWBUKQhAKABqeA/24RcKwAAAAAElFTkSuQmCC', 'base64');
 const athlete = { displayName: 'Sam', tz: 'Europe/Amsterdam', locale: 'en', isAdmin: false };
@@ -30,8 +30,50 @@ describe('[UI-1] [SEC-1] [COST-1] optional coach identity', () => {
     await h.runtime.updateSettings(id, { coachIdentity: { allowChanges: true }, images: { mode: 'requested' } });
     expect((await executor(id, 'helper').execute(call('helper', 'set_preferences', { coach_name: 'Kip' }), signal())).isError).toBe(true);
     expect((await executor(id, 'helper').execute(call('helper-img', 'generate_image', { prompt: 'A mascot' }), signal())).isError).toBe(true);
+    expect((await executor(id, 'coach', 'followup').execute(call('automatic-name', 'set_preferences', { coach_name: 'Kip' }), signal())).isError).toBe(true);
     expect((await executor(id, 'coach', 'scheduled').execute(call('scheduled', 'generate_image', { prompt: 'A mascot' }), signal())).isError).toBe(true);
     expect(generate).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])('honors mid-followup chat requests with current permission=%s [RT-3]', async (allowed) => {
+    const generate = vi.fn<ImageProvider['generate']>().mockResolvedValue({ data: png, mime: 'image/png' });
+    h = await makeHarness({ config, imageProvider: { id: 'google', model: 'test-image', generate } });
+    const { id } = await h.runtime.createAthlete(athlete);
+    await h.runtime.updateSettings(id, { coachIdentity: { allowChanges: allowed }, images: { mode: allowed ? 'requested' : 'off' } });
+    h.stream.length = 0;
+    let step = 0;
+    h.setHandler(async req => {
+      const current = step++;
+      if (current === 0) {
+        await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'Choose your own name and avatar.', clientId: 'identity-during-followup' } });
+        return { toolCalls: [{ name: 'read', input: { path: 'AGENTS.md' } }] };
+      }
+      if (current === 1) {
+        expect(req.items.some(item => item.kind === 'harness' && item.text.includes('Current tool context: reactive'))).toBe(true);
+        return { toolCalls: [{ name: 'set_preferences', input: { coach_name: 'Miles' } }, { name: 'generate_image', input: { prompt: 'A tiny original coach mascot' } }] };
+      }
+      if (current === 2) {
+        const last = req.items.at(-1)!;
+        expect(last.kind).toBe('tool_results');
+        if (last.kind === 'tool_results') expect(last.results.every(result => result.isError === !allowed)).toBe(true);
+        if (!allowed) return send('Personalization is disabled in your settings.');
+        const blob = (await h.runtime.core.store.listBlobs(id))[0]!;
+        return { toolCalls: [{ name: 'set_preferences', input: { coach_avatar_sha256: blob.sha256 } }] };
+      }
+      if (current === 3 && allowed) return send('I will go by Miles.');
+      return { text: 'done' };
+    });
+    // First contact starts as a followup; the athlete message arrives during it.
+    await h.runtime.tickScheduler();
+    await h.settle(id);
+    const settings = await h.runtime.core.settings(id);
+    expect(settings.profile.coachName).toBe(allowed ? 'Miles' : 'Coach');
+    expect(!!settings.coachIdentity.avatarSha256).toBe(allowed);
+    expect(generate).toHaveBeenCalledTimes(allowed ? 1 : 0);
+    const turns = await h.runtime.core.store.listTurns({ athleteId: id, limit: 10 });
+    expect(turns).toHaveLength(1);
+    expect(turns[0]).toMatchObject({ triggerClass: 'followup', status: 'ok' });
+    expect(h.stream.some(message => message.t === 'settings.changed')).toBe(allowed);
   });
 
   it('separates image permission from identity, enables allowed automatic images and persists a readable private asset', async () => {
