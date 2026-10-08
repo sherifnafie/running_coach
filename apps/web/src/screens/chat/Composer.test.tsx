@@ -137,7 +137,7 @@ describe('[UI-1] chat composer', () => {
     fireEvent.change(message(), { target: { value: 'Squats felt' } });
     expect(screen.queryByRole('button', { name: 'Record a voice note' })).toBeNull();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Dictate' })); });
-    expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Send' })).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: 'Done dictating' })).toHaveProperty('disabled', true);
     act(() => { handlers!.onLive(); handlers!.onText('heavy but'); });
     expect((message() as HTMLTextAreaElement).value).toBe('Squats felt heavy but');

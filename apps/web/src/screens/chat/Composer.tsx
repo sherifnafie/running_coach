@@ -6,7 +6,7 @@ import { consumePrefill, sendFiles, sendText, sendTyping, toast } from '../../li
 import { formatBytes } from '../../lib/format';
 import { lsGet, lsRemove, lsSet } from '../../lib/storage';
 import { useStore } from '../../lib/store';
-import { DictationBar, useDictation } from './Dictation';
+import { useDictation } from './Dictation';
 import { useVoiceRecorder, VoiceComposer } from './VoiceComposer';
 
 const ACCEPT = 'image/*,.fit,.gpx,.tcx,.csv,.zip,.pdf,.json';
@@ -179,11 +179,15 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
               ))}
             </ul>
           )}
-          <textarea ref={taRef} value={text} rows={1} placeholder={dictating ? t("Listening…") : t("Message your coach…")} aria-label={t("Message")}
+          <textarea ref={taRef} value={text} rows={1} placeholder={dictation.phase === 'live' ? t("Listening…") : dictation.phase === 'connecting' ? t("Starting dictation…") : dictation.phase === 'finishing' ? t("Finishing…") : t("Message your coach…")} aria-label={t("Message")}
             enterKeyHint="enter" spellCheck autoCapitalize="sentences" readOnly={dictating} className={dictating ? 'dictating' : undefined}
             onChange={(e) => { setText(e.target.value); if (e.target.value) sendTyping(); }} onKeyDown={onKeyDown} onPaste={onPaste} />
-          {dictating ? <DictationBar dictation={dictation} /> : <div className="composer-toolbar">
-            <div className="attach" ref={attachRef}>
+          <div className="composer-toolbar">
+            {dictating ? (
+              <button type="button" className="icon-btn dictation-cancel" aria-label={t('Cancel dictation')} title={t('Cancel dictation')} onClick={dictation.cancel}>
+                <Icon name="x" size={20} />
+              </button>
+            ) : <div className="attach" ref={attachRef}>
               <button ref={attachButton} type="button" className="icon-btn attach-btn" aria-label={t("Attach")} title={t("Add photos or files")} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
                 <Icon name="plus" />
               </button>
@@ -192,15 +196,19 @@ export function Composer({ onFiles, visible = true }: { onFiles?: (add: (files: 
                 <button type="button" role="menuitem" onClick={() => { setMenu(false); cameraRef.current?.click(); }}><Icon name="camera" size={19} /> {t("Take a photo")}</button>
                 {dictationAvailable && voiceAvailable && <button type="button" role="menuitem" onClick={record}><Icon name="mic" size={19} /> {t("Record a voice note")}</button>}
               </div>}
-            </div>
+            </div>}
             <span className="composer-key-hint">{t("Enter to send")} <span aria-hidden="true">·</span> {t("Shift + Enter for a new line")}</span>
             <div className="composer-actions">
               {dictationAvailable
-                ? <button type="button" className="icon-btn mic" aria-label={t("Dictate")} title={t("Dictate a message")} onClick={dictate}><Icon name="mic" size={21} /></button>
+                ? dictating
+                  // While dictating the mic is the stop button: accent-coloured, pulsing while it listens, busy while it
+                  // connects or finishes. The text appears live in the box above.
+                  ? <button type="button" className={`icon-btn mic on ${dictation.phase}`} aria-label={t('Done dictating')} title={t('Done dictating')} aria-pressed="true" disabled={dictation.phase !== 'live'} onClick={() => void dictation.finish()}><Icon name="mic" size={21} /></button>
+                  : <button type="button" className="icon-btn mic" aria-label={t("Dictate")} title={t("Dictate a message")} onClick={dictate}><Icon name="mic" size={21} /></button>
                 : <button type="button" className="icon-btn mic" aria-label={t("Record a voice note")} title={voiceAvailable ? t("Record a voice note") : t("Voice notes aren’t configured")} onClick={record}><Icon name="mic" size={21} /></button>}
-              <button type="button" className="icon-btn send" aria-label={t("Send")} title={t("Send message")} disabled={!canSend} onClick={send}><Icon name="arrow-up" size={23} /></button>
+              <button type="button" className="icon-btn send" aria-label={t("Send")} title={t("Send message")} disabled={!canSend || dictating} onClick={send}><Icon name="arrow-up" size={23} /></button>
             </div>
-          </div>}
+          </div>
         </>}
       </div>
       <input ref={fileRef} type="file" hidden multiple accept={ACCEPT} onChange={(e) => { addFiles([...(e.target.files ?? [])]); e.target.value = ''; }} />

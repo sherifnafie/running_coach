@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Spinner, useTick } from '../../components/Atoms';
-import { Icon } from '../../components/Icon';
 import { describeError } from '../../lib/api';
 import { clock } from '../../lib/clock';
 import { joinDraft, startDictation, type ActiveDictation } from '../../lib/dictation';
-import { formatDuration } from '../../lib/format';
-import { useI18n } from '../../lib/i18n';
 import { describeMicError, MicPermissionError } from '../../lib/recorder';
 
 export type DictationPhase = 'idle' | 'connecting' | 'live' | 'finishing';
@@ -94,28 +90,3 @@ export function useDictation(opts: { visible: boolean; text: string; setText: (t
 
 export type DictationControls = ReturnType<typeof useDictation>;
 
-/** The composer toolbar while dictating: cancel, a live waveform with the elapsed time, done. */
-export function DictationBar({ dictation }: { dictation: DictationControls }) {
-  const t = useI18n();
-  const { phase, levels } = dictation;
-  useTick(500, phase === 'live');
-  const status = phase === 'connecting' ? t('Starting dictation…') : phase === 'finishing' ? t('Finishing…') : t('Listening…');
-  return (
-    <div className="dictation-bar">
-      <button type="button" className="icon-btn dictation-cancel" aria-label={t('Cancel dictation')} title={t('Cancel dictation')} onClick={dictation.cancel}>
-        <Icon name="x" size={20} />
-      </button>
-      <div className="dictation-wave" role="status" aria-live="polite" aria-label={status}>
-        {phase === 'connecting' || phase === 'finishing'
-          ? <Spinner label={status} />
-          : <span className="rec-time" aria-hidden="true">{formatDuration(clock.nowMs() - dictation.startedAt)}</span>}
-        <div className="dictation-levels" aria-hidden="true">
-          {levels.map((level, i) => <i key={i} style={{ height: `${Math.round(3 + Math.min(1, level * 6) * 22)}px` }} />)}
-        </div>
-      </div>
-      <button type="button" autoFocus className="icon-btn send dictation-done" aria-label={t('Done dictating')} title={t('Done dictating')} disabled={phase !== 'live'} onClick={() => void dictation.finish()}>
-        <Icon name="check" size={21} />
-      </button>
-    </div>
-  );
-}

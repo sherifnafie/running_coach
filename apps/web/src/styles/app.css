@@ -2511,3 +2511,54 @@ input[aria-invalid='true'] {
 .pill.warn { background: var(--rc-warn-soft); color: var(--rc-warn); }
 .admin-account { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rc-border); }
 .row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+/* ---- attach menu (popover above the + button) ---- */
+.attach { position: relative; }
+.attach .menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  inset-inline-start: 0;
+  z-index: 30;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 18%);
+  animation: menu-in 0.14s ease-out;
+}
+.attach .menu button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--rc-text);
+  font: inherit;
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+}
+.attach .menu button svg { color: var(--rc-text-2, var(--rc-muted)); flex: none; }
+.attach .menu button:hover,
+.attach .menu button:focus-visible { background: var(--rc-surface-2); outline: none; }
+
+/* ---- inline dictation: the mic button is the state ---- */
+.icon-btn.mic.on {
+  background: var(--rc-accent);
+  color: var(--rc-on-accent);
+  opacity: 1;
+}
+.icon-btn.mic.on.live { animation: mic-pulse 1.6s ease-in-out infinite; }
+.icon-btn.mic.on.connecting,
+.icon-btn.mic.on.finishing { opacity: 0.6; }
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--rc-accent) 45%, transparent); }
+  50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--rc-accent) 0%, transparent); }
+}
