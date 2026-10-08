@@ -8,8 +8,8 @@ Implements the published Daniels & Gilbert (1979) equations (Daniels' Running Fo
     VDOT     = VO2(distance / t) / %VO2max(t)
 
 VDOT is a performance index ("effective VO2max"), not a lab measurement. Training paces and
-race equivalents derived from it are starting points with real error bars; see the
-running skill (running/zones-and-paces.md) for how to use them and where they fail.
+race equivalents derived from it are starting points with real error bars: easy pace
+in particular is better judged by effort, and heat, hills and fatigue shift everything.
 
 Examples:
     vdot.py --race 5k 20:00

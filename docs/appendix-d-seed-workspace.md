@@ -321,31 +321,23 @@ Others (front-matter plus a 5–15 line brief each):
 
 `/system/skills/coach-identity/SKILL.md` is indexed with the other skills and read only for a relevant athlete request. It explains name/avatar permission, private generated blobs, preview versus application, text-only limitations, budgets and failure handling. It must not become an intake or scheduled-contact workflow. See SPEC §9.5.1 and the self-hosting image configuration. Existing workspace persona files and views are preserved; the current settings identity is reported every turn.
 
-All skills follow the Agent Skills format. Each is **knowledge plus suggested procedure, with evidence notes**, and invites adaptation. Contents outlines:
+All skills follow the Agent Skills format. First-party skills describe this app (procedures, data conventions, bundled tools), not coaching: sports science and a sport's methods are the model's own knowledge, researched when needed and kept by the coach as workspace skills (ADR 0010). Contents outlines:
 
 The implementation also ships a `research` skill: depth selection, source retrieval and verification, privacy, uncertainty, bounded delegation and persistent cited reports. `/system/docs/opencoach.md` explains the actual product and ownership boundaries. Runtime reports state configured services and model/vision routes; mentioning a feature in these documents is not proof that it is available in a deployment.
 
 | Skill | Description (front-matter) | Body outline |
 |---|---|---|
 | `intake` | Conducting a coaching intake conversationally | What they want coaching in (one sport or several), goals, history per discipline, equipment, health screening that triggers clearance advice, schedule, devices, preferences; pacing across sessions; what goes in which file; example openers |
-| `disciplines` | Taking on any sport and combining several | Finding disciplines and priorities; researching a sport without a first-party skill and writing a workspace skill; extending schema and views; concurrent training (interference, scheduling, maintenance doses, templates) |
-| `running` | Running-specific coaching | `zones-and-paces.md` (RPE, talk test, HR, pace, VDOT via `vdot.py`), `plan-design.md` (long runs, intensity distribution, session doses, sample weeks 5K to marathon, tapers), `races.md` (pacing, in-race fueling, warm-ups, recovery) |
-| `strength-training` | Resistance training for any goal | `programming.md` (RPE/RIR, %1RM, e1RM, volume, frequency, progression, deloads, templates), `powerlifting.md` (peaking, attempts, meet day, weight classes), `support-strength.md` (strength for runners and other sports), `e1rm.py` |
+| `disciplines` | Taking on any sport, or several, in this app | Recording disciplines and priorities; writing a workspace skill for a sport; fitting its data into tables and views; logging conventions for several sports in one plan |
+| `calculators` | Training arithmetic | `plan_check.py` (weekly load and schedule of a plan), `load.py` (sRPE load, monotony, ACWR across sports), `e1rm.py` (estimated 1RM and lifting volume), `vdot.py` (running paces and race equivalents) |
 | `screenshot-extraction` | Reading workout screenshots from common apps | Watch and run apps, gym-log apps and handwritten logs; unit and locale pitfalls (km/mi, kg/lb), multi-screen merging, graph reading, duplicates, confirmation strategy |
 | `file-import` | Parsing FIT/GPX/TCX/CSV/ZIP exports | Bundled parsers, Samsung Health export structure and timezone offsets, gym-app CSVs, dedupe across sources, raw-to-derived links |
-| `training-load` | Quantifying and reasoning about load | Session RPE × duration as the cross-sport currency, weekly time and discipline measures; ACWR **with the critique**; monotony and strain; `load.py` |
-| `plan-design` | Designing training blocks, any sport | Commitment and review, periodization and phase intents, progression heuristics (and their evidence quality), peaking and tapering, adapting to life, fitting to schedules and equipment, recording; `plan_check.py` |
-| `injury-and-pain` | Handling pain and injury | Red flags (mirrors constitution §11), pain monitoring, running and lifting patterns at an *awareness* level (no diagnosis), load modification, return-to-run and return-to-lifting progressions, referral triggers |
-| `illness-return` | Training around illness | "Neck check" heuristic, fever rule, post-viral caution, return progression for endurance and lifting |
-| `competition-prep` | Preparing for any dated goal event | Timeline, A/B/C goals, weight classes (no cuts), rehearsal, logistics, morning message, debrief, recording results |
-| `environment` | Heat, cold, altitude, air quality | Adjustments, acclimatization, warning signs, when to move indoors |
-| `fueling-basics` | Everyday and in-session fueling | Eating enough, protein and carbohydrate in plain terms, in-session carbohydrate, hydration, supplements; **explicit RED-S, ED and weight-cutting cautions**; when to refer to a dietitian |
 | `ui-kit` | Building views for the athlete's app | Kit components and tokens, bridge API, design rules, patterns, performance budget, publish workflow |
 | `achievements` | Occasional meaningful milestones or requested challenges | Honest earned recognition, restraint and kind pushback on unearned rewards; agreed/revised criteria, source references, opt-out and dedupe; optional editable JSON ledger and hidden gallery under the skill's examples, absent from day-zero navigation/data |
 | `calendar-export` | Maintaining `exports/calendar.ics` | ICS structure, timezone handling, stable UIDs, descriptions with session structure and exercises |
 | `data-hygiene` | Keeping the data trustworthy | Units, timezones, duplicates, provenance, lifting-set checks, corrections, re-derivation; `check_db.py` |
 
-**Evidence policy for skill authors:** every non-trivial recommendation carries an evidence note (`strong`, `moderate`, `weak/expert opinion`) and, where possible, a citation. Skills are reviewed by the human coach advisory (SPEC §22 item 9) before release.
+**Evidence policy:** where a first-party skill or script embeds a formula or a claim (VDOT, e1RM, sRPE load), it names the source and says how far to trust it.
 
 ---
 

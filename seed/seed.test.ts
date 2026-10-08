@@ -11,10 +11,10 @@ import { parseFrontMatter } from '../packages/workspace/src/frontmatter';
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const seedRoot = join(root, 'seed');
 const packRoot = join(seedRoot, 'general');
+// First-party skills describe the app (procedures, data, tools); coaching knowledge is the model's and the coach's own.
 const requiredSkills = [
-  'achievements', 'calendar-export', 'coach-identity', 'competition-prep', 'data-hygiene', 'disciplines', 'environment', 'file-import',
-  'fueling-basics', 'illness-return', 'injury-and-pain', 'intake', 'plan-design', 'research', 'running',
-  'screenshot-extraction', 'strength-training', 'training-load', 'ui-kit',
+  'achievements', 'calculators', 'calendar-export', 'coach-identity', 'data-hygiene', 'disciplines', 'file-import',
+  'intake', 'research', 'screenshot-extraction', 'ui-kit',
 ];
 const tables = ['activities', 'activity_gear', 'blocks', 'checkins', 'exercise_sets', 'gear', 'goal_events', 'metrics', 'planned_workouts'];
 const stamp = '2026-10-06T07:00:00+02:00';
@@ -247,19 +247,22 @@ describe('general seed pack (Appendix D)', () => {
       for (let i = 1; i <= 3; i++) set.run(`s${i}`, 'a1', '2026-10-05T18:00:00+02:00', 'Back squat', i, 5, 100, 8);
     } finally { db.close(); }
     const py = (skill: string, script: string, ...args: string[]) => spawnSync('python3', [join(system, 'skills', skill, 'scripts', script), '--db', dbFile, ...args], { encoding: 'utf8' });
-    const check = py('plan-design', 'plan_check.py', '--as-of', '2026-10-11', '--json');
+    const check = py('calculators', 'plan_check.py', '--as-of', '2026-10-11', '--json');
     expect(check.status, check.stderr).toBe(0);
     const week = JSON.parse(check.stdout).weeks[0];
     expect(week).toMatchObject({ sessions: 3, by_sport: { run: 2, strength: 1 }, hard_sessions: 2, key_sessions: 2, run_km: 14 });
     expect(week.flags.join('\n')).toMatch(/hard sessions on consecutive days/);
-    const load = py('training-load', 'load.py', '--as-of', '2026-10-11', '--json');
+    const load = py('calculators', 'load.py', '--as-of', '2026-10-11', '--json');
     expect(load.status, load.stderr).toBe(0);
     const loadOut = JSON.parse(load.stdout);
     expect(loadOut.sports_counted).toEqual({ strength: 1, run: 1 });
     expect(loadOut.distance_sport).toBe('run');
     expect(loadOut.weeks.at(-1)).toMatchObject({ sessions: 2, load: 7 * 60 + 4 * 40, distance_km: 6 });
-    const lifts = py('strength-training', 'e1rm.py', '--as-of', '2026-10-11', '--json');
+    const lifts = py('calculators', 'e1rm.py', '--as-of', '2026-10-11', '--json');
     expect(lifts.status, lifts.stderr).toBe(0);
     expect(JSON.parse(lifts.stdout).exercises['Back squat'][0]).toMatchObject({ sets: 3, hard_sets: 3, best_e1rm_kg: 116.7, tonnage_kg: 1500 });
+    const vdot = spawnSync('python3', [join(system, 'skills/calculators/scripts/vdot.py'), '--race', '5k', '20:00', '--json'], { encoding: 'utf8' });
+    expect(vdot.status, vdot.stderr).toBe(0);
+    expect(JSON.parse(vdot.stdout).vdot).toBeCloseTo(49.8, 0);
   });
 });

@@ -122,7 +122,7 @@ Being unopinionated about coaching does not mean being unopinionated about every
 | Coaching job | Enabled by |
 |---|---|
 | Intake: goals, history, constraints, preferences | Chat and voice, workspace memory files, intake skill |
-| Designs a periodized plan | Model reasoning, plan-design skill, `planner` and `reviewer` helpers, workspace DB |
+| Designs a periodized plan | Model reasoning, `planner` and `reviewer` helpers, `calculators` scripts, workspace DB |
 | Daily prescription, pre-run nudges | Self-scheduled wakes, `send_message`, push notifications |
 | Post-run analysis | Screenshot vision, file parsing in the sandbox, analysis helper |
 | Asks how it felt when data is missing | Conversational check-ins, quick replies and forms |
@@ -152,7 +152,7 @@ These double as end-to-end acceptance scenarios (Appendix E §E.5).
 
 **J7. Call.** The athlete taps **Call coach** and talks for 10 minutes about an upcoming race. The voice front-end has a briefing compiled from the workspace and can consult the main coach for heavy questions. After the call the main coach reads the transcript, updates the race plan and sends a recap.
 
-**J9. A new discipline.** A runner asks, "can you also coach my powerlifting? Meet in March." The coach asks what changes a decision (current lifts, gym days, federation and weight class, priorities), records the new discipline in the profile and `AGENTS.md`, reads the `strength-training` and `disciplines` skills, proposes a combined week that keeps heavy legs away from the long run, and adds lifting to the app (sets in Today, e1RM trends in Progress). For a sport with no first-party skill (say, bouldering) it researches first, writes a workspace skill, and is honest about what needs in-person instruction.
+**J9. A new discipline.** A runner asks, "can you also coach my powerlifting? Meet in March." The coach asks what changes a decision (current lifts, gym days, federation and weight class, priorities), records the new discipline in the profile and `AGENTS.md`, reads the `disciplines` skill, proposes a combined week that keeps heavy legs away from the long run, and adds lifting to the app (sets in Today, e1RM trends in Progress). For a sport it knows less well (say, bouldering) it researches first, writes a workspace skill, and is honest about what needs in-person instruction.
 
 **J8. Race arc.** Taper wakes, a race-week checklist view the coach builds for this race, a race-morning message, a post-race debrief call or chat, a recovery block, and the result recorded in `races`.
 
@@ -582,9 +582,8 @@ Voice sessions get a separate, smaller toolset (§11.2).
 ## 8. Skills
 
 - `[SK-1]` Skills use the **Agent Skills** open format (`SKILL.md` with name and description front-matter, plus optional scripts and references), loaded with progressive disclosure: only the index sits in context (L2); bodies load when used. The format is supported by Claude, Codex, Gemini CLI, Hermes, OpenClaw and others (Appendix A §A.4), so skills port across harnesses, including the Phase 0 testbed.
-- **First-party skills** (`/system/skills`, read-only, versioned) are *knowledge and suggested procedures*, not workflows. The coach may ignore or override them, except for anything that restates the safety floor. Seed library (details in Appendix D §D.6):
-  - General method, any sport: `intake`, `plan-design` (periodization, progression, peaking, adapting, evidence notes), `training-load` (sRPE across sports, ACWR *with caveats*), `injury-and-pain` (red flags, pain monitoring, return-to-run and return-to-lifting, referral), `illness-return`, `competition-prep` (any dated goal event), `environment` (heat, cold, altitude, air quality), `fueling-basics` (with RED-S, ED and weight-cutting cautions)
-  - Disciplines: `disciplines` (taking on any sport, writing a workspace skill for it, combining several in one week), `running` (zones, paces and VDOT, session doses, sample weeks 5K to marathon, races), `strength-training` (RPE/RIR, e1RM, programming, powerlifting meets, strength for other sports)
+- **First-party skills** (`/system/skills`, read-only, versioned) describe *this app*: procedures, data conventions and bundled tools a model can't know from training. Coaching knowledge (periodization, a sport's methods, injury and illness handling, fueling, competition preparation) is the model's own, researched when needed and written down by the coach as workspace skills (`[SK-2]`); the safety floor lives in the constitution (§11), not in skills (ADR 0010). The coach may ignore or override first-party skills. Seed library (details in Appendix D §D.6):
+  - Coaching in this app: `intake` (the first conversation and where each fact is recorded), `disciplines` (recording sports and priorities, writing a workspace skill for a sport, fitting its data and views, logging several sports), `calculators` (`plan_check.py`, `load.py`, `e1rm.py`, `vdot.py` for training arithmetic)
   - Data and app: `screenshot-extraction` and `file-import` (watch exports, FIT/GPX/TCX/CSV/ZIP, gym-app logs), `data-hygiene` (dedupe, units, timezones), `calendar-export` (ICS), `ui-kit` (how to build good views), `research`, `coach-identity`, `achievements` (optional, occasional evidence-based recognition and agreed challenges; editable ledger/gallery examples, no default tab or award tool)
 - `[SK-2]` **Coach-authored skills** live in `workspace/skills`. The coach is encouraged to turn repeated procedures into skills, as Hermes does with autonomous skill creation, e.g. "how this athlete's Samsung Health screenshots are laid out".
 - `[SK-3]` **No third-party skill installation in v1.** The ClawHub audits found 13% of public skills with critical security flaws (Appendix A §A.2). Phase 3 may add a curated registry with review, signing and an install-time diff shown to the athlete.
@@ -921,7 +920,7 @@ docs/               # this spec + architecture decision records (ADRs)
 
 The core (runtime, engine, gateway, UI shell, kit) is **domain-agnostic**: no code knows what a sport is. v1 ships one **general** pack (`seed/general`): the constitution's coaching and safety sections, the seed workspace, skills, seed views and eval scenarios. What the coach coaches is decided per athlete, in conversation, and recorded in their workspace; one athlete can have several disciplines.
 
-- **Discipline knowledge lives in skills.** First-party discipline skills (`running`, `strength-training`) sit beside sport-neutral method skills. For anything else the `disciplines` skill tells the coach to research, write a workspace skill, and extend its schema and views. Contributors add a sport by adding a skill, not code.
+- **Discipline knowledge is the coach's.** No first-party skill teaches a sport. The coach coaches from what the model knows, researches what it doesn't, and writes its methods down as workspace skills (`disciplines`); a better model brings better coaching without a seed change. Contributors improve the app's procedures and tools, not its sports science.
 - **The data model is sport-agnostic** (Appendix D §D.4): every session in `activities` with a free-text `sport`, set-by-set lifting in `exercise_sets`, dated goals of any kind in `goal_events`, `sport` and `key` on planned sessions, and weekly time as the cross-sport volume measure.
 - **The UI kit has no sport list.** Session types are free text; unknown words get a stable colour and letter. `<rc-workout>` renders endurance steps and exercises (sets × reps @ load).
 - **The pack mechanism stays** (`pack.json`, `{{pack_coaching}}`, `{{pack_safety}}`) for a deployment that wants a specialized coach, but there is no pack-switching UX and none is needed for multi-sport coaching. See [ADR 0006](docs/adr/0006-multi-discipline-coaching.md).

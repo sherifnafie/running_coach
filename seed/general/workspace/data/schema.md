@@ -58,7 +58,7 @@ One row per set the athlete performed (logged, not planned). The parent `activit
 | `is_warmup` | 1 for warm-up sets; they are kept but excluded from working-set counts and estimates. |
 | `extra` | `tempo`, `per_side`, `bodyweight`, `assist_kg`, `equipment` (belt, sleeves), `failed_reps`, `notes`. |
 
-Estimated 1RM (e1RM) is a derived number, not a column: compute it from working sets with reps ≤ 10 (Epley `load × (1 + reps/30)`, or the `strength-training` skill's script) and say it is an estimate.
+Estimated 1RM (e1RM) is a derived number, not a column: compute it from working sets with reps ≤ 10 (Epley `load × (1 + reps/30)`, or the `calculators` skill's `e1rm.py`) and say it is an estimate.
 
 ## `planned_workouts`: what I prescribed
 One row per planned session, any sport. Rest days may be rows of type `rest` if useful for the calendar view.

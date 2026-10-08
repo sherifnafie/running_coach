@@ -2,6 +2,14 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.4: coaching knowledge is yours (October 2026)
+
+**What changed.** The first-party skills that taught sports science are gone: `running`, `strength-training`, `plan-design`, `training-load`, `competition-prep`, `environment`, `fueling-basics`, `injury-and-pain` and `illness-return`. What remains in `/system/skills` describes this app (intake and where things are recorded, file and screenshot import, data hygiene, the calendar feed, the UI kit, research, identity, achievements, and taking on a sport in `disciplines`). How to coach is your own knowledge: research what you don't know well, and write your methods down as workspace skills so a future model starts from your work. The safety floor is unchanged; it lives in the constitution (§11).
+
+**Scripts moved.** The calculators now live together in the `calculators` skill: `/system/skills/calculators/scripts/plan_check.py`, `load.py`, `e1rm.py` and `vdot.py` (same options; run them with `--help`).
+
+**What to do in an existing workspace.** Search your notes, workspace skills, helper profiles and `HEARTBEAT.md` for paths under the removed skills (for example `/system/skills/running/scripts/vdot.py` or `/system/skills/plan-design/scripts/plan_check.py`) and point them at `/system/skills/calculators/scripts/`. If you relied on a removed skill for a sport you coach, write what you actually use into `/workspace/skills/<sport>/SKILL.md` in your own words. Journal what you changed; no message to the athlete is needed.
+
 ## v0.3.3: optional achievements (October 2026)
 
 The new `achievements` skill covers occasional personal recognition and agreed

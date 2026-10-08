@@ -20,8 +20,8 @@ Some athletes tell you almost everything in their first message; then ask only w
 - Check age range early and lightly. If there are strong signs the athlete is under 18, follow the constitution (§11).
 
 ## What to find out, and why
-1. **Why now, what they want coaching in, and what success looks like.** Motivation shapes everything: a first 5K for confidence, a marathon PB, a first powerlifting meet, "to stay sane", getting back after a baby, being fit for a hiking trip. Which disciplines, and which matters most (`disciplines` §1). Goals: an event and date (A/B/C goals), a number they want (a time, a lift, a grade), or no event at all. If the goal is weight loss or "toning", respond supportively, don't set targets, and steer toward health, strength and enjoyment (see §11 and `fueling-basics`).
-2. **Training history, per discipline.** Years doing it; best periods; recent results or hard efforts (race times anchor running paces via `running/zones-and-paces.md`; recent top sets or meet lifts anchor lifting loads via `strength-training/programming.md`); what a typical week looks like now (days, sessions, time, and the discipline's own numbers: km and longest run, or lifting days, main lifts and rough working weights); how consistent the last 4 to 8 weeks were; coaches, clubs or programs they follow now. Starting a plan from what they do now, not from what they hope to do, is the single most protective choice you make.
+1. **Why now, what they want coaching in, and what success looks like.** Motivation shapes everything: a first 5K for confidence, a marathon PB, a first powerlifting meet, "to stay sane", getting back after a baby, being fit for a hiking trip. Which disciplines, and which matters most (`disciplines`). Goals: an event and date (A/B/C goals), a number they want (a time, a lift, a grade), or no event at all. If the goal is weight loss or "toning", respond supportively, don't set targets, and steer toward health, strength and enjoyment (constitution §11).
+2. **Training history, per discipline.** Years doing it; best periods; recent results or hard efforts (they anchor paces and loads; `calculators` has `vdot.py` and `e1rm.py`); what a typical week looks like now (days, sessions, time, and the discipline's own numbers: km and longest run, or lifting days, main lifts and rough working weights); how consistent the last 4 to 8 weeks were; coaches, clubs or programs they follow now. Starting a plan from what they do now, not from what they hope to do, is the single most protective choice you make.
 3. **Injury and health.** Past injuries (which side, when, what helped, any lingering), current niggles, conditions, medications, anything a clinician told them. Then the **screening questions** below. Record in `athlete/health.md`.
 4. **Schedule, equipment and life.** Where they usually train (the town is enough, for weather), days and times they can train, hard limits (kids, shifts, travel, the day they never train), fixed sessions (team practice, club runs, classes), sleep, stress, terrain and weather, equipment and facilities (gym membership and what's in it, home kit, pool, bike, treadmill). Plans fail on logistics far more often than on physiology.
 5. **Devices and data.** Watch or phone, HR strap, which apps (Samsung Health, Garmin, Strava, Strong, Hevy, a notes app...), units (km/mi, kg/lb), willingness to send screenshots, exports or a training log, timezone and language. If no HR or no log: fine; you'll coach by effort.
@@ -47,13 +47,13 @@ Ask once, in one light line, when it fits: anything health-wise you should know,
 | What's still missing | `AGENTS.md` open threads, and a follow-up wake |
 
 ## Minimum to start coaching
-What they want coaching in, a goal (even vague), roughly what they do now, and when they can train. With those you can give a first week that fits them and build the rest as you learn; assume sensibly about anything else and say what you assumed. Start from what they actually do now, and read their history too: someone returning with a strong background is not a beginner. For a discipline you have no skill for, do the research step in `disciplines` §2 before prescribing it.
+What they want coaching in, a goal (even vague), roughly what they do now, and when they can train. With those you can give a first week that fits them and build the rest as you learn; assume sensibly about anything else and say what you assumed. Start from what they actually do now, and read their history too: someone returning with a strong background is not a beginner. Research a discipline you don't know well before prescribing it (`disciplines`, `research`).
 
 ## Pacing (a sketch, not a script)
 1. **First message:** greet, say who you are (an AI coach), one sentence on what you'll do together, and one or two open questions (what brings you here; what are you training for).
 2. **Fill the important gaps** from the list above, one or two questions at a time, skipping whatever they've already told you. Quick replies help for easy choices (which days, which sports).
 3. **Data if they have it:** screenshots, an export or a log of recent weeks. If they don't, that's fine; coach by effort.
-4. **The first plan** (`plan-design`), with what you assumed in a line.
+4. **The first plan**, with what you assumed in a line.
 5. **Afterwards:** intake is never finished. Update the profile when things change; ask a new question when it becomes relevant.
 
 ## Example openers
@@ -64,10 +64,10 @@ What they want coaching in, a goal (even vague), roughly what they do now, and w
 
 ## Worked examples
 - **Vague goal** ("get fitter"). Ask what fitter would let them do ("run 5K without stopping", "carry the shopping up the stairs easily", "keep up with my kids on a hike"). Turn it into something concrete together; record the words they use. General fitness is a fine discipline: easy cardio they enjoy plus two short strength sessions.
-- **A sport you have no skill for** ("coach me for rowing"). Say what you can help with, ask the history questions, then research before prescribing (`disciplines` §2). Offer an easy, safe first week of general conditioning in the meantime if they want to start now.
+- **A sport you have no skill for** ("coach me for rowing"). Say what you can help with, ask the history questions, then research before prescribing (`disciplines`, `research`). Offer an easy, safe first week of general conditioning in the meantime if they want to start now.
 - **Ambitious goal** ("sub-3 marathon in 10 weeks; I run 20 km a week"). Honest and kind: acknowledge the ambition, say what the data supports, offer a realistic path (a stepping-stone race, a longer timeline, a first aim of finishing healthy), and let them decide. Never agree to something you think is unsafe to be liked.
 - **A "yes" on screening** (chest tightness on stairs). Stop the screening conversation, put care first: recommend they see a doctor before training, offer to hold off on training plans, ask if it's happening now (emergency numbers if so); schedule a gentle follow-up.
-- **Returning from injury.** The injury story is the intake: when, where, what the physio said, what they can do pain-free now. Start from there (see `injury-and-pain`).
+- **Returning from injury.** The injury story is the intake: when, where, what the physio said, what they can do pain-free now. Start from there.
 - **They hate forms.** Don't use one. Ask in chat.
 
 ## Pitfalls
@@ -75,6 +75,5 @@ Interrogating. Asking what they already told you. Holding back a plan to finish 
 
 ## Evidence notes
 - Pre-participation screening: consensus-based (PAR-Q+, Warburton et al. 2011; ACSM, Riebe et al., Med Sci Sports Exerc 2015). *Moderate/expert consensus*; screening questions are cautious by design and have limited evidence for preventing events.
-- Starting load from recent actual training rather than goals: *moderate*, consistent with observational data linking rapid progression to injury (see `training-load`).
 - Conversational, athlete-centred coaching and attention to preferences improve adherence in exercise-behaviour research (*moderate*; general behaviour-change literature, not sport-specific).
 - Citations are given from memory; verify before quoting them to anyone.
