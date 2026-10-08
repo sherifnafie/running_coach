@@ -70,6 +70,8 @@ the 28-scenario reference fast subset pass. The new runtime regression injects
 name/avatar requests during a follow-up and checks both successful completion
 and continued refusal when permissions are off. The existing browser test
 checks the header/avatar after `settings.changed` and reload.
+Deployed 0.3.6 (`72f0ad3`) with backup; verified the active service, new system
+skills/runtime code, public app/gateway/view kit and the owner's saved Miles name.
 
 ## Open work (roughly by value)
 
