@@ -1,4 +1,4 @@
-import { ToolInputs, type ToolDef } from '@opencoach/protocol';
+import { ToolError, ToolInputs, type ToolDef } from '@opencoach/protocol';
 import { fail, formatLocal, guard, imagePart, ok, truncateMiddle, untrusted } from './util';
 
 // ------------------------------------------------------------------ messaging
@@ -288,6 +288,64 @@ export const webFetchTool: ToolDef<'web_fetch'> = {
       return ok(untrusted('web_fetch', head + truncateMiddle(page.text, 40_000)));
     }),
 };
+
+export const weatherTool: ToolDef<'weather'> = {
+  name: 'weather',
+  description:
+    'Weather for a town: conditions now, hour-by-hour detail and a daily forecast (up to 7 days), with air quality, in the athlete\'s units and local time. ' +
+    'Use it to time or adapt outdoor sessions (heat, cold, wind, rain, storms, smoke). Pass a town or city, never a street address.',
+  input: ToolInputs.weather,
+  availableTo: ['coach', 'helper'],
+  execute: (input, ctx) =>
+    guard(async () => {
+      if (!ctx.weather) throw new ToolError('NOT_CONFIGURED', 'Weather is not available in this deployment.');
+      const r = await ctx.weather.forecast({ place: input.place, latitude: input.latitude, longitude: input.longitude, days: input.days ?? 3, hours: input.hours ?? 12 });
+      return ok(formatWeather(r));
+    }),
+};
+
+/** Compact, readable text: one line per hour or day, values with units, local times. */
+export function formatWeather(r: import('@opencoach/protocol').WeatherReport): string {
+  const u = r.units;
+  const t = (v: number) => `${Math.round(v)}${u.temperature}`;
+  const w = (v: number) => `${Math.round(v)} ${u.wind}`;
+  const p = (v: number) => `${u.precipitation === 'in' ? v.toFixed(2) : v.toFixed(1)} ${u.precipitation}`;
+  const pct = (v: number | null) => (v === null ? '' : ` ${v}%`);
+  const hhmm = (iso: string) => iso.slice(11, 16);
+  const c = r.current;
+  const lines = [
+    `Weather for ${r.place} (times local, ${r.timezone}; source ${r.source}).`,
+    `Now (${hhmm(c.time)}): ${c.condition}, ${t(c.temperature)} (feels ${t(c.feelsLike)}), wind ${w(c.wind)} from ${compass(c.windDirection)}, gusts ${w(c.gusts)}${c.humidity === null ? '' : `, humidity ${c.humidity}%`}${c.dewPoint === null ? '' : `, dew point ${t(c.dewPoint)}`}${c.precipitation > 0 ? `, ${p(c.precipitation)} falling` : ''}.`,
+  ];
+  if (r.hours.length) {
+    lines.push('', 'Hourly:');
+    for (const h of r.hours) {
+      lines.push(`- ${hhmm(h.time)} ${h.condition}, ${t(h.temperature)} (feels ${t(h.feelsLike)}), rain${pct(h.precipitationProbability)} ${p(h.precipitation)}, wind ${w(h.wind)} gusts ${w(h.gusts)}${h.dewPoint === null ? '' : `, dew point ${t(h.dewPoint)}`}${h.uvIndex !== null && h.uvIndex >= 3 ? `, UV ${Math.round(h.uvIndex)}` : ''}`);
+    }
+  }
+  if (r.days.length) {
+    lines.push('', 'Daily:');
+    for (const d of r.days) {
+      lines.push(`- ${weekday(d.date)} ${d.date}: ${d.condition}, ${t(d.min)} to ${t(d.max)}, rain${pct(d.precipitationProbability)} ${p(d.precipitation)}, wind up to ${w(d.windMax)} gusts ${w(d.gustsMax)}${d.uvIndexMax === null ? '' : `, UV ${Math.round(d.uvIndexMax)}`}, sunrise ${hhmm(d.sunrise)}, sunset ${hhmm(d.sunset)}`);
+    }
+  }
+  if (r.airQuality) {
+    const a = r.airQuality;
+    const parts = [a.europeanAqi !== null ? `European AQI ${a.europeanAqi}` : '', a.usAqi !== null ? `US AQI ${a.usAqi}` : '', a.pm25 !== null ? `PM2.5 ${a.pm25} µg/m³` : ''].filter(Boolean);
+    if (parts.length) lines.push('', `Air quality now: ${parts.join(', ')}.`);
+  }
+  return lines.join('\n');
+}
+
+function weekday(date: string): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? '' : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()]!;
+}
+
+function compass(deg: number): string {
+  if (!Number.isFinite(deg)) return '?';
+  return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round((((deg % 360) + 360) % 360) / 45) % 8]!;
+}
 
 export const searchHistoryTool: ToolDef<'search_history'> = {
   name: 'search_history',

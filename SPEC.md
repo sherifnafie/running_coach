@@ -570,7 +570,8 @@ Kept deliberately small (P7). Full contracts, parameters and errors are in Appen
 | `generate_image` | One requested square image through an optional independent image service [MOD-1] | Trusted runtime | Coach only; athlete identity opt-in and chat turn; budgets include conservative attempt cost; no automatic retries; private blob; no automatic send/apply |
 | `spawn_agent`, `task_status`, `cancel_task` | Helpers and background tasks (§5.6) | Runtime | Depth, concurrency and budget limits |
 | `preview_ui`, `publish_ui`, `rollback_ui` | Validate, screenshot, publish and revert views (§9.6) | Runtime + sandbox Chromium | Validation gates |
-| `web_search`, `web_fetch` | Research: weather, events and rules, a new sport's methods, literature | Runtime (proxied) | Rate limits; results marked untrusted; logged |
+| `web_search`, `web_fetch` | Research: events and rules, a new sport's methods, literature | Runtime (proxied) | Rate limits; results marked untrusted; logged |
+| `weather` | Forecast, hour-by-hour detail and air quality for a town (`WeatherPort`, Open-Meteo by default, no key) | Runtime | Town-level only: coordinates coarsened to ~10 km before leaving the server, never the athlete's name; cached; can be disabled |
 | `search_history` | Full-text search over the event log, with date and type filters | Runtime | Returns excerpts with event ids |
 | MCP tools (Phase 2) | Athlete- or admin-connected MCP servers | Runtime | Per-server allowlist; untrusted output |
 

@@ -27,6 +27,7 @@ import {
   taskStatusTool,
   webFetchTool,
   webSearchTool,
+  weatherTool,
 } from './coach-tools';
 
 const DEFS: ToolDef[] = [
@@ -52,6 +53,7 @@ const DEFS: ToolDef[] = [
   rollbackUiTool,
   webSearchTool,
   webFetchTool,
+  weatherTool,
   searchHistoryTool,
   lookupTool,
   consultCoachTool,
@@ -108,3 +110,5 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
 }
 
 export { bashTool, editTool, globTool, grepTool, readTool, writeTool };
+
+export { formatWeather } from './coach-tools';

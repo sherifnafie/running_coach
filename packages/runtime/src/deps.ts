@@ -33,6 +33,8 @@ export interface CoachRuntimeDeps {
   extraSystemDocs?: Record<string, string>;
   renderer?: UiRenderer;
   webSearch?: WebSearchBackend;
+  /** Overrides the configured weather service (tests, other providers). */
+  weather?: import('@opencoach/protocol').WeatherPort;
   safety?: SafetyScreen;
   synthesizer?: Synthesizer;
   imageProvider?: ImageProvider;

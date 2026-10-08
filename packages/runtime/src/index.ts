@@ -6,6 +6,7 @@
 export { createCoachRuntime, type CoachRuntime, type RuntimeTestHooks } from './runtime';
 export type { CoachRuntimeDeps } from './deps';
 export { createWebSearchBackend, createWebPort, safeFetch, htmlToText, isPrivateAddress } from './web';
+export { createOpenMeteoWeather, describeCode } from './weather';
 export { createSafetyScreen, heuristicScreen, safetyBannerText } from './safety';
 export { athleteForViewToken } from './ui-service';
 export { nextFire, quietHoursEnd, epochDate, formatLocal, localDayStartIso, localMonthStartIso } from './time';

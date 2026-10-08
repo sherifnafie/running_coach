@@ -96,6 +96,15 @@ export const ToolInputs = {
   rollback_ui: z.object({ view_id: z.string(), to_version: z.string().optional() }),
   web_search: z.object({ query: z.string().min(1).max(400), max_results: z.number().int().min(1).max(10).optional() }),
   web_fetch: z.object({ url: z.string().url(), prompt: z.string().max(1000).optional() }),
+  weather: z
+    .object({
+      place: z.string().trim().min(2).max(120).optional().describe('Town or city, e.g. "Utrecht" or "Boulder, Colorado". Never a street address.'),
+      latitude: z.number().min(-90).max(90).optional(),
+      longitude: z.number().min(-180).max(180).optional(),
+      days: z.number().int().min(1).max(7).optional().describe('Days of daily forecast (default 3).'),
+      hours: z.number().int().min(0).max(48).optional().describe('Hours of hour-by-hour detail from now (default 12; 0 for none).'),
+    })
+    .refine((q) => !!q.place || (q.latitude !== undefined && q.longitude !== undefined), 'Give a place, or both latitude and longitude.'),
   search_history: z.object({
     query: z.string().min(1).max(400),
     from: IsoDateTime.optional(),
@@ -120,10 +129,10 @@ export const COACH_TOOLS: ToolName[] = [
   'generate_image',
   'spawn_agent', 'task_status', 'cancel_task',
   'preview_ui', 'publish_ui', 'rollback_ui',
-  'web_search', 'web_fetch', 'search_history',
+  'web_search', 'web_fetch', 'weather', 'search_history',
 ];
 /** Tools a helper may be granted (never messaging/scheduling/spawning beyond depth/publish). */
-export const HELPER_GRANTABLE_TOOLS: ToolName[] = ['read', 'write', 'edit', 'glob', 'grep', 'bash', 'web_search', 'web_fetch', 'preview_ui', 'search_history'];
+export const HELPER_GRANTABLE_TOOLS: ToolName[] = ['read', 'write', 'edit', 'glob', 'grep', 'bash', 'web_search', 'web_fetch', 'weather', 'preview_ui', 'search_history'];
 export const VOICE_TOOLS: ToolName[] = ['lookup', 'consult_coach', 'note', 'end_call'];
 
 // ------------------------------------------------------------------ errors
@@ -252,6 +261,65 @@ export interface WebPort {
   fetch(url: string, prompt?: string): Promise<{ url: string; title?: string; text: string }>;
 }
 
+export interface WeatherQuery {
+  place?: string;
+  latitude?: number;
+  longitude?: number;
+  days: number;
+  hours: number;
+  units: import('./common').Units;
+}
+
+export interface WeatherHour {
+  /** Local time at the place, `YYYY-MM-DDTHH:mm`. */
+  time: string;
+  temperature: number;
+  feelsLike: number;
+  precipitationProbability: number | null;
+  precipitation: number;
+  condition: string;
+  wind: number;
+  gusts: number;
+  humidity: number | null;
+  dewPoint: number | null;
+  uvIndex: number | null;
+}
+
+export interface WeatherDay {
+  date: string;
+  condition: string;
+  min: number;
+  max: number;
+  feelsLikeMin: number | null;
+  feelsLikeMax: number | null;
+  precipitation: number;
+  precipitationProbability: number | null;
+  windMax: number;
+  gustsMax: number;
+  uvIndexMax: number | null;
+  sunrise: string;
+  sunset: string;
+}
+
+/** A forecast for one place: local times, values in the requested units (labels in `units`). */
+export interface WeatherReport {
+  place: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  units: { temperature: string; wind: string; precipitation: string };
+  current: Omit<WeatherHour, 'precipitationProbability' | 'uvIndex'> & { windDirection: number };
+  hours: WeatherHour[];
+  days: WeatherDay[];
+  airQuality?: { europeanAqi: number | null; usAqi: number | null; pm25: number | null; pm10: number | null };
+  source: string;
+}
+
+/** Weather for training decisions (SPEC §7). Town-level only: coordinates are coarsened before leaving the server. */
+export interface WeatherPort {
+  forecast(query: WeatherQuery): Promise<WeatherReport>;
+}
+
 export interface HistoryHit {
   eventId: string;
   ts: string;
@@ -287,6 +355,8 @@ export interface ToolContext {
   preferences?: { update(input: import('./settings').PresentationPatch): Promise<{ locale: string; theme: string; accent: string | null; coachName?: string; coachAvatarSha256?: string | null }> };
   images?: { generate(prompt: string, signal: AbortSignal): Promise<import('./common').BlobRef> };
   web: WebPort;
+  /** Absent when weather is disabled in this deployment. Units follow the athlete's settings. */
+  weather?: { forecast(query: Omit<WeatherQuery, 'units'>): Promise<WeatherReport> };
   history: HistoryPort;
   voice?: VoiceCallPort;
   log: Logger;

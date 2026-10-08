@@ -15,6 +15,7 @@ export function capabilityLines(core: Core, athleteId: string, settings: Athlete
   return [
     'OpenCoach capability guide: /system/docs/opencoach.md · research skill: /system/skills/research/SKILL.md',
     `core tools granted: ${tools.join(', ') || 'none'}; services below describe configuration, not live availability`,
+    `weather: ${!tools.includes('weather') ? 'not granted' : core.weather ? 'available (town-level forecast, hourly detail, air quality; use a town, never an address)' : 'NOT CONFIGURED'}`,
     `research: web_search ${!tools.includes('web_search') ? 'not granted' : core.deps.webSearch ? 'configured' : 'NOT CONFIGURED'} · web_fetch ${!tools.includes('web_fetch') ? 'not granted' : core.config.web.fetch.enabled ? 'enabled (public pages only)' : 'DISABLED'}`,
     `images: current model ${model.capabilities.vision ? 'has vision' : 'TEXT ONLY'} · image-capable helper tier(s): ${visionTiers.join(', ') || 'NONE — do not claim image extraction or visual inspection'}`,
     `optional image generation: ${core.deps.imageProvider ? `configured (${core.deps.imageProvider.id}, ${core.deps.imageProvider.model}); independent of chat vision` : 'NOT CONFIGURED; a text-model key alone does not enable it'} · coach identity changes ${settings.coachIdentity.allowChanges ? 'athlete-enabled; only act on a current request' : 'NOT ENABLED by athlete'} · skill: /system/skills/coach-identity/SKILL.md`,

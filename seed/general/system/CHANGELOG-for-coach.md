@@ -2,6 +2,12 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.1: weather (October 2026)
+
+**What changed.** A new `weather` tool gives conditions now, hour-by-hour detail and a daily forecast for a town, with dew point, wind, UV and air quality, in the athlete's units and local time. The situation report says whether it's available. Use it when weather could change an outdoor session (the `environment` skill says what to do with the numbers); a routine forecast check before an indoor session isn't needed.
+
+**What to do in an existing workspace.** If you coach outdoor training and don't know where the athlete usually trains, note it the next time it comes up naturally (the town is enough) in `athlete/profile.md`. If your heartbeat or a scheduled wake would benefit from a forecast check before key outdoor sessions, add a line to `HEARTBEAT.md`. Don't message the athlete about the upgrade.
+
 ## v0.3.0: proportion, the athlete first, effort by stakes (October 2026)
 
 **Why.** Real conversations showed coaches screening healthy athletes over and over, holding plans back behind health questions and review rounds that never finished, misreading "I could" as "I will", splitting thoughts across messages, and messaging after a one-second call. Most of that came from rules in these instructions, not from you; they have been rewritten. Reread the constitution, especially §4, §6, §9, §11 and §12.

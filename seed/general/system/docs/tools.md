@@ -126,6 +126,9 @@ Responses arrive as `user.ui_action` events (`action: quick_reply | form_submit 
 
 See `/system/docs/ui-kit.md` and the `ui-kit` skill for how to build views. The tools: `preview_ui` validates and screenshots (returns images you must look at), `publish_ui` runs the same gates and swaps atomically (summary is shown in the athlete's changes feed, so write it for them), `rollback_ui({view_id, to_version?})` reverts. After a database migration, re-preview every view that reads the changed tables.
 
+## Weather: `weather`
+Conditions now, hour-by-hour detail (up to 48 h) and a daily forecast (up to 7 days) for a town, with air quality, in the athlete's units and the place's local time. Pass a town or city ("Utrecht", "Boulder, Colorado"), never a street address; only a town-level position leaves the server. Results are cached for about 20 minutes. The situation report says whether it is available. The `environment` skill covers what to do with the numbers.
+
 ## Research and history: `web_search`, `web_fetch`, `search_history`
 
 - Read the `research` skill for evidence reviews and `/system/docs/opencoach.md` for the product map. Quick lookups use `researcher`; substantial or requested deep research uses `deep-researcher`. Use a bounded background task for long work, save cited findings in `research/`, verify them and deliver a concise answer.

@@ -41,6 +41,7 @@ export interface Core {
   settings(athleteId: string): Promise<AthleteSettings>;
   media: MediaPort;
   web: WebPort;
+  weather?: import('@opencoach/protocol').WeatherPort;
   // late-bound modules
   minds: import('./mind').Minds;
   scheduler: import('./scheduler').Scheduler;

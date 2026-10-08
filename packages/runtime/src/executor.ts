@@ -173,6 +173,9 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
         } } : undefined,
         images: isCoach ? { generate: (prompt, signal) => generateImage(core, o.athleteId, o.turnId, call.id, o.triggerClass, prompt, signal) } : undefined,
         web: core.web,
+        weather: core.weather
+          ? { forecast: async (q) => core.weather!.forecast({ ...q, units: (await core.store.getSettings(o.athleteId)).profile.units }) }
+          : undefined,
         history,
         log: core.log.child({ athleteId: o.athleteId, turnId: o.turnId, tool: call.name }),
         signal,

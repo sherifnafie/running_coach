@@ -8,7 +8,7 @@ description: "Training and competing in heat, cold, altitude and poor air qualit
 The environment changes what a given effort produces, and in extremes it changes what is safe. The rule that covers most cases: **hold effort, not pace**, and when conditions are dangerous, change the session, not the athlete's resolve.
 
 ## Using the forecast
-Check the forecast (temperature, **dew point or humidity**, wind, air quality) before a key session, using a scheduled wake the evening before or the morning of. City-level weather searches are fine; don't include names, street addresses or health details in a query. Offer options rather than orders: shift the time, shorten, move indoors, swap days.
+Check the forecast with the `weather` tool (temperature, feels-like, **dew point**, wind and gusts, rain, UV, air quality, hour by hour and by day) before a key outdoor session, for example in a scheduled wake the evening before or the morning of. Pass the town where they train (keep it in `athlete/profile.md`), never a street address. If the tool isn't available, a city-level web search works; don't include names or health details in a query. Offer options rather than orders: shift the time, shorten, move indoors, swap days.
 
 ## Heat and humidity
 **Why it matters.** Exercise generates heat (most in long endurance efforts, but hot gyms, team sports in summer and protective gear add up too); the body cools mainly by sweating, which works poorly in humid air. Heart rate climbs, pace falls for the same effort, and the risk of exertional heat illness rises. Dew point is a better guide to comfort than temperature alone (roughly: under 10 °C / 50 °F pleasant, 15 to 18 °C (60 to 65 °F) sticky, 20 °C+ (68 °F+) oppressive).

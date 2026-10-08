@@ -44,6 +44,7 @@ import { TurnRunner } from './turn';
 import { UiService } from './ui-service';
 import { callBriefing, callTurn, consult, lookup } from './voice-bridge';
 import { createWebPort } from './web';
+import { createOpenMeteoWeather } from './weather';
 
 const ERROR_WAKE_LIMIT_MS = 60 * 60_000;
 
@@ -73,6 +74,7 @@ class Runtime implements CoachRuntimeAPI, RuntimeTestHooks {
     const bus = new StreamBus();
     const web = createWebPort(deps.config.web, deps.webSearch);
     const core = createCoreBase(deps, bus, web, HARNESS_VERSION) as Core;
+    core.weather = deps.weather ?? (deps.config.weather.enabled ? createOpenMeteoWeather({ config: deps.config.weather, clock: deps.clock }) : undefined);
     core.turns = new TurnRunner(core);
     core.minds = new Minds(core, (a, evs, cls) => this.runFromMind(a, evs, cls));
     core.scheduler = new Scheduler(core);

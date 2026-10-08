@@ -4,7 +4,7 @@ import { VoiceConfig } from './voice';
 import { Effort } from './common';
 import { ImageGenerationConfig } from './image-generation';
 
-export const HARNESS_VERSION = '0.3.0';
+export const HARNESS_VERSION = '0.3.1';
 export const UI_KIT_MAJOR = '1';
 const HeaderName = z.string().regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/, 'invalid HTTP header name');
 
@@ -172,6 +172,16 @@ export const ServerConfig = z.object({
         })
         .prefault({}),
       fetch: z.object({ enabled: z.boolean().default(true), timeoutMs: z.number().int().default(15_000), maxBytes: z.number().int().default(2_000_000) }).prefault({}),
+    })
+    .prefault({}),
+  /** Forecasts for the `weather` tool. Open-Meteo needs no key; set `enabled: false` to turn the tool off. */
+  weather: z
+    .object({
+      enabled: z.boolean().default(true),
+      timeoutMs: z.number().int().positive().default(10_000),
+      forecastUrl: z.string().url().default('https://api.open-meteo.com/v1/forecast'),
+      geocodingUrl: z.string().url().default('https://geocoding-api.open-meteo.com/v1/search'),
+      airQualityUrl: z.string().url().default('https://air-quality-api.open-meteo.com/v1/air-quality'),
     })
     .prefault({}),
   voice: VoiceConfig.prefault({}),
