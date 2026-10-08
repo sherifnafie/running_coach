@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   PostMessageRequest, VoiceNoteMetadata, UiActionRequest, ReactionRequest, ReadRequest, DeviceContextRequest,
   ViewQueryRequest, ViewFileRequest, ViewWriteRequest, ViewActRequest, ViewErrorRequest, ViewRevertRequest,
-  PushSubscriptionRequest, CallCreateRequest, CallAttachRequest, Sha256, newId, IanaTimeZone,
+  PushSubscriptionRequest, PushSubscriptionTargetRequest, CallCreateRequest, CallAttachRequest, Sha256, newId, IanaTimeZone,
 } from '@opencoach/protocol';
 import type { GatewayContext } from '../http/context';
 import { badRequest, notFound, unavailable, tooMany } from '../http/errors';
@@ -18,6 +18,7 @@ export function clientRoutes(app: FastifyInstance, ctx: GatewayContext): void {
   const auth = (request: FastifyRequest, reply: FastifyReply) => authenticated(ctx, request, reply);
   const id = (r: FastifyRequest) => ctx.athleteId(r);
   const postMessageInflight = new Map<string, Promise<unknown>>();
+  const pushTestAfter = new Map<string, number>();
   const voice = () => {
     if (!ctx.deps.callService) throw unavailable('Voice is not configured.', 'calls_unavailable');
     return ctx.deps.callService;
@@ -176,9 +177,34 @@ export function clientRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     return { id: subscriptionId };
   });
   app.delete('/v1/push/subscriptions', { preHandler: auth }, async (request, reply) => {
-    const body = z.object({ endpoint: z.string().url() }).parse(request.body);
+    const body = PushSubscriptionTargetRequest.parse(request.body);
     for (const sub of await store.listPushSubscriptions(id(request))) if (sub.endpoint === body.endpoint) await store.deletePushSubscription(sub.id);
     reply.code(204).send();
+  });
+  app.post('/v1/push/status', { preHandler: auth }, async (request) => {
+    const { endpoint } = PushSubscriptionTargetRequest.parse(request.body);
+    return { registered: (await store.listPushSubscriptions(id(request))).some(s => s.kind === 'webpush' && s.endpoint === endpoint) };
+  });
+  app.post('/v1/push/test', { preHandler: auth }, async (request) => {
+    const { endpoint } = PushSubscriptionTargetRequest.parse(request.body);
+    const athleteId = id(request);
+    const provider = ctx.deps.pushProvider;
+    if (!provider) throw unavailable('Push notifications are not configured.');
+    const sub = (await store.listPushSubscriptions(athleteId)).find(s => s.kind === provider.kind && s.endpoint === endpoint);
+    if (!sub) throw notFound('Notifications are not connected on this device. Enable them again.');
+    if (!(await store.getSettings(athleteId)).notifications.push) throw badRequest('Enable push notifications before testing.');
+    const now = clock.now().getTime();
+    for (const [key, after] of pushTestAfter) if (after <= now) pushTestAfter.delete(key);
+    if (pushTestAfter.has(athleteId)) throw tooMany(60, 'Wait a minute before sending another test.');
+    pushTestAfter.set(athleteId, now + 60_000);
+    const result = await provider.send(sub, { title: 'OpenCoach', body: 'Notifications are working on this device.',
+      tag: 'opencoach-test', data: { athleteId, kind: 'system', url: '/#/settings' } });
+    if (!result.ok) {
+      if (result.gone) await store.deletePushSubscription(sub.id);
+      else ctx.deps.logger.warn('push test failed', { athleteId, subscriptionId: sub.id });
+      throw unavailable(result.gone ? 'This notification connection expired. Enable notifications again.' : 'The push service did not accept the test. Please try again later.');
+    }
+    return { accepted: true as const };
   });
   app.post('/v1/sync/health', { preHandler: auth }, async (request) => {
     const body = z.object({ source: z.enum(['health_connect', 'healthkit']), range: z.tuple([z.iso.datetime(), z.iso.datetime()]), workouts: z.array(z.unknown()).max(10_000) }).parse(request.body);

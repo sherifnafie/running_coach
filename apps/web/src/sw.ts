@@ -59,10 +59,11 @@ self.addEventListener('push', (event) => {
   const payload = parsePushPayload(raw ?? {});
   event.waitUntil(
     (async () => {
-      // If the app is open and focused the in-app UI already shows the message.
+      // Web Push promises a visible notification for every push (WebKit revokes
+      // permission otherwise). Quiet the alert when this device is already open.
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const focused = clients.some((c) => (c as WindowClient).focused && (c as WindowClient).visibilityState === 'visible');
-      if (focused && payload.data.kind !== 'safety') return;
+      if (focused && payload.data.kind === 'message') payload.silent = true;
       await self.registration.showNotification(payload.title, notificationOptions(payload));
     })(),
   );

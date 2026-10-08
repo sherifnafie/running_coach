@@ -29,17 +29,22 @@ describe('delivery guarantees [MSG-1] [SEC-2]', () => {
     expect((await stat(join(dataDir, 'secrets/vapid.json'))).mode & 0o777).toBe(0o600);
     expect(JSON.parse(await readFile(join(dataDir, 'secrets/vapid.json'), 'utf8')).privateKey).toBeTruthy();
   });
-  it('skips connected clients, held messages, calls, disabled push and notify none', async () => {
+  it('skips held messages, calls, disabled push and notify none', async () => {
     const { store, athlete, event } = await setup();
     const send = vi.fn(async () => ({ ok: true }));
     const deliver = createPushDelivery({ store, provider: { kind: 'webpush', send }, logger: silentLogger });
-    await deliver(athlete.id, event, { connectedClients: 1 });
     for (const patch of [{ delivery: 'held' }, { channel: 'call' }, { notify: 'none' }] as const) {
       await deliver(athlete.id, { ...event, payload: { ...event.payload, ...patch } }, { connectedClients: 0 });
     }
     await store.updateSettings(athlete.id, { notifications: { push: false } });
     await deliver(athlete.id, event, { connectedClients: 0 });
     expect(send).not.toHaveBeenCalled();
+  });
+  it('still notifies the phone while another app connection is open [UI-1]', async () => {
+    const { store, athlete, event } = await setup();
+    const send = vi.fn(async () => ({ ok: true }));
+    await createPushDelivery({ store, provider: { kind: 'webpush', send }, logger: silentLogger })(athlete.id, event, { connectedClients: 3 });
+    expect(send).toHaveBeenCalledOnce();
   });
   it('delivers declared notification actions and removes expired subscriptions', async () => {
     const { store, athlete, event } = await setup();

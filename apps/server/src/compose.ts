@@ -141,7 +141,7 @@ export async function composeServer(opts: ComposeOptions = {}) {
     const setupCodes = new SetupCodeManager({ store, clock, dataDir: config.dataDir, logger, publicUrl: config.publicUrl, print: opts.printSetupCode });
     const gateway = await createGateway({ config, clock, logger, store, blobs, runtime, callService: calls, dictation,
       setupCodes, kitDir, webDist: opts.webDist ?? DEFAULT_WEB_DIST, features: { demoMode: isDemoConfig(config), webSearch: !!webSearch, imageGeneration: !!imageProvider || !!imageProviderFor },
-      vapidPublicKey: push.publicKey?.(), exportAthlete, stripImageLocation,
+      vapidPublicKey: push.publicKey?.(), pushProvider: push, exportAthlete, stripImageLocation,
       telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); credentials.forget(athleteId); imageProviderFor?.forget(athleteId); },
       labelPacks: new LabelPacks({ dataDir: config.dataDir, router: isDemoConfig(config) ? undefined : router, logger }),
       credentials, models: openrouter && !isDemoConfig(config) ? { catalog, defaultModel: openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL, defaultDeepModel: openrouter.deepModel ?? DEFAULT_OPENROUTER_DEEP_MODEL, openrouterBaseUrl: openrouter.baseUrl } : undefined,

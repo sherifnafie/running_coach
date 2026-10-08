@@ -32,7 +32,7 @@ export async function createWebPushProvider(opts: { dataDir: string; subject: st
       if (!sub.keys) return { ok: false, gone: true, error: 'Missing subscription keys' };
       try {
         await webPush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify(notification), {
-          vapidDetails: { subject: opts.subject, ...keys }, TTL: 3600, timeout: 15_000,
+          vapidDetails: { subject: opts.subject, ...keys }, TTL: 3600, timeout: 15_000, urgency: 'high',
         });
         return { ok: true };
       } catch (error) {
@@ -43,11 +43,11 @@ export async function createWebPushProvider(opts: { dataDir: string; subject: st
   };
 }
 
-/** Sent messages notify absent clients; held messages are delivered only after release [MSG-1]. */
+/** A live socket is not evidence that an athlete saw a message on any device [MSG-1]. */
 export function createPushDelivery(opts: { store: Store; provider: PushProvider; logger: Logger }): DeliveryHook {
-  return async (athleteId, event, { connectedClients }) => {
+  return async (athleteId, event) => {
     const message = event.payload;
-    if (connectedClients > 0 || message.delivery !== 'sent' || message.channel === 'call' || message.notify === 'none') return;
+    if (message.delivery !== 'sent' || message.channel === 'call' || message.notify === 'none') return;
     const settings = await opts.store.getSettings(athleteId);
     if (!settings.notifications.push) return;
     const notification: PushNotification = {

@@ -122,6 +122,11 @@ export const PushSubscriptionRequest = z.object({
   keys: z.object({ p256dh: z.string(), auth: z.string() }),
 });
 
+export const PushSubscriptionTargetRequest = z.object({ endpoint: z.string().url().max(4096) }).strict();
+export interface PushDeviceStatus { registered: boolean }
+/** Acceptance by the browser's push service is not proof of display on the phone. */
+export interface PushTestResponse { accepted: true }
+
 export const CallCreateRequest = z.object({ mode: z.enum(['realtime', 'cascaded']).optional(), purpose: z.string().max(500).optional() });
 export const CallAttachRequest = z.object({ providerCallId: z.string().min(3).max(200) });
 export type CallCreateResponse = CallSessionInfo;

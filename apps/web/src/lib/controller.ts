@@ -11,7 +11,7 @@ import { hasCuratedLabels, labelLanguage, languageDirection, setLabelPack } from
 import { account, aiApi, auth, chat, i18nApi, me as meApi, settingsApi, views } from './endpoints';
 import { OfflineQueue, idbQueueStorage, type QueuedRequest, type SendResult } from './offlineQueue';
 import { extensionForMime, type Recording } from './recorder';
-import { disablePush } from './push';
+import { disablePush, syncPushSubscription } from './push';
 import { navigate } from './router';
 import { addDismissed, bannerFromEvent, bannerFromHistory, bannerFromStream, isDismissed } from './safety';
 import { lsClearApp, lsGet, lsGetJson, lsRemove, lsSet, lsSetJson } from './storage';
@@ -237,6 +237,7 @@ async function startSession(me: MeResponse, opts: { offline?: boolean } = {}): P
   void refreshApp();
   await loadInitialHistory();
   startStream();
+  void syncDevicePush();
   void sendDeviceContext();
   void queue?.flush();
   void finishOpenRouterOAuth();
@@ -297,6 +298,7 @@ function teardownSession(): void {
 }
 
 export async function signOut(): Promise<void> {
+  await disablePush();
   try {
     await auth.logout();
   } catch {
@@ -566,6 +568,7 @@ function bindGlobalListeners(): void {
     stream?.nudge();
     void queue?.flush();
     void refreshApp();
+    void syncDevicePush();
   });
   window.addEventListener('offline', () => patchApp({ online: false }));
   document.addEventListener('visibilitychange', () => {
@@ -583,7 +586,14 @@ function bindGlobalListeners(): void {
       updateTitle();
     }
     void sendDeviceContext();
+    void syncDevicePush();
   });
+}
+
+async function syncDevicePush(): Promise<void> {
+  const me = appStore.getState().me;
+  if (!me?.features.push || !me.settings.notifications.push || !appStore.getState().online) return;
+  await syncPushSubscription(me.vapidPublicKey).catch(() => undefined);
 }
 
 let lastCtx = '';

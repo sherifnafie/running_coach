@@ -10,6 +10,8 @@ import type {
   EventsPage,
   MeResponse,
   PairRequest,
+  PushDeviceStatus,
+  PushTestResponse,
   PostEventResponse,
   SetupRequest,
   UiVersionRecord,
@@ -138,6 +140,9 @@ export const calls = {
 export const push = {
   vapidKey: () => api.get<{ key: string }>('/v1/push/vapid-public-key'),
   subscribe: (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) => api.post<void>('/v1/push/subscriptions', sub),
+  unsubscribe: (endpoint: string) => request<void>('DELETE', '/v1/push/subscriptions', { endpoint }, { signal: AbortSignal.timeout(5000) }),
+  status: (endpoint: string) => api.post<PushDeviceStatus>('/v1/push/status', { endpoint }),
+  test: (endpoint: string) => api.post<PushTestResponse>('/v1/push/test', { endpoint }),
 };
 
 // ---- data rights ----------------------------------------------------------------------------

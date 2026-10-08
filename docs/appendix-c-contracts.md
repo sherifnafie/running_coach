@@ -310,7 +310,9 @@ The server MUST check `Origin` against the app origin and require the auth token
 | `POST /v1/calls/:id/end` | End the call |
 | `GET /v1/exports/calendar.ics?token=` | ICS feed (secret, revocable token) |
 | `GET /v1/settings` · `PUT /v1/settings` | Quiet hours, budgets, pause, notification prefs, voice, units, model and keys (self-host), consents |
-| `POST /v1/push/subscriptions` | Register Web Push, FCM or APNs |
+| `POST /v1/push/subscriptions` · `DELETE /v1/push/subscriptions` | Register/unregister this device's Web Push subscription (authenticated, owned endpoint) |
+| `POST /v1/push/status` | `{endpoint}` → `{registered}` for this athlete/device only |
+| `POST /v1/push/test` | `{endpoint}` → `{accepted:true}` after push-service acceptance; owned registered subscription only, at most once/minute |
 | `POST /v1/export` → `GET /v1/export/:job` | Full export bundle |
 | `DELETE /v1/account` | Hard delete (`[SEC-6]`) |
 

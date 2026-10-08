@@ -8,7 +8,7 @@ import WebSocket from 'ws';
 import {
   ModelCatalogEntry, ServerConfig, VirtualClock, defaultSettings, newId, type CoachRuntimeAPI, type StreamListener, type StreamMessage,
   type InboundEventInput, type Logger, type Store, type AnyEvent,
-  athletePaths,
+  athletePaths, type PushProvider,
 } from '@opencoach/protocol';
 import { openSqliteStore } from '@opencoach/store';
 import { createFsBlobStore } from '@opencoach/workspace';
@@ -24,7 +24,7 @@ const logger: Logger = { debug() {}, info() {}, warn() {}, error() {}, child() {
 const cleanups: Array<() => Promise<unknown>> = [];
 afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
 
-async function fixture(opts: { ai?: boolean; dictation?: DictationService } = {}) {
+async function fixture(opts: { ai?: boolean; dictation?: DictationService; pushProvider?: PushProvider } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'oc-gateway-'));
   cleanups.push(() => rm(dir, { recursive: true, force: true }));
   const clock = new VirtualClock('2026-10-06T10:00:00.000Z');
@@ -80,7 +80,7 @@ async function fixture(opts: { ai?: boolean; dictation?: DictationService } = {}
   const credentials = opts.ai ? new CredentialService({ store, vault: CredentialVault.fromKey(randomBytes(32)), clock, logger }) : undefined;
   const models = opts.ai ? { catalog: DEFAULT_OPENROUTER_CATALOG.map((m) => ModelCatalogEntry.parse(m)), defaultModel: DEFAULT_OPENROUTER_MODEL, defaultDeepModel: DEFAULT_OPENROUTER_DEEP_MODEL, openrouterBaseUrl: 'https://openrouter.test/api/v1' } : undefined;
   const gateway = await createGateway({ config, clock, store, runtime, blobs, logger, setupCodes, callService: calls, dictation: opts.dictation,
-    kitDir, webDist, stripImageLocation: strip, exportAthlete: async () => exportPath, vapidPublicKey: 'vapid-test', credentials, models });
+    kitDir, webDist, stripImageLocation: strip, exportAthlete: async () => exportPath, vapidPublicKey: 'vapid-test', pushProvider: opts.pushProvider, credentials, models });
   cleanups.push(async () => { await gateway.app.close(); await gateway.views.close(); });
   async function setup(displayName = 'Athlete') {
     const code = await issueSetupCode(store, clock);
@@ -93,6 +93,37 @@ async function fixture(opts: { ai?: boolean; dictation?: DictationService } = {}
   const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
   return { ...gateway, dir, clock, store, runtime, blobs, calls, config, strip, setup, bearer, emit, credentials };
 }
+
+describe('device push enrollment and tests [UI-1] [SEC-4]', () => {
+  it('reports actual enrollment, tests only owned subscriptions, rate limits and unregisters', async () => {
+    const send = vi.fn<PushProvider['send']>().mockResolvedValue({ ok: true });
+    const f = await fixture({ pushProvider: { kind: 'webpush', send } });
+    const a = await f.setup();
+    const endpoint = 'https://fcm.googleapis.com/fcm/send/synthetic-device';
+    const headers = f.bearer(a.token);
+    const call = (url: string) => f.app.inject({ method: 'POST', url, headers, payload: { endpoint } });
+    expect((await f.app.inject({ method: 'POST', url: '/v1/push/test', payload: { endpoint } })).statusCode).toBe(401);
+    expect((await call('/v1/push/status')).json()).toEqual({ registered: false });
+    expect((await call('/v1/push/test')).statusCode).toBe(404);
+    expect(send).not.toHaveBeenCalled();
+    const other = await f.store.createAthlete({ displayName: 'Other', isAdmin: false, settings: defaultSettings() });
+    await f.store.addPushSubscription({ id: 'other-device', athleteId: other.id, endpoint, kind: 'webpush', keys: { p256dh: 'synthetic', auth: 'synthetic' }, createdAt: f.clock.now().toISOString() });
+    expect((await call('/v1/push/test')).statusCode).toBe(404);
+    const registered = await f.app.inject({ method: 'POST', url: '/v1/push/subscriptions', headers, payload: { endpoint, keys: { p256dh: 'synthetic', auth: 'synthetic' } } });
+    expect(registered.statusCode).toBe(200);
+    expect((await call('/v1/push/status')).json()).toEqual({ registered: true });
+    expect((await call('/v1/push/test')).json()).toEqual({ accepted: true });
+    expect(send).toHaveBeenCalledOnce();
+    expect(send.mock.calls[0]?.[0].athleteId).toBe(a.athleteId);
+    expect(send.mock.calls[0]?.[1]).toMatchObject({ data: { kind: 'system' } });
+    expect((await call('/v1/push/test')).statusCode).toBe(429);
+    await f.clock.advanceBy(60_000);
+    send.mockResolvedValueOnce({ ok: false, gone: true });
+    expect((await call('/v1/push/test')).statusCode).toBe(503);
+    expect((await call('/v1/push/status')).json()).toEqual({ registered: false });
+    expect(await f.store.listPushSubscriptions(other.id)).toHaveLength(1);
+  });
+});
 
 function multipart(field: string, text = 'bytes', mime = 'application/octet-stream', metadata: Record<string, string> = {}) {
   const boundary = 'oc-boundary';

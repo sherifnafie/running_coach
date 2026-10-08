@@ -149,6 +149,16 @@ Views run in `<iframe sandbox="allow-scripts">` on the views origin with a restr
 
 Browser sessions use an HttpOnly cookie. State-changing requests need the app `Origin` and a session-bound `X-CSRF-Token` (the PWA handles this; other clients can get one from `GET /v1/auth/csrf`, or use a bearer session). Push uses VAPID keys in `<dataDir>/secrets/vapid.json`; keep that file across upgrades, and set `push.vapidSubject` to your contact address. Large uploads can resume over Tus at `/v1/uploads/resumable`.
 
+**Phone notifications:** in the installed PWA, open Settings → Notifications →
+This device → Enable on this device, accept the phone/browser prompt, then Send
+test notification. The account switch alone does not register a phone. A test's
+acceptance means the browser push service accepted it; check Android/Chrome
+notification settings and Do Not Disturb if it does not appear. On iPhone/iPad,
+use the Home Screen app. Existing subscriptions are re-registered when the app
+opens/reconnects; an obsolete connection can be reconnected in Settings. Open
+desktop tabs do not suppress phone push. No native app or Firebase account is
+required for Web Push.
+
 ## Small home instance
 
 For a few people on one always-on machine, keep the live instance apart from any development checkout. `ops/` has what that needs:

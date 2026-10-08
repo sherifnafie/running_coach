@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import '@fastify/cookie';
-import type { BlobStore, Clock, CoachRuntimeAPI, Logger, ServerConfig, Store } from '@opencoach/protocol';
+import type { BlobStore, Clock, CoachRuntimeAPI, Logger, PushProvider, ServerConfig, Store } from '@opencoach/protocol';
 import type { CallService, DictationService } from '@opencoach/voice';
 import { SESSION_COOKIE, CSRF_COOKIE, SESSION_TTL_MS, RateLimiter, SessionManager, csrfTokenForSession, safeEqual, type AuthContext } from './auth';
 import { conflict, forbidden, tooMany, unauthorized } from './errors';
@@ -27,6 +27,7 @@ export interface GatewayDeps {
   setupCodes: SetupCodeManager;
   /** VAPID public key; undefined disables push features. */
   vapidPublicKey?: string;
+  pushProvider?: PushProvider;
   /** SSRF guard for client-supplied push endpoints (default: https + public host). */
   validatePushEndpoint?: (endpoint: string) => Promise<void>;
   features?: { webSearch: boolean; demoMode: boolean; imageGeneration?: boolean };

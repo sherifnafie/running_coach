@@ -47,6 +47,10 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 
 **Production deployment (2026-10-08):** release 0.3.5 (`aa5f1cb`) is running in `~/opencoach-prod`, with a pre-deploy backup. DeepSeek V4.1 Flash is now the default for both chat and deep work (high effort for deep work); the production Haiku override was replaced. OpenRouter images use Flare medium. Verified the active systemd service, loaded production tier/image configuration, installed image capability skill, public app and gateway (HTTP 200), view kit (HTTP 200), and authentication boundary (unauthenticated `/v1/me` returns 401). The default-change config tests and typecheck/reference fast subset also pass.
 
+**PWA notifications (2026-10-08):** the production account allowed push but had zero registered device subscriptions. Settings now separates that account preference from actual phone permission/enrollment, with explicit enable/reconnect and an authenticated device-specific test. Existing subscriptions re-register on open/foreground/reconnect without prompting; VAPID key changes can be repaired and disabling/signing out unregisters the device. Open desktop/background WebSockets no longer suppress phone notifications. Every received push displays a notification (required by WebKit), quiet while the local app is focused; held/call/disabled/`notify:none` exclusions still apply. Provider acceptance is not proof of display on a physical phone; the owner must enable notifications and check the test on Android/Chrome.
+
+Notification changes pass typecheck, all 796 harness/renderer tests, 163 web unit tests (12 existing skips) and all 14 browser end-to-end cases, including the misleading account-enabled/device-disconnected state. Provider delivery with connected clients, owned/rate-limited tests, expiration cleanup, permission states, VAPID repair and actual worker event handlers have focused regression coverage.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.

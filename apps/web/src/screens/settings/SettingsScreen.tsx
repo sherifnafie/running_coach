@@ -11,7 +11,7 @@ import { clock } from '../../lib/clock';
 import { auth, settingsApi } from '../../lib/endpoints';
 import { formatDuration, localDayKey, toDateInputValue } from '../../lib/format';
 import { addPasskey, isPasskeyCancelled, passkeysSupported } from '../../lib/passkey';
-import { disablePush, enablePush, isStandalone, pushSupport } from '../../lib/push';
+import { PushControl } from './PushControl';
 import { useRoute } from '../../lib/router';
 import { useStore } from '../../lib/store';
 import { AdminSection } from './AdminSection';
@@ -215,14 +215,10 @@ function CustomColor({ value }: { value: string }) {
 function NotificationsSection() {
   const t = useI18n();
   const s = useSettings();
-  const me = useStore(appStore, (st) => st.me!);
   const save = useCommit();
   const n = s.notifications;
   const qh = n.quietHours;
   const tz = s.profile.tz;
-  const support = pushSupport();
-  const blocked = typeof Notification !== 'undefined' && Notification.permission === 'denied';
-  const [pushBusy, setPushBusy] = useState(false);
   const pausedUntil = n.pauseUntil && Date.parse(n.pauseUntil) > clock.nowMs() ? n.pauseUntil : null;
 
   return (
@@ -269,35 +265,7 @@ function NotificationsSection() {
           )}
         </div>
       </Row>
-      <Toggle
-        label={t("Push notifications")}
-        hint={
-          support === 'unsupported'
-            ? t("This browser does not support push notifications.")
-            : support === 'needs-install' && !isStandalone()
-              ? t("On iPhone and iPad, add OpenCoach to your Home Screen first.")
-              : blocked
-                ? t("Blocked in your browser settings.")
-                : t("On this device.")
-        }
-        checked={n.push}
-        disabled={pushBusy || support === 'unsupported'}
-        onChange={async (on) => {
-          setPushBusy(true);
-          try {
-            if (on) {
-              const res = await enablePush(me.vapidPublicKey);
-              if (!res.ok) {
-                toast(res.reason, 'error');
-                return;
-              }
-            } else await disablePush();
-            await save({ notifications: { push: on } });
-          } finally {
-            setPushBusy(false);
-          }
-        }}
-      />
+      <PushControl />
     </Section>
   );
 }

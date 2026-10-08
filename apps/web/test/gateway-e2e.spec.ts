@@ -337,6 +337,14 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await page.getByRole('alert', { name: 'Safety notice' }).waitFor();
     await page.getByRole('button', { name: 'Dismiss for now' }).click();
     await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Settings' }).click();
+    // Account opt-in alone must not present this fresh browser as connected [UI-1].
+    expect(await page.getByRole('switch', { name: 'Push notifications', exact: true }).isChecked()).toBe(true);
+    await page.getByRole('button', { name: 'Enable on this device', exact: true }).waitFor();
+    expect(await page.getByRole('button', { name: 'Send test notification', exact: true }).count()).toBe(0);
+    if (process.env.OPENCOACH_CAPTURE_PUSH === '1') {
+      await page.getByRole('button', { name: 'Enable on this device', exact: true }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(repo, 'work/notifications-phone.png') });
+    }
     await page.getByLabel('Units', { exact: true }).selectOption('imperial');
     await expect.poll(async () => (await server.store.getSettings(athleteId)).profile.units).toBe('imperial');
     await page.reload();
