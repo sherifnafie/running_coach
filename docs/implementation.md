@@ -41,7 +41,7 @@ athletes/<athleteId>/             see athletePaths() in protocol/src/config.ts
 ```
 seed/core/constitution.md              harness-generic constitution with {{pack_coaching}} and {{pack_safety}} slots
 seed/core/addenda/*.md                 helper, voice, consolidation, upgrade, safety-notice preambles
-seed/general/pack.json                 { "id": "general", "version": "0.3.3", "name": "General coaching" }
+seed/general/pack.json                 { "id": "general", "version": "0.3.5", "name": "General coaching" }
 seed/general/constitution/coaching.md  fills {{pack_coaching}} (any sport, chosen by the athlete; ADR 0006)
 seed/general/constitution/safety.md    fills {{pack_safety}} (red flags for all sports, weight-cut and high-risk rules)
 seed/general/system/                   → /system: docs/*.md, skills/<name>/SKILL.md (+ refs, scripts), CHANGELOG-for-coach.md
@@ -58,7 +58,10 @@ Optional achievement examples live under `system/skills/achievements/examples/`,
 outside the copied starter workspace. The coach can adopt the empty JSON ledger
 and hidden gallery when useful; no harness migration or award logic reads them
 ([ADR 0009](adr/0009-coach-owned-achievements.md)). Generated-image blobs are
-private attachments, not workspace files; gallery art uses local assets.
+private attachments with readable PNG copies in `exports/images/`; galleries
+copy those into local assets. OpenRouter images reuse scoped account keys,
+with separate image permissions/allowances and fixed rendering parameters
+([ADR 0011](adr/0011-small-openrouter-images.md)).
 
 ## Views at runtime
 

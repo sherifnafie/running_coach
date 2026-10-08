@@ -1,4 +1,5 @@
 import { ToolError, type ImageGenerationConfig, type ImageProvider } from '@opencoach/protocol';
+import { createOpenRouterImageProvider } from './openrouter-image';
 
 const MAX_RESPONSE_BYTES = 12 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -7,11 +8,13 @@ const list = (value: unknown): unknown[] => Array.isArray(value) ? value : [];
 
 /** Direct vendor REST contracts; credentials stay in this trusted adapter [SEC-1]. */
 export function createImageProvider(config: ImageGenerationConfig | undefined, deps: {
-  env?: Record<string, string | undefined>; fetch?: typeof fetch;
+  env?: Record<string, string | undefined>; fetch?: typeof fetch; apiKey?: string;
 } = {}): ImageProvider | undefined {
   if (!config) return undefined;
-  const apiKey = (deps.env ?? process.env)[config.apiKeyEnv];
-  if (!apiKey) throw new Error(`Image generation requires the environment variable ${config.apiKeyEnv}.`);
+  const keyEnv = config.apiKeyEnv ?? 'OPENROUTER_API_KEY';
+  const apiKey = deps.apiKey ?? (deps.env ?? process.env)[keyEnv];
+  if (!apiKey) throw new Error(`Image generation requires the environment variable ${keyEnv}.`);
+  if (config.provider === 'openrouter') return createOpenRouterImageProvider(config, apiKey, deps.fetch);
   const base = new URL(config.baseUrl ?? (config.provider === 'google' ? 'https://generativelanguage.googleapis.com/v1beta' : 'https://api.openai.com/v1'));
   const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname);
   if ((base.protocol !== 'https:' && !(base.protocol === 'http:' && loopback)) || base.username || base.password || base.search || base.hash) {
@@ -22,6 +25,7 @@ export function createImageProvider(config: ImageGenerationConfig | undefined, d
     id: config.provider, model: config.model,
     async generate(prompt, signal) {
       if (!prompt.trim() || prompt.length > 2000) throw new ToolError('INVALID_INPUT', 'Image prompt must contain 1–2000 characters.');
+      const visualPrompt = config.stylePrompt ? `${config.stylePrompt}\n\nSubject: ${prompt}` : prompt;
       const google = config.provider === 'google';
       const url = `${base.href.replace(/\/$/, '')}/${google ? `models/${encodeURIComponent(config.model)}:generateContent` : 'images/generations'}`;
       let response: Response;
@@ -31,9 +35,9 @@ export function createImageProvider(config: ImageGenerationConfig | undefined, d
           signal: AbortSignal.any([signal, AbortSignal.timeout(config.timeoutMs)]),
           headers: { 'Content-Type': 'application/json', ...(google ? { 'x-goog-api-key': apiKey } : { Authorization: `Bearer ${apiKey}` }) },
           body: JSON.stringify(google ? {
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            contents: [{ role: 'user', parts: [{ text: visualPrompt }] }],
             generationConfig: { responseModalities: ['TEXT', 'IMAGE'], imageConfig: { aspectRatio: '1:1' } },
-          } : { model: config.model, prompt, n: 1, size: '1024x1024', output_format: 'png', quality: 'low' }),
+          } : { model: config.model, prompt: visualPrompt, n: 1, size: '1024x1024', output_format: 'png', quality: 'low' }),
         });
       } catch {
         // Provider diagnostics may echo prompts, credentials or URLs. Never return them to the model.

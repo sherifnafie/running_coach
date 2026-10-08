@@ -30,7 +30,8 @@ describe('coach context delivered to the model [CTX-1, SUB-3, UI-1]', () => {
     expect(situationText(req)).toContain('configured model tiers:');
     expect(system).toContain('/system/skills/coach-identity/SKILL.md');
     expect(system).toContain('minor, optional personalization');
-    expect(situationText(req)).toContain('optional image generation: NOT CONFIGURED');
+    expect(system).toContain('/system/skills/image-generation/SKILL.md');
+    expect(situationText(req)).toContain('image generation: NOT CONFIGURED');
     expect(situationText(req)).toContain('coach identity changes NOT ENABLED');
     expect(req.tools.map(t => t.name)).toContain('generate_image');
     const context = await h.runtime.core.store.getTurnContext(req.metadata!.turnId!);

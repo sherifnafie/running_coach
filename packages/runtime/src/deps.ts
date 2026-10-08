@@ -38,6 +38,8 @@ export interface CoachRuntimeDeps {
   safety?: SafetyScreen;
   synthesizer?: Synthesizer;
   imageProvider?: ImageProvider;
+  /** Trusted per-athlete credentials; return a stable instance until its binding changes. */
+  imageProviderFor?: (athleteId: string) => ImageProvider | undefined;
   delivery?: DeliveryHook;
   /**
    * Who pays for an athlete's model calls: `managed` (the deployment's or an administrator-assigned key, with a hard

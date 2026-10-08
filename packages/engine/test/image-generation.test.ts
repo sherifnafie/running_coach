@@ -22,7 +22,9 @@ describe('[MOD-1] [SEC-1] image provider contracts', () => {
     const body = JSON.parse(String(options!.body));
     if (provider === 'google') {
       expect(options!.headers).toMatchObject({ 'x-goog-api-key': env.IMAGE_TEST_KEY });
-      expect(body).toEqual({ contents: [{ role: 'user', parts: [{ text: 'A green running mascot' }] }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'], imageConfig: { aspectRatio: '1:1' } } });
+      expect(body.contents[0].parts[0].text).toContain('pixel-art');
+      expect(body.contents[0].parts[0].text).toContain('Subject: A green running mascot');
+      expect(body.generationConfig).toEqual({ responseModalities: ['TEXT', 'IMAGE'], imageConfig: { aspectRatio: '1:1' } });
     } else {
       expect(options!.headers).toMatchObject({ Authorization: `Bearer ${env.IMAGE_TEST_KEY}` });
       expect(body).toMatchObject({ model: 'test-image', n: 1, size: '1024x1024', output_format: 'png', quality: 'low' });

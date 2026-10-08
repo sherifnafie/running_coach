@@ -2,6 +2,25 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.5: generated images you can use in views (October 2026)
+
+The default chat and deep-work model is now DeepSeek V4.1 Flash. Explicit
+athlete model selections still take precedence; the workspace stays yours.
+
+`generate_image` returns an owned blob and `workspace_path` for a safe PNG in
+`exports/images/`. With vision, read it; attach the blob in chat, or copy the
+file into a view's assets and preview/publish. Nothing is sent/applied/published
+automatically. Reuse saved artwork.
+
+Images now have their own permission and allowance, separate from name/avatar
+changes. The situation report shows current permission/reserved spending.
+Requested images are enabled by default; occasional automatic images need the
+athlete's setting. Helpers and consolidation cannot generate. The server fixes
+model, size, quality and cost controls with a default small pixel-art brief.
+Read `image-generation` for these app capabilities and the workflow. OpenRouter
+uses existing scoped keys. No training-data migration or new default tab;
+keep customizations and don't announce the upgrade itself.
+
 ## v0.3.4: coaching knowledge is yours (October 2026)
 
 **What changed.** The first-party skills that taught sports science are gone: `running`, `strength-training`, `plan-design`, `training-load`, `competition-prep`, `environment`, `fueling-basics`, `injury-and-pain` and `illness-return`. What remains in `/system/skills` describes this app (intake and where things are recorded, file and screenshot import, data hygiene, the calendar feed, the UI kit, research, identity, achievements, and taking on a sport in `disciplines`). How to coach is your own knowledge: research what you don't know well, and write your methods down as workspace skills so a future model starts from your work. The safety floor is unchanged; it lives in the constitution (§11).

@@ -20,6 +20,7 @@ import { SetupCodeManager } from './setup-code';
 import { CredentialService, CredentialVault, keyFingerprint } from './credentials';
 import { LabelPacks } from './label-packs';
 import { createTelegramAdapter } from './telegram';
+import { scopedImageProviders } from './image-providers';
 
 export interface ComposeOptions {
   config?: ServerConfig;
@@ -32,6 +33,8 @@ export interface ComposeOptions {
   renderer?: UiRenderer | false;
   /** Tests can inject a controlled image service; credentials never enter the runtime sandbox. */
   imageProvider?: ImageProvider;
+  /** Fixture transport for the image provider contract; production uses native fetch. */
+  imageFetch?: typeof fetch;
   manualScheduler?: boolean;
   printSetupCode?: (text: string) => void;
 }
@@ -100,12 +103,18 @@ export async function composeServer(opts: ComposeOptions = {}) {
     const pushDelivery = createPushDelivery({ store, provider: push, logger });
     let telegram: ReturnType<typeof createTelegramAdapter> | undefined;
     const webSearch = createWebSearchBackend(config.web.search);
-    const imageProvider = opts.imageProvider ?? createImageProvider(config.imageGeneration);
+    const imageConfig = config.imageGeneration;
+    const imageEnv = opts.loadConfig?.env ?? process.env;
+    const imageProvider = opts.imageProvider ?? (imageConfig?.provider === 'openrouter' ? undefined : createImageProvider(imageConfig, { env: imageEnv, fetch: opts.imageFetch }));
+    const imageProviderFor = !opts.imageProvider && imageConfig?.provider === 'openrouter'
+      ? scopedImageProviders({ ...imageConfig, baseUrl: imageConfig.baseUrl ?? openrouter?.baseUrl }, { keyFor: athleteId => credentials.key(athleteId, 'openrouter'),
+        fallbackKey: (imageConfig.apiKeyEnv ? imageEnv[imageConfig.apiKeyEnv] : undefined) ?? openrouter?.apiKey, fetch: opts.imageFetch })
+      : undefined;
     const runtime = createCoachRuntime({ config, clock, logger, store, blobs, sandbox, router,
       loop: createAgentLoop({ price: (model, usage) => router.cost(model, usage) }),
       seedRoot: opts.seedRoot ?? DEFAULT_SEED_ROOT, pack: 'general', kitDir, extraSystemDocs, renderer,
       webSearch, safety: createSafetyScreen({ router, useModel: config.safety.modelScreen }), synthesizer,
-      imageProvider, billing: (athleteId) => credentials.billing(athleteId),
+      imageProvider, imageProviderFor, billing: (athleteId) => credentials.billing(athleteId),
       delivery: async (athleteId, message, context) => {
         await pushDelivery(athleteId, message, context);
         await telegram?.delivery(athleteId, message);
@@ -131,9 +140,9 @@ export async function composeServer(opts: ComposeOptions = {}) {
     }
     const setupCodes = new SetupCodeManager({ store, clock, dataDir: config.dataDir, logger, publicUrl: config.publicUrl, print: opts.printSetupCode });
     const gateway = await createGateway({ config, clock, logger, store, blobs, runtime, callService: calls, dictation,
-      setupCodes, kitDir, webDist: opts.webDist ?? DEFAULT_WEB_DIST, features: { demoMode: isDemoConfig(config), webSearch: !!webSearch, imageGeneration: !!imageProvider },
+      setupCodes, kitDir, webDist: opts.webDist ?? DEFAULT_WEB_DIST, features: { demoMode: isDemoConfig(config), webSearch: !!webSearch, imageGeneration: !!imageProvider || !!imageProviderFor },
       vapidPublicKey: push.publicKey?.(), exportAthlete, stripImageLocation,
-      telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); credentials.forget(athleteId); },
+      telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); credentials.forget(athleteId); imageProviderFor?.forget(athleteId); },
       labelPacks: new LabelPacks({ dataDir: config.dataDir, router: isDemoConfig(config) ? undefined : router, logger }),
       credentials, models: openrouter && !isDemoConfig(config) ? { catalog, defaultModel: openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL, defaultDeepModel: openrouter.deepModel ?? DEFAULT_OPENROUTER_DEEP_MODEL, openrouterBaseUrl: openrouter.baseUrl } : undefined,
     });

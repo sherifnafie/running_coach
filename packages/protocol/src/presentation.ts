@@ -51,6 +51,15 @@ export function labelPack(locale: string): Record<string, string> | undefined {
 }
 
 const labels: Record<string, [string, string]> = {
+  "Images": ["Afbeeldingen", "الصور"],
+  "Image generation": ["Afbeeldingen maken", "إنشاء الصور"],
+  "Only when I ask": ["Alleen wanneer ik erom vraag", "فقط عندما أطلب"],
+  "Allow occasional coach images": ["Af en toe afbeeldingen van mijn coach toestaan", "السماح بصور من المدرب من حين لآخر"],
+  "Monthly image allowance (USD)": ["Maandelijks afbeeldingsbudget (USD)", "ميزانية الصور الشهرية (دولار أمريكي)"],
+  "Zero allowance disables generation. The coach cannot change these controls. Turning images off keeps existing artwork.": ["Een budget van nul schakelt het maken van afbeeldingen uit. Je coach kan deze instellingen niet wijzigen. Bestaande afbeeldingen blijven behouden.", "الميزانية الصفرية توقف إنشاء الصور. لا يستطيع المدرب تغيير هذه الإعدادات. تبقى الصور الموجودة عند إيقاف الإنشاء."],
+  "Image generation has its own permission and allowance under Images.": ["Afbeeldingen maken heeft eigen toestemming en een budget onder Afbeeldingen.", "لإنشاء الصور إذن وميزانية خاصان ضمن الصور."],
+  "Small artwork for avatars, achievements and your coach’s views. Image spending also counts toward your total AI budget.": ["Kleine afbeeldingen voor avatars, prestaties en de schermen van je coach. Kosten tellen ook mee voor je totale AI-budget.", "رسومات صغيرة للصور الشخصية والإنجازات وصفحات المدرب. تُحتسب تكلفتها أيضًا ضمن ميزانية الذكاء الاصطناعي الإجمالية."],
+  "Image generation is not configured for this deployment.": ["Afbeeldingen maken is niet ingesteld voor deze installatie.", "لم يتم إعداد إنشاء الصور في هذا التطبيق."],
   "of": ["van", "من"],
   "Pick a new day for": ["Kies een nieuwe dag voor", "اختر يومًا جديدًا لـ"],
   "Moved to": ["Verplaatst naar", "نُقلت إلى"],

@@ -319,7 +319,7 @@ export interface Store {
 
   // usage & budgets
   recordUsage(u: UsageRecord): Promise<void>;
-  sumUsage(athleteId: string, sinceIso: string): Promise<{ costUsd: number; inputTokens: number; outputTokens: number; cachedInputTokens: number }>;
+  sumUsage(athleteId: string, sinceIso: string, kind?: UsageKind): Promise<{ costUsd: number; inputTokens: number; outputTokens: number; cachedInputTokens: number }>;
   usageByDay(athleteId: string | undefined, sinceIso: string): Promise<Array<{ day: string; athleteId: string; costUsd: number }>>;
 
   // push

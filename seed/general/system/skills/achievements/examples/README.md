@@ -83,12 +83,11 @@ Retiring a challenge or pausing training does not remove earned achievements.
 external URL or image generation is needed. The title, description and date
 remain readable independently of art. The view accepts only local PNG/JPEG/WebP
 paths under its own asset bundle; a failed image falls back to the local medal.
-An uploaded raster or image you render in the workspace can be copied into the
-view's `assets/` directory, then previewed and published. Requested generated
-images currently return private blobs which you can attach in chat; they are
-not mounted at `/raw` or otherwise readable as workspace assets. A private blob
-SHA or authenticated gateway URL is not an image URL a sandboxed view can use.
-Use local art in the gallery and show generated art in chat; don't invent a
-download path or bypass the bridge. Never send private athlete data to an image
-provider. A decorative requested picture without an accomplishment stays
-outside the earned array.
+An uploaded raster, an image rendered in the workspace or `generate_image`'s
+returned `workspace_path` can be copied into the view's `assets/` directory,
+then previewed and published. Generated PNGs live in `exports/images/`; they
+also have a private blob SHA for chat/avatar use (`image-generation` skill).
+A blob SHA or authenticated gateway URL is not a view image URL. Reuse the
+workspace PNG instead of generating it again. Never send private athlete data
+to an image provider. A decorative requested picture without an accomplishment
+stays outside the earned array.

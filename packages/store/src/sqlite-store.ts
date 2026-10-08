@@ -960,12 +960,14 @@ export class SqliteStore implements Store {
     );
   }
 
-  async sumUsage(athleteId: string, sinceIso: string): Promise<{ costUsd: number; inputTokens: number; outputTokens: number; cachedInputTokens: number }> {
+  async sumUsage(athleteId: string, sinceIso: string, kind?: UsageRecord['kind']): Promise<{ costUsd: number; inputTokens: number; outputTokens: number; cachedInputTokens: number }> {
     const row = this.get(
       `SELECT COALESCE(SUM(cost_usd), 0) AS cost, COALESCE(SUM(input_tokens), 0) AS inp, COALESCE(SUM(output_tokens), 0) AS outp, COALESCE(SUM(cached_input_tokens), 0) AS cached
-         FROM usage WHERE athlete_id = ? AND at >= ?`,
+         FROM usage WHERE athlete_id = ? AND at >= ? AND (? IS NULL OR kind = ?)`,
       athleteId,
       canonIso(sinceIso),
+      kind ?? null,
+      kind ?? null,
     );
     return { costUsd: Number(row?.cost ?? 0), inputTokens: Number(row?.inp ?? 0), outputTokens: Number(row?.outp ?? 0), cachedInputTokens: Number(row?.cached ?? 0) };
   }

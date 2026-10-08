@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type ImageProvider, type TriggerClass } from '@opencoach/protocol';
+import { ZERO_USAGE, type ImageProvider, type TriggerClass } from '@opencoach/protocol';
 import { createExecutor } from '../src/executor';
 import { generateImage } from '../src/identity';
 import { makeHarness, type Harness } from './harness';
@@ -23,14 +23,60 @@ describe('[UI-1] [SEC-1] [COST-1] optional coach identity', () => {
     h = await makeHarness({ config, imageProvider: { id: 'google', model: 'test-image', generate } });
     const { id } = await h.runtime.createAthlete(athlete);
     const e = executor(id);
+    await h.runtime.updateSettings(id, { images: { mode: 'off' } });
     expect((await e.execute(call('disabled', 'set_preferences', { coach_name: 'Kip' }), signal())).isError).toBe(true);
     expect((await e.execute(call('self-grant', 'set_preferences', { allowChanges: true, coach_name: 'Kip' }), signal())).isError).toBe(true);
     expect((await e.execute(call('disabled-img', 'generate_image', { prompt: 'A mascot' }), signal())).isError).toBe(true);
-    await h.runtime.updateSettings(id, { coachIdentity: { allowChanges: true } });
+    await h.runtime.updateSettings(id, { coachIdentity: { allowChanges: true }, images: { mode: 'requested' } });
     expect((await executor(id, 'helper').execute(call('helper', 'set_preferences', { coach_name: 'Kip' }), signal())).isError).toBe(true);
     expect((await executor(id, 'helper').execute(call('helper-img', 'generate_image', { prompt: 'A mascot' }), signal())).isError).toBe(true);
     expect((await executor(id, 'coach', 'scheduled').execute(call('scheduled', 'generate_image', { prompt: 'A mascot' }), signal())).isError).toBe(true);
     expect(generate).not.toHaveBeenCalled();
+  });
+
+  it('separates image permission from identity, enables allowed automatic images and persists a readable private asset', async () => {
+    const generate = vi.fn<ImageProvider['generate']>().mockResolvedValue({ data: png, mime: 'image/png' });
+    h = await makeHarness({ config, imageProvider: { id: 'google', model: 'test-image', generate } });
+    const { id } = await h.runtime.createAthlete(athlete);
+    const other = await h.runtime.createAthlete(athlete);
+    await h.runtime.updateSettings(id, { images: { mode: 'automatic', monthlyUsd: 1 } });
+    const automatic = executor(id, 'coach', 'scheduled');
+    expect((await automatic.execute(call('automatic', 'generate_image', { prompt: 'A tiny medal' }), signal())).isError).toBe(false);
+    const blob = (await h.runtime.core.store.listBlobs(id))[0]!;
+    const path = `/workspace/exports/images/${blob.sha256}.png`;
+    expect(Buffer.from(await h.runtime.core.fsFor(id).readFile(path))).toEqual(Buffer.from(await h.runtime.core.deps.blobs.read(id, blob.sha256)));
+    expect(await h.runtime.core.fsFor(other.id).stat(path)).toBeNull();
+    expect((await h.runtime.core.settings(id)).coachIdentity).toMatchObject({ allowChanges: false, avatarSha256: null });
+    expect((await automatic.execute(call('self-grant-images', 'set_preferences', { images: { mode: 'automatic', monthlyUsd: 10 } }), signal())).isError).toBe(true);
+    expect((await executor(id, 'coach', 'consolidation').execute(call('overnight', 'generate_image', { prompt: 'A medal' }), signal())).isError).toBe(true);
+    await h.runtime.updateSettings(id, { notifications: { pauseUntil: '2027-01-01T00:00:00Z' } });
+    expect((await automatic.execute(call('paused', 'generate_image', { prompt: 'A medal' }), signal())).isError).toBe(true);
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the image-only monthly allowance without charging ordinary model usage to it', async () => {
+    const generate = vi.fn<ImageProvider['generate']>().mockResolvedValue({ data: png, mime: 'image/png' });
+    const quote = vi.fn<NonNullable<ImageProvider['quote']>>().mockResolvedValue({ costUsd: .007, provider: 'recraft' });
+    h = await makeHarness({ config: { imageGeneration: { provider: 'openrouter' } }, imageProvider: { id: 'openrouter', model: 'fixture', quote, generate } });
+    const { id } = await h.runtime.createAthlete(athlete);
+    await h.runtime.updateSettings(id, { images: { monthlyUsd: .01 } });
+    await h.runtime.core.store.recordUsage({ athleteId: id, at: h.runtime.core.clock.now().toISOString(), provider: 'fixture', model: 'fixture', kind: 'turn', costUsd: .15, usage: { ...ZERO_USAGE } });
+    const e = executor(id);
+    expect((await e.execute(call('cheap', 'generate_image', { prompt: 'A small medal' }), signal())).isError).toBe(false);
+    expect((await e.execute(call('too-many', 'generate_image', { prompt: 'Another medal' }), signal())).isError).toBe(true);
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect((await h.runtime.core.store.sumUsage(id, '2026-10-01T00:00:00Z', 'image')).costUsd).toBe(.007);
+  });
+
+  it('honors a budget reduction during price preflight before reserving or generating', async () => {
+    const generate = vi.fn<ImageProvider['generate']>().mockResolvedValue({ data: png, mime: 'image/png' });
+    h = await makeHarness({ config: { imageGeneration: { provider: 'openrouter' } }, imageProvider: { id: 'openrouter', model: 'fixture', generate,
+      quote: async () => { await h.runtime.updateSettings(id, { images: { monthlyUsd: .001 } }); return { costUsd: .007, provider: 'fixture' }; },
+    } });
+    const { id } = await h.runtime.createAthlete(athlete);
+    expect((await executor(id).execute(call('reduced', 'generate_image', { prompt: 'A medal' }), signal())).isError).toBe(true);
+    expect(generate).not.toHaveBeenCalled();
+    expect((await h.runtime.core.store.sumUsage(id, '2026-10-01T00:00:00Z', 'image')).costUsd).toBe(0);
   });
 
   it('can rename with no image provider, refreshes settings, and respects later revocation', async () => {
@@ -91,15 +137,16 @@ describe('[UI-1] [SEC-1] [COST-1] optional coach identity', () => {
     const generate = vi.fn<ImageProvider['generate']>();
     h = await makeHarness({ config, imageProvider: { id: 'google', model: 'test-image', generate } });
     const { id } = await h.runtime.createAthlete(athlete);
-    await h.runtime.updateSettings(id, { coachIdentity: { allowChanges: true } });
+    await h.runtime.updateSettings(id, { coachIdentity: { allowChanges: true }, images: { monthlyUsd: 1 } });
     generate.mockResolvedValueOnce({ data: Buffer.from('<svg/>'), mime: 'image/png' });
     const e = executor(id);
     expect((await e.execute(call('malformed', 'generate_image', { prompt: 'A mascot' }), signal())).isError).toBe(true);
     generate.mockImplementationOnce(async () => {
-      await h.runtime.updateSettings(id, { coachIdentity: { allowChanges: false } });
+      await h.runtime.updateSettings(id, { images: { mode: 'off' } });
       return { data: png, mime: 'image/png' };
     });
     expect((await e.execute(call('in-flight', 'generate_image', { prompt: 'A mascot' }), signal())).isError).toBe(true);
+    expect(generate).toHaveBeenCalledTimes(2);
     expect(await h.runtime.core.store.listBlobs(id)).toEqual([]);
     expect((await h.runtime.core.settings(id)).coachIdentity.avatarSha256).toBeNull();
   });

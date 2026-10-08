@@ -8,3 +8,5 @@
 - Persistence: account settings/audit store identity; workspace persona notes may record agreed style. Existing profiles and views are preserved. Blob export/delete use the existing per-athlete lifecycle, with image-attempt namespace cleanup [WS-4] [SEC-6]. Current settings override a frozen older name in the situation report. Permission never changes via a coach tool.
 
 Contract references: [Google image migration](https://ai.google.dev/gemini-api/docs/imagen), [Google generateContent](https://ai.google.dev/api/generate-content), [OpenAI Images](https://developers.openai.com/api/reference/resources/images/methods/generate).
+
+Image provider support, generation permissions and asset materialization are extended by [ADR 0011](0011-small-openrouter-images.md); identity application rules remain as recorded here.

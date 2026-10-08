@@ -1,7 +1,7 @@
 // @vitest-environment node
 /** Real gateway/runtime/workspace, scripted coach, and a controlled speech endpoint (no paid APIs). */
 import { existsSync, readdirSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer, type Server as HttpServer } from 'node:http';
 import { createRequire } from 'node:module';
@@ -17,6 +17,7 @@ import { composeServer, type ComposedServer } from '../../server/src/compose';
 import { loadConfig } from '../../server/src/config';
 import { createExecutor } from '../../../packages/runtime/src/executor';
 import { openWorkspaceGit } from '../../../packages/workspace/src';
+import { createPlaywrightRenderer } from '../../../packages/ui-kit/src';
 
 const repo = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 const webRoot = join(repo, 'apps/web');
@@ -89,7 +90,7 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     const speechAddress = speech.address();
     if (!speechAddress || typeof speechAddress === 'string') throw new Error('No speech test port');
     config.voice.stt = { provider: 'openai-compatible', baseUrl: `http://127.0.0.1:${speechAddress.port}/v1`, model: 'test-transcriber' };
-    server = await composeServer({ config, logger: silentLogger, webDist: dist, seedRoot: join(repo, 'seed'), renderer: false, imageProvider, manualScheduler: true, printSetupCode: () => {} });
+    server = await composeServer({ config, logger: silentLogger, webDist: dist, seedRoot: join(repo, 'seed'), renderer: createPlaywrightRenderer({ executablePath }), imageProvider, manualScheduler: true, printSetupCode: () => {} });
     await server.listen();
     browser = await chromium.launch({ executablePath, headless: true, args: ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
     context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-GB', timezoneId: 'Europe/Amsterdam', serviceWorkers: 'allow' });
@@ -387,7 +388,7 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     expect(saved).not.toBeNull();
     await page.getByRole('button', { name: 'Show changes', exact: true }).click();
     await page.getByText('Your coach was set up', { exact: true }).waitFor();
-    const entry = page.locator('.changes .list > li').filter({ has: page.getByText('Research', { exact: true }) }).first();
+    const entry = page.locator('.changes .list > li').filter({ hasText: 'Research' }).first();
     expect(await entry.locator('.list-title').innerText()).toBe('Coach saved changes');
     expect(await entry.locator('details').getAttribute('open')).toBeNull();
     expect(await entry.getByText('Updated research/history-check.md', { exact: true }).isVisible()).toBe(false);
@@ -513,6 +514,42 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     expect(profile.status()).toBe(200);
     expect((await profile.json()).athlete.id).toBe(athleteId);
     await cdp.detach();
+  }, 60_000);
+
+  it('[MOD-1] [UI-2] publishes a generated workspace PNG in the isolated achievement gallery and persists image controls', async () => {
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await nav.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.getByLabel('Image generation', { exact: true }).selectOption('automatic');
+    await expect.poll(async () => (await server.store.getSettings(athleteId)).images.mode).toBe('automatic');
+    const fs = server.runtime.core.fsFor(athleteId);
+    const executor = createExecutor(server.runtime.core, { athleteId, turnId: 'image-gallery-browser', triggerClass: 'scheduled', agent: { kind: 'coach', depth: 0 },
+      tools: ['generate_image', 'publish_ui'], fs, sandbox: { exec: async () => { throw new Error('No shell'); } }, vision: false });
+    const image = await executor.execute({ type: 'tool_call', id: 'gallery-generate', name: 'generate_image', input: { prompt: 'A tiny bronze medal icon.' } }, new AbortController().signal);
+    expect(image.isError).toBe(false);
+    const blobs = await server.store.listBlobs(athleteId);
+    const blob = blobs.find(value => value.name === 'generated-image.png')!;
+    const path = `/workspace/exports/images/${blob.sha256}.png`;
+    const bytes = await fs.readFile(path);
+    expect(JSON.stringify(image.content)).toContain('workspace_path');
+    expect(Buffer.from(bytes)).toEqual(Buffer.from(await server.blobs.read(athleteId, blob.sha256)));
+    const workspace = athletePaths(server.config.dataDir, athleteId).workspace;
+    await cp(join(repo, 'seed/general/system/skills/achievements/examples/view'), join(workspace, 'ui/views/achievements'), { recursive: true });
+    await fs.writeFile('ui/views/achievements/assets/medal.png', bytes);
+    await fs.writeFile('data/achievements.json', JSON.stringify({ version: 1, achievements: [{ id: 'browser-fixture', title: 'The First Finish', description: 'A synthetic milestone for the browser check.', earned_on: '2026-10-04', image: 'assets/medal.png', source_refs: ['browser-fixture'] }], challenges: [] }));
+    const publish = await executor.execute({ type: 'tool_call', id: 'gallery-publish', name: 'publish_ui', input: { views: ['achievements'], summary: 'Added the synthetic achievement gallery' } }, new AbortController().signal);
+    expect(publish.isError, JSON.stringify(publish.content)).toBe(false);
+    await page.goto(`${appUrl}/#/view/achievements`);
+    const gallery = page.frameLocator('iframe[src*="achievements@"]');
+    await gallery.getByRole('heading', { name: 'The First Finish' }).waitFor();
+    await expect.poll(() => gallery.locator('.medal-image').evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(512);
+    await nav.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.getByLabel('Image generation', { exact: true }).selectOption('off');
+    await expect.poll(async () => (await server.store.getSettings(athleteId)).images.mode).toBe('off');
+    expect((await executor.execute({ type: 'tool_call', id: 'images-disabled', name: 'generate_image', input: { prompt: 'Another medal' } }, new AbortController().signal)).isError).toBe(true);
+    expect(Buffer.from(await fs.readFile(path))).toEqual(Buffer.from(bytes));
+    await page.getByLabel('Image generation', { exact: true }).selectOption('requested');
+    await expect.poll(async () => (await server.store.getSettings(athleteId)).images.mode).toBe('requested');
+    expect(browserErrors).toEqual([]);
   }, 60_000);
 
   it('[SEC-5] exposes calendar and export downloads, then deletes the account with typed confirmation', async () => {

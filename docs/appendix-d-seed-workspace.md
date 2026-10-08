@@ -333,6 +333,7 @@ The implementation also ships a `research` skill: depth selection, source retrie
 | `screenshot-extraction` | Reading workout screenshots from common apps | Watch and run apps, gym-log apps and handwritten logs; unit and locale pitfalls (km/mi, kg/lb), multi-screen merging, graph reading, duplicates, confirmation strategy |
 | `file-import` | Parsing FIT/GPX/TCX/CSV/ZIP exports | Bundled parsers, Samsung Health export structure and timezone offsets, gym-app CSVs, dedupe across sources, raw-to-derived links |
 | `ui-kit` | Building views for the athlete's app | Kit components and tokens, bridge API, design rules, patterns, performance budget, publish workflow |
+| `image-generation` | Small artwork through OpenCoach | Permissions/allowances, fixed parameters, default pixel-art brief, owned blob and readable PNG, chat/avatar/view workflow and reuse |
 | `achievements` | Occasional meaningful milestones or requested challenges | Honest earned recognition, restraint and kind pushback on unearned rewards; agreed/revised criteria, source references, opt-out and dedupe; optional editable JSON ledger and hidden gallery under the skill's examples, absent from day-zero navigation/data |
 | `calendar-export` | Maintaining `exports/calendar.ics` | ICS structure, timezone handling, stable UIDs, descriptions with session structure and exercises |
 | `data-hygiene` | Keeping the data trustworthy | Units, timezones, duplicates, provenance, lifting-set checks, corrections, re-derivation; `check_db.py` |

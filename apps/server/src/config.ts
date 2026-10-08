@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
-import { ServerConfig, type ModelsConfig } from '@opencoach/protocol';
+import { ImageGenerationConfig, ServerConfig, type ModelsConfig } from '@opencoach/protocol';
 import { DEFAULT_OPENROUTER_DEEP_MODEL, DEFAULT_OPENROUTER_MODEL } from '@opencoach/engine';
 
 /**
@@ -11,7 +11,7 @@ import { DEFAULT_OPENROUTER_DEEP_MODEL, DEFAULT_OPENROUTER_MODEL } from '@openco
  *
  * Environment variables win over YAML. Secrets (API keys) are expected to come from the environment.
  * When `models` is absent and an OpenRouter key is available, every tier uses the default catalog model (the coach's
- * reasoning effort follows the trigger class; deep work runs at max effort); with no
+ * reasoning effort follows the trigger class; deep work runs at high effort); with no
  * key the server falls back to the scripted demo coach and says so loudly.
  */
 
@@ -140,6 +140,10 @@ function applyEnv(raw: Raw, env: Record<string, string | undefined>): void {
 
   const tg = present(env.TELEGRAM_BOT_TOKEN);
   if (tg) sub(raw, 'telegram').botToken = tg;
+
+  const imagesEnabled = truthy(env.OPENCOACH_IMAGES_ENABLED);
+  if (imagesEnabled === false) delete raw.imageGeneration;
+  else if (imagesEnabled === true && raw.imageGeneration === undefined) raw.imageGeneration = { provider: 'openrouter' };
 
   const sandbox = sub(raw, 'sandbox');
   const sb = present(env.OPENCOACH_SANDBOX);
@@ -275,6 +279,11 @@ function loadConfigDetailedUnchecked(opts: LoadConfigOptions, secrets: string[])
   }
 
   let next: ServerConfig = { ...config, publicUrl, viewsUrl, dataDir, providers: { ...config.providers, compatible }, telegram };
+  // Existing OpenRouter credentials also support requested small images. Deployment
+  // opt-out and athlete image mode/allowance remain independent of avatar changes.
+  if (!demoRequested && next.providers.openrouter && !next.imageGeneration && truthy(env.OPENCOACH_IMAGES_ENABLED) !== false) {
+    next = { ...next, imageGeneration: ImageGenerationConfig.parse({ provider: 'openrouter' }) };
+  }
 
   // ---- models
   if (demoRequested) {

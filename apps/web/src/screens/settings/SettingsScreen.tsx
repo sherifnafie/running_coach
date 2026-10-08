@@ -71,6 +71,7 @@ export function SettingsScreen() {
         <NotificationsSection />
         <VoiceSection />
         <AiSection />
+        <ImagesSection />
         <h2 className="settings-group" id="settings-account">{t('Account & data')}</h2>
         <PrivacySection />
         <DevicesSection />
@@ -113,7 +114,7 @@ function ProfileSection() {
         {s.coachIdentity?.avatarSha256 && <button type="button" className="btn" onClick={() => void save({ coachIdentity: { avatarSha256: null } })}>{t('Reset avatar')}</button>}
       </Row>
       <Toggle label={t("Let my coach change its name and avatar")} hint={t("Optional. Ask in chat for a name or image; turn this off at any time.")} checked={s.coachIdentity?.allowChanges ?? false} onChange={(allowChanges) => void save({ coachIdentity: { allowChanges } })} />
-      <p className="section-hint">{t(imageGeneration ? 'Avatar generation uses a separate image service and counts toward your AI budget. Only the visual prompt is sent.' : 'Image generation is not configured. Your coach can still change its name when allowed.')}</p>
+      <p className="section-hint">{t(imageGeneration ? 'Image generation has its own permission and allowance under Images.' : 'Image generation is not configured. Your coach can still change its name when allowed.')}</p>
       <SelectRow
         label={t("Units")}
         value={s.profile.units}
@@ -138,6 +139,22 @@ function ProfileSection() {
       </datalist>
     </Section>
   );
+}
+
+function ImagesSection() {
+  const t = useI18n();
+  const settings = useSettings();
+  const save = useCommit();
+  const configured = useStore(appStore, state => state.me?.features.imageGeneration);
+  return <Section title={t('Images')} hint={t(configured ? 'Small artwork for avatars, achievements and your coach’s views. Image spending also counts toward your total AI budget.' : 'Image generation is not configured for this deployment.')}>
+    <SelectRow label={t('Image generation')} value={settings.images.mode} options={[
+      { value: 'off', label: t('Off') },
+      { value: 'requested', label: t('Only when I ask') },
+      { value: 'automatic', label: t('Allow occasional coach images') },
+    ]} onChange={mode => save({ images: { mode } })} />
+    <NumberRow label={t('Monthly image allowance (USD)')} value={settings.images.monthlyUsd} min={0} max={10} step={0.05} onCommit={monthlyUsd => save({ images: { monthlyUsd } })} />
+    <p className="section-hint">{t('Zero allowance disables generation. The coach cannot change these controls. Turning images off keeps existing artwork.')}</p>
+  </Section>;
 }
 
 // ---- persistent presentation ------------------------------------------------------------------------------------------

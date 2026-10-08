@@ -13,7 +13,8 @@ sandbox:
 # OPENROUTER_API_KEY alone selects the default catalog model for every tier.
 # providers:
 #   openrouter:
-#     defaultModel: anthropic/claude-haiku-5.5
+#     defaultModel: deepseek/deepseek-v4.1-flash
+#     deepModel: deepseek/deepseek-v4.1-flash
 #     routing: { dataCollection: deny, requireParameters: true }
 # Override models.tiers to use another model or an OpenAI-compatible endpoint.
 # providers:
@@ -39,12 +40,12 @@ push:
 #       allowTools: [search]
 #       helpers: false
 
-# Optional: independent image generation for athlete-requested coach avatars.
-# See docs/self-hosting.md. Use a dedicated provider key and a conservative
-# cost estimate; this example amount is not provider pricing.
+# Small images reuse OpenRouter keys by default; no separate image key needed.
+# OPENCOACH_IMAGES_ENABLED=false disables the service. See docs/self-hosting.md.
+# Model, size, count and quality are server controls, not coach arguments.
 # imageGeneration:
-#   provider: google
-#   model: gemini-3.1-flash-image
-#   apiKeyEnv: OPENCOACH_IMAGE_API_KEY
-#   costPerImageUsd: 0.25
+#   provider: openrouter
+#   model: openai/gpt-image-2.5-flare
+#   quality: medium
+#   costPerImageUsd: 0.02 # reservation ceiling, not a promised provider invoice
 #   timeoutMs: 120000

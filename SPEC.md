@@ -445,11 +445,10 @@ Chat models are reached through OpenRouter, one key for every vendor ([ADR 0007]
 ```yaml
 # models (illustrative; the default when only OPENROUTER_API_KEY is set)
 tiers:
-  coach: { provider: openrouter, model: anthropic/claude-haiku-5.5 }                 # effort follows the trigger class
-  deep:  { provider: openrouter, model: anthropic/claude-haiku-5.5, effort: max }
-  fast:  { provider: openrouter, model: anthropic/claude-haiku-5.5, effort: medium }
-fallbacks:
-  coach: [ { provider: openrouter, model: deepseek/deepseek-v4.1-flash } ]
+  coach: { provider: openrouter, model: deepseek/deepseek-v4.1-flash }                 # effort follows the trigger class
+  deep:  { provider: openrouter, model: deepseek/deepseek-v4.1-flash, effort: high }
+  fast:  { provider: openrouter, model: deepseek/deepseek-v4.1-flash, effort: medium }
+fallbacks: {}
 voice: { realtime: gpt-realtime-2.1, stt: gpt-realtime-whisper }   # OpenAI, or local Whisper/Parakeet
 ```
 
@@ -567,7 +566,7 @@ Kept deliberately small (P7). Full contracts, parameters and errors are in Appen
 | `no_reply` | Explicitly end a reactive turn without replying, with a reason | Runtime | Reactive turns only |
 | `schedule`, `list_schedules`, `cancel_schedule`, `set_heartbeat` | Self-wakes and the heartbeat time (§5.5) | Runtime | ≤ 50 active; minimum interval 15 min; timezone-aware RRULE |
 | `set_preferences` | Requested locale, theme, accent and optional coach name/avatar [UI-1] | Runtime | Coach only; strict schema; identity requires athlete opt-in and chat turn; owned raster blobs only; audited; no permission, consent, privacy, budget, security or delivery changes |
-| `generate_image` | One requested square image through an optional independent image service [MOD-1] | Trusted runtime | Coach only; athlete identity opt-in and chat turn; budgets include conservative attempt cost; no automatic retries; private blob; no automatic send/apply |
+| `generate_image` | One small square image through an independent image service [MOD-1] | Trusted runtime | Head coach only; separate Images permission/allowance; fixed model/size/quality; private blob and workspace PNG; no automatic retries/send/apply/publish |
 | `spawn_agent`, `task_status`, `cancel_task` | Helpers and background tasks (§5.6) | Runtime | Depth, concurrency and budget limits |
 | `preview_ui`, `publish_ui`, `rollback_ui` | Validate, screenshot, publish and revert views (§9.6) | Runtime + sandbox Chromium | Validation gates |
 | `web_search`, `web_fetch` | Research: events and rules, a new sport's methods, literature | Runtime (proxied) | Rate limits; results marked untrusted; logged |
@@ -584,7 +583,7 @@ Voice sessions get a separate, smaller toolset (§11.2).
 - `[SK-1]` Skills use the **Agent Skills** open format (`SKILL.md` with name and description front-matter, plus optional scripts and references), loaded with progressive disclosure: only the index sits in context (L2); bodies load when used. The format is supported by Claude, Codex, Gemini CLI, Hermes, OpenClaw and others (Appendix A §A.4), so skills port across harnesses, including the Phase 0 testbed.
 - **First-party skills** (`/system/skills`, read-only, versioned) describe *this app*: procedures, data conventions and bundled tools a model can't know from training. Coaching knowledge (periodization, a sport's methods, injury and illness handling, fueling, competition preparation) is the model's own, researched when needed and written down by the coach as workspace skills (`[SK-2]`); the safety floor lives in the constitution (§11), not in skills (ADR 0010). The coach may ignore or override first-party skills. Seed library (details in Appendix D §D.6):
   - Coaching in this app: `intake` (the first conversation and where each fact is recorded), `disciplines` (recording sports and priorities, writing a workspace skill for a sport, fitting its data and views, logging several sports), `calculators` (`plan_check.py`, `load.py`, `e1rm.py`, `vdot.py` for training arithmetic)
-  - Data and app: `screenshot-extraction` and `file-import` (watch exports, FIT/GPX/TCX/CSV/ZIP, gym-app logs), `data-hygiene` (dedupe, units, timezones), `calendar-export` (ICS), `ui-kit` (how to build good views), `research`, `coach-identity`, `achievements` (optional, occasional evidence-based recognition and agreed challenges; editable ledger/gallery examples, no default tab or award tool)
+  - Data and app: `screenshot-extraction` and `file-import` (watch exports, FIT/GPX/TCX/CSV/ZIP, gym-app logs), `data-hygiene` (dedupe, units, timezones), `calendar-export` (ICS), `ui-kit` (how to build good views), `research`, `coach-identity`, `image-generation` (small owned artwork, permission, allowance and using returned assets), `achievements` (optional, occasional evidence-based recognition and agreed challenges; editable ledger/gallery examples, no default tab or award tool)
 - `[SK-2]` **Coach-authored skills** live in `workspace/skills`. The coach is encouraged to turn repeated procedures into skills, as Hermes does with autonomous skill creation, e.g. "how this athlete's Samsung Health screenshots are laid out".
 - `[SK-3]` **No third-party skill installation in v1.** The ClawHub audits found 13% of public skills with critical security flaws (Appendix A §A.2). Phase 3 may add a curated registry with review, signing and an install-time diff shown to the athlete.
 
@@ -664,9 +663,11 @@ The bridge provides: `coach.db.query(sql, params)` (read-only connection, row ca
 
 `[UI-1]` Settings keeps the saved coach name and an optional private avatar blob. The athlete can enable or revoke coach identity changes (default off), manually rename and reset the image. The head coach may change the name/avatar through the presentation tool only in a requested reactive turn. Helpers, scheduled/consolidation turns and the tool itself cannot grant permission. These controls do not alter AI disclosure or any coaching guarantee. Guidance stays in the progressive `coach-identity` skill and must keep personalization peripheral.
 
-`[MOD-1]` Image generation is an optional independent `ImageProvider`, callable from text-only conversation models. A configured Google Gemini image or OpenAI-compatible image service receives only the visual prompt; keys stay in the trusted server `[SEC-1]`. One raster image is normalized to a 512×512 PNG, stored under the athlete's blob ownership and served through authenticated routes `[SEC-4]`. No external avatar URLs, SVG/HTML or cross-athlete blobs are accepted. Generation, preview and application are separate actions. Previous blobs remain in private exportable data; manual reset/reapplication and audited before/after references make display changes reversible `[WS-4]`. Account deletion removes blobs and image attempt records `[SEC-6]`.
+`[MOD-1]` Image generation is an independent `ImageProvider`. OpenRouter reuses scoped encrypted account keys, falling back to the deployment key only when no scoped key exists; direct Google and OpenAI-compatible services remain alternatives. Only the visual prompt and rendering brief leave the trusted runtime [SEC-1]. The model cannot choose provider, credentials, count, size or quality. The default is GPT Image 2.5 Flare, medium, one 816×816 transparent image upstream, normalized to a safe 512×512 PNG. A private owned blob and versioned `exports/images/<sha>.png` support chat, avatars and local published-view assets [SEC-4] [WS-3]. No remote image URLs, SVG/HTML or cross-athlete blobs. Generation, delivery, avatar application and publication are separate. Export/delete includes blobs and workspace assets [SEC-6].
 
-`[COST-1]` Operators supply a conservative per-attempt estimate. It is reserved in usage accounting before dispatch and counts toward daily/monthly limits, including failed or uncertain attempts; it is not a provider invoice. Generation is serialized per athlete, cancellable and bounded. Persisted attempt markers prevent automatically repeating an uncertain external request `[RT-6]`. Raw image-provider diagnostics must never expose secrets/prompts to the coach.
+`[COST-1]` The separate Images setting is `off`, `requested` (default) or `automatic`, with a $0.25 monthly allowance inside total AI limits. Automatic permits scheduled/follow-up head turns and respects pause; helpers/consolidation cannot generate. The coach cannot grant permission or raise limits. Avatar changes retain their separate opt-in/requested-turn restriction. The operator-overridable pixel-art brief is presentation guidance, not coaching policy ([ADR 0011](docs/adr/0011-small-openrouter-images.md)).
+
+`[COST-1]` Pricing preflight pins the checked provider without fallback. Fixed-price endpoints and vetted low/medium token profiles have bounded requests; unknown pricing is refused. The default reservation ceiling is $0.02 per attempt. Reservations are accounted before dispatch, include failed/unknown attempts, and can exceed final bills. Reported overruns count additionally and pause that client. Direct services use conservative operator estimates. Generation serializes per athlete, rechecks current limits/credential binding after pricing, is cancellable, and persists replay markers [RT-6]. Raw diagnostics never expose prompts/keys. Text such as "4K" cannot alter the fixed request parameters.
 
 ### 9.6 Publish pipeline
 

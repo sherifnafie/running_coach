@@ -21,6 +21,7 @@ describe('settings', () => {
     expect(s.notifications.proactivePerDay).toBe(3);
     expect(s.heartbeat.time).toBe('07:30');
     expect(s.profile.tz).toBe('UTC');
+    expect(s.images).toEqual({ mode: 'requested', monthlyUsd: .25 });
   });
   it('merges patches and reports a diff', () => {
     const { settings, diff } = mergeSettings(defaultSettings(), { notifications: { proactivePerDay: 1 }, profile: { tz: 'Europe/Amsterdam' } });

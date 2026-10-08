@@ -43,6 +43,10 @@ export const AthleteSettings = z.object({
     allowChanges: z.boolean().default(false),
     avatarSha256: Sha256.nullable().default(null),
   }).prefault({}),
+  images: z.object({
+    mode: z.enum(['off', 'requested', 'automatic']).default('requested'),
+    monthlyUsd: z.number().min(0).max(10).default(0.25),
+  }).prefault({}),
   notifications: z
     .object({
       quietHours: QuietHours.nullable().default({ start: '22:00', end: '07:00' }),

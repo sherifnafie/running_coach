@@ -27,6 +27,7 @@ const REPO = fileURLToPath(new URL('../../..', import.meta.url));
 /** Models compared in the benchmark that the app catalog does not (yet) offer. */
 const EXTRA_MODELS = [
   { id: 'anthropic/claude-sonnet-5.5', label: 'Claude Sonnet 5.5', vision: true, contextTokens: 1_000_000, maxOutputTokens: 32_768, efforts: ['low', 'medium', 'high', 'xhigh', 'max'], pricing: { inputPerMTok: 2, outputPerMTok: 10, cacheReadPerMTok: 0.1, cacheWritePerMTok: 4 }, promptCache: '1h' },
+  { id: 'xiaomi/mimo-v2.6-flash', label: 'MiMo V2.6 Flash', vision: true, contextTokens: 1_050_000, maxOutputTokens: 32_768, efforts: ['low', 'medium', 'high'], pricing: { inputPerMTok: 0.14, outputPerMTok: 0.28, cacheReadPerMTok: 0.0028 } },
   { id: 'openai/gpt-6-luna', label: 'GPT-6 Luna', vision: true, contextTokens: 1_050_000, maxOutputTokens: 32_768, efforts: ['low', 'medium', 'high'], pricing: { inputPerMTok: 0.1, outputPerMTok: 0.5, cacheReadPerMTok: 0.01 } },
 ];
 

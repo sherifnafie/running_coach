@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
 import { loadConfigDetailed, ConfigError } from '../src/config';
-import { CompatibleProviderConfig } from '@opencoach/protocol';
+import { CompatibleProviderConfig, DEFAULT_IMAGE_MODEL } from '@opencoach/protocol';
 
 const dirs: string[] = [];
 afterEach(async () => { for (const dir of dirs.splice(0)) await rm(dir, { recursive: true, force: true }); });
@@ -34,11 +34,13 @@ describe('OpenCode GO compatible configuration [RT-7] [SEC-1]', () => {
     const openrouter = loadConfigDetailed({ cwd: dir, env: { OPENROUTER_API_KEY: 'sk-or-synthetic-credential' } });
     expect(openrouter.config.demo).toBe(false);
     expect(openrouter.config.providers.openrouter?.apiKey).toBe('sk-or-synthetic-credential');
+    expect(openrouter.config.imageGeneration).toMatchObject({ provider: 'openrouter', model: DEFAULT_IMAGE_MODEL, quality: 'medium', costPerImageUsd: .02 });
+    expect(loadConfigDetailed({ cwd: dir, env: { OPENROUTER_API_KEY: 'sk-or-synthetic', OPENCOACH_IMAGES_ENABLED: 'false' } }).config.imageGeneration).toBeUndefined();
     expect(openrouter.config.providers.openrouter?.routing).toMatchObject({ dataCollection: 'deny', requireParameters: true });
     expect(openrouter.config.models?.tiers).toEqual({
-      coach: { provider: 'openrouter', model: 'anthropic/claude-haiku-5.5' },
+      coach: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash' },
       deep: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'high' },
-      fast: { provider: 'openrouter', model: 'anthropic/claude-haiku-5.5', effort: 'medium' },
+      fast: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'medium' },
     });
     const custom = await configFile('providers:\n  openrouter:\n    apiKeyEnv: MY_ROUTER_KEY\n    defaultModel: z-ai/glm-5.3-flash\n');
     const renamed = loadConfigDetailed({ cwd: custom.dir, path: custom.path, env: { MY_ROUTER_KEY: 'sk-or-synthetic-other' } });

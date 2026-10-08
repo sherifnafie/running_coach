@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-mock",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["MOCK_PORT=8797", "MOCK_VIEWS_PORT=8798", "PORT=5180", "pnpm", "--filter", "@opencoach/web", "dev:mock"],
+      "port": 5180
+    },
+    {
+      "name": "demo-server",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["-u", "OPENAI_API_KEY", "-u", "OPENROUTER_API_KEY", "-u", "OPENCODE_GO_API_KEY", "-u", "ANTHROPIC_API_KEY", "-u", "DEEPSEEK_API_KEY",
+        "OPENCOACH_DEMO=1", "OPENCOACH_DATA_DIR=/tmp/claude-1000/-home-deadimex-SoftwareDev-opencoach/42f992bb-2662-4a08-880e-21b1de7c5668/scratchpad/demo-data",
+        "HOST=127.0.0.1", "PORT=8190", "VIEWS_PORT=8191", "PUBLIC_URL=http://localhost:8190", "VIEWS_URL=http://127.0.0.1:8191",
+        "pnpm", "start"],
+      "port": 8190
+    }
+  ]
+}

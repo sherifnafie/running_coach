@@ -398,6 +398,15 @@ describe('usage', () => {
     ]);
     expect(await store.usageByDay('nobody', '2026-01-01T00:00:00.000Z')).toEqual([]);
   });
+
+  it('[COST-1] separates image allowance accounting from other usage and athlete ownership', async () => {
+    const { store } = await open();
+    await store.recordUsage(use('2026-10-07T01:00:00Z', .5));
+    await store.recordUsage(use('2026-10-07T01:00:00Z', .007, { kind: 'image' }));
+    await store.recordUsage(use('2026-10-07T01:00:00Z', .01, { kind: 'image', athleteId: 'ath_2' }));
+    expect((await store.sumUsage('ath_1', '2026-10-01T00:00:00Z', 'image')).costUsd).toBe(.007);
+    expect((await store.sumUsage('ath_1', '2026-10-01T00:00:00Z')).costUsd).toBeCloseTo(.507);
+  });
 });
 
 describe('push subscriptions', () => {

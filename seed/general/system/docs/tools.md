@@ -53,7 +53,7 @@ The blob hashes are the sha256 values in the attachment paths (`/raw/3f2a…e1.p
 
 ## `generate_image`
 
-Optional `prompt` (required, 1–2000 characters) generates one square image via the server's configured image provider. Read `/system/skills/coach-identity/SKILL.md` only for a relevant athlete request. Coach only, current chat turn, athlete identity opt-in, budget checked. It returns an owned blob SHA; it does not send or apply it. Preview with a `send_message` blob attachment; apply an authorized avatar with `set_preferences`. Never send athlete health/profile/history or secrets in a visual prompt. No automatic retry after failure/unknown billing. Text-only models cannot visually inspect the result.
+`prompt` (required, 1–2000 characters) generates one small square image via a fixed server-configured model. Read `/system/skills/image-generation/SKILL.md`. Head coach only; the athlete's Images mode and image/total AI allowances apply. Requested chat images are independent of avatar-change permission; `automatic` also allows occasional wake/follow-up images, never helpers/consolidation. Returns an owned blob SHA and `workspace_path` for a 512×512 PNG: inspect with `read`, copy into a view's assets and preview/publish, or attach the blob in chat. Nothing is sent/applied/published automatically. Model, size, count and cost ceiling aren't tool inputs. Default style is compact pixel art. Never send athlete data or secrets in a visual prompt; no automatic retry after unknown billing.
 
 ## `set_preferences`
 

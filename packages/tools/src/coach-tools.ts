@@ -120,13 +120,18 @@ export const setPreferencesTool: ToolDef<'set_preferences'> = {
 
 export const generateImageTool: ToolDef<'generate_image'> = {
   name: 'generate_image',
-  description: 'Generate one square image through the separate configured image provider, for an athlete-requested visual such as your optional avatar. Requires the athlete’s coach identity opt-in and a chat turn; costs count toward AI budgets. Send only a visual description, never athlete health/history or secrets. Returns a private blob; does NOT apply it as an avatar or send it. Use send_message with a blob attachment for preview, then set_preferences with coach_avatar_sha256 when authorized. Read coach-identity skill. Do not claim visual inspection without vision or retry failed generation automatically.',
+  description: 'Generate one small square image using the server’s fixed model, size and default pixel-art style. The athlete’s Images setting and allowances govern requested/automatic generation; helpers and consolidation cannot generate. Supply only a visual description, never private athlete data. Returns a private blob and a readable workspace PNG for view assets. Does not send, publish or apply an avatar. Read the image-generation skill; do not retry uncertain attempts automatically.',
   input: ToolInputs.generate_image,
   availableTo: ['coach'],
   execute: (input, ctx) => guard(async () => {
     if (!ctx.images) return fail('NOT_CONFIGURED', 'Image generation is unavailable.');
     const blob = await ctx.images.generate(input.prompt, ctx.signal);
-    return ok(`Generated image: ${JSON.stringify(blob)}. Nothing was sent or applied. Attach the blob for the athlete to see it; you cannot claim to have inspected it without vision.`, [], blob);
+    const { workspacePath, reservedCostUsd, reportedCostUsd, ...ref } = blob;
+    const result = { ...ref, workspace_path: workspacePath,
+      ...(reservedCostUsd === undefined ? {} : { reserved_cost_usd: reservedCostUsd }),
+      ...(reportedCostUsd === undefined ? {} : { reported_cost_usd: reportedCostUsd }),
+    };
+    return ok(`Generated image: ${JSON.stringify(result)}. Nothing was sent, published or applied. Read the PNG to inspect it when you have vision; copy it into a view's assets and preview/publish, or attach the blob in chat.`, [], result);
   }),
 };
 

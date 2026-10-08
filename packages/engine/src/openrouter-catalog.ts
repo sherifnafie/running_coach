@@ -5,18 +5,17 @@ import type { ModelCatalogEntryInput } from '@opencoach/protocol';
  *
  * Selection, checked 2026-10-07 against the Artificial Analysis leaderboard and the OpenRouter model API:
  * each entry calls tools and read a workout screenshot correctly through OpenRouter with `data_collection: deny`.
- * Default since 2026-10-07: Claude Haiku 5.5 (AA intelligence 38 at high / 43 at max vs DeepSeek V4.1 Flash 39 at max,
- * non-hallucination 55-60% vs 4%, $0.10/$0.50 per MTok with 1h prompt caching, faster first answer in our probes).
+ * Default since 2026-10-08: DeepSeek V4.1 Flash for chat and deep work, chosen by the operator.
  * Prices are OpenRouter list prices (USD per MTok) and are only a fallback: OpenRouter reports the charged
  * amount on every response. Deployments override the list with `providers.openrouter.models`.
  */
-export const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-haiku-5.5';
+export const DEFAULT_OPENROUTER_MODEL = 'deepseek/deepseek-v4.1-flash';
 
 /**
  * Default for the deep tier (background plans, reviews, research), checked 2026-10-08 in conversation benchmarks
  * (`packages/evals-sim/src/chat-bench.ts`): DeepSeek V4.1 Flash showed the best coaching judgment and calibration of
- * the low-cost models but is too slow for chat (16-27 s per step at medium/high effort), which doesn't matter for
- * background work. At max effort it can exceed helper time limits, so the deep tier uses high.
+ * the low-cost models, with slower replies (16-27 s per step at medium/high effort).
+ * At max effort it can exceed helper time limits, so the deep tier uses high.
  */
 export const DEFAULT_OPENROUTER_DEEP_MODEL = 'deepseek/deepseek-v4.1-flash';
 
@@ -24,7 +23,7 @@ export const DEFAULT_OPENROUTER_CATALOG: ModelCatalogEntryInput[] = [
   {
     id: 'deepseek/deepseek-v4.1-flash',
     label: 'DeepSeek V4.1 Flash',
-    description: 'Very low cost and long, fast answers; does more research on its own. Guesses more often than the others when it does not know.',
+    description: 'Default for chat and deep work. Low cost; does more research on its own. Can be slow to reply and guesses more often when it does not know.',
     vision: true,
     contextTokens: 1_048_576,
     maxOutputTokens: 32_768,
@@ -36,7 +35,7 @@ export const DEFAULT_OPENROUTER_CATALOG: ModelCatalogEntryInput[] = [
   {
     id: 'anthropic/claude-haiku-5.5',
     label: 'Claude Haiku 5.5',
-    description: 'Default. Smart, quick and careful at a low price: says when it does not know instead of guessing, and reads screenshots well.',
+    description: 'Smart, quick and careful at a low price: says when it does not know instead of guessing, and reads screenshots well.',
     vision: true,
     contextTokens: 1_000_000,
     maxOutputTokens: 32_768,

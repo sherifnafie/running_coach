@@ -353,7 +353,7 @@ export interface ToolContext {
   helpers: HelperPort;
   ui: UiPort;
   preferences?: { update(input: import('./settings').PresentationPatch): Promise<{ locale: string; theme: string; accent: string | null; coachName?: string; coachAvatarSha256?: string | null }> };
-  images?: { generate(prompt: string, signal: AbortSignal): Promise<import('./common').BlobRef> };
+  images?: { generate(prompt: string, signal: AbortSignal): Promise<import('./image-generation').GeneratedImage> };
   web: WebPort;
   /** Absent when weather is disabled in this deployment. Units follow the athlete's settings. */
   weather?: { forecast(query: Omit<WeatherQuery, 'units'>): Promise<WeatherReport> };

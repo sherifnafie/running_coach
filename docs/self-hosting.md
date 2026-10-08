@@ -33,14 +33,14 @@ Settings come from YAML (`OPENCOACH_CONFIG`, see `opencoach.config.example.yaml`
 
 ### Models
 
-Chat models go through [OpenRouter](https://openrouter.ai) with one key ([ADR 0007](adr/0007-openrouter-only-chat.md)). Set `OPENROUTER_API_KEY` and leave `models` out: the coach and fast tiers use the catalog's default model (Claude Haiku 5.5: quick and reliable in conversation), and the deep tier, which does background work such as multi-week plans, reviews and research, uses DeepSeek V4.1 Flash at high effort (better judgment in our benchmarks, too slow for chat, which doesn't matter in the background). Override them with `providers.openrouter.defaultModel` and `deepModel`. Reasoning effort follows the situation: high for replies, check-ins and consolidation, low on voice calls. The model picker in Settings changes the coach's model; deep work keeps the deep-tier default. With no key and no explicit models, the server runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes.
+Chat models go through [OpenRouter](https://openrouter.ai) with one key ([ADR 0007](adr/0007-openrouter-only-chat.md)). Set `OPENROUTER_API_KEY` and leave `models` out: the coach, fast and deep tiers use DeepSeek V4.1 Flash. Deep work (multi-week plans, reviews and research) uses high effort; replies can be slower than Haiku. Override them with `providers.openrouter.defaultModel` and `deepModel`. Reasoning effort follows the situation: high for replies, check-ins and consolidation, low on voice calls. The model picker in Settings changes the coach's model; deep work keeps the deep-tier default. With no key and no explicit models, the server runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes.
 
 The catalog lists the models the settings picker offers, with their capabilities and fallback prices. OpenRouter reports what each call cost, and that amount counts against budgets. The defaults:
 
 | Model | Why |
 |---|---|
-| `anthropic/claude-haiku-5.5` (default) | Smart, quick and careful (~$0.01 per chat turn in this harness, 1-hour prompt caching), reads screenshots; says when it doesn't know instead of guessing. |
-| `deepseek/deepseek-v4.1-flash` | Very low cost, does more research on its own; guesses more than the others when it does not know. |
+| `anthropic/claude-haiku-5.5` | Smart, quick and careful (~$0.01 per chat turn in this harness, 1-hour prompt caching), reads screenshots; says when it doesn't know instead of guessing. |
+| `deepseek/deepseek-v4.1-flash` (default for chat and deep work) | Very low cost, does more research on its own; guesses more than the others when it does not know. |
 | `z-ai/glm-5.3-flash` | Similar cost, by far the lowest hallucination rate in its class; slower replies. |
 | `xiaomi/mimo-v2.6-pro` | Strongest reasoning on a budget; slow to start answering. |
 | `google/gemini-3.8-flash` | Fast all-rounder, best screenshot reading; about 5x the default cost. |
@@ -51,7 +51,8 @@ Override the list with `providers.openrouter.models` and the default with `provi
 ```yaml
 providers:
   openrouter:
-    defaultModel: anthropic/claude-haiku-5.5
+    defaultModel: deepseek/deepseek-v4.1-flash
+    deepModel: deepseek/deepseek-v4.1-flash
     routing: { dataCollection: deny, requireParameters: true }
 ```
 
@@ -70,69 +71,75 @@ Keys are encrypted at rest with `<dataDir>/secrets/credentials.key` (keep it wit
 
 ## Optional coach name, avatar and generated images
 
-In Settings → Profile, enable **Let my coach change its name and avatar**, then ask in chat. The option is off by default and the coach cannot enable it. You can manually rename, reset the avatar, or revoke the option at any time. Naming works without an image provider. Generation is independent of conversation vision: a text-only DeepSeek coach can call a separate image service, but cannot inspect the generated picture visually.
+OpenRouter deployments now reuse the existing encrypted per-athlete keys for
+small images; no extra vendor account/key is needed. Default: GPT Image 2.5
+Flare, medium, 816 square, transparent PNG, normalized to 512 square. The brief
+nudges original pixel art, clear silhouettes and circular cropping. Keys stay
+trusted; only the visual prompt/style go to the provider.
 
-Add one `imageGeneration` block to your server YAML and supply its dedicated key in the trusted process environment. The existing coach model/GO key stays unchanged:
+Settings → Images controls generation: **Only when I ask** (default), **Off**,
+or **Allow occasional coach images**. A separate $0.25 monthly allowance sits
+inside total AI budgets; zero disables generation. The coach cannot edit these
+controls. Automatic mode permits head-coach wake/follow-up images, respects
+pause, and never allows helpers or consolidation. Switching off keeps old art.
+Name/avatar application separately requires **Let my coach change its name and
+avatar** in Profile and a requested chat turn; generating a preview doesn't.
+
+Optional server override:
 
 ```yaml
 imageGeneration:
-  provider: google
-  model: gemini-3.1-flash-image
-  apiKeyEnv: OPENCOACH_IMAGE_API_KEY
-  costPerImageUsd: 0.25 # example conservative allowance per attempt; set for your provider
+  provider: openrouter
+  model: openai/gpt-image-2.5-flare
+  quality: medium # low is also supported; no auto/high/4K tool options
+  costPerImageUsd: 0.02 # maximum reservation before a single dispatch
   timeoutMs: 120000
 ```
 
-This uses the documented Gemini `generateContent` image API. Google retired Imagen from the Gemini API; use an image-capable Gemini model available to your account ([migration](https://ai.google.dev/gemini-api/docs/imagen), [API contract](https://ai.google.dev/api/generate-content)). An alternative uses the OpenAI-compatible Images API:
+Set `OPENCOACH_IMAGES_ENABLED=false` to disable the service deployment-wide.
+An explicit `apiKeyEnv` can supply a fallback image key; a scoped account key
+still takes precedence. Custom OpenRouter base URLs are inherited unless an
+image-specific `baseUrl` is supplied.
+
+The image endpoint price is checked before dispatch, its provider pinned, and
+fallback disabled. Fixed-price or vetted token profiles bound requests. Default
+Flare reserves 512 image output tokens plus a UTF-8-byte upper bound for input
+at the advertised rates. Unknown pricing, excessive reservations and exhausted
+image/AI limits are refused before generation. Final bills may be lower than
+the reservation; result fields distinguish them. Unknown/failed attempts remain
+counted; no automatic paid retry. Overruns count additionally and pause that
+client pending review. See [selection, measured prices and spending ratio](image-generation-research.md)
+and [ADR 0011](adr/0011-small-openrouter-images.md).
+
+The result has `sha256` for a private owned blob and `workspace_path` for a
+versioned `exports/images/<sha>.png`. With vision the coach can read/inspect it,
+attach the blob in chat, apply an authorized avatar, or copy the PNG into a
+view's local assets and preview/publish. Generation performs none of those
+presentation actions itself. Existing private blobs aren't exposed through
+new unauthenticated routes. Files/blobs participate in existing export/delete.
+Keep local display copies small enough for the normal view bundle limit.
+
+Direct alternatives remain available with explicit configuration:
 
 ```yaml
 imageGeneration:
-  provider: openai-compatible
-  model: gpt-image-1.5
+  provider: google # or openai-compatible
+  model: gemini-3.1-flash-image # use the selected vendor's model ID
   apiKeyEnv: OPENCOACH_IMAGE_API_KEY
-  baseUrl: https://api.openai.com/v1
-  costPerImageUsd: 0.25 # example estimate, not a current price or provider spending limit
+  costPerImageUsd: 0.25 # operator-maintained conservative estimate, not a current price
+  # baseUrl: https://api.openai.com/v1 # for openai-compatible
 ```
 
-Use a key for the selected service; a GO text-model key alone does not configure image generation. API contracts: [OpenAI Images](https://developers.openai.com/api/reference/resources/images/methods/generate). Model availability, provider billing and generated-image quality require live validation with your own credentials. None is certified by fixture tests. HTTPS is required except for an optional loopback-compatible service. Credentials cannot be supplied by the coach, and responses cannot redirect to external image URLs.
+For direct services, set a sufficient image allowance for the configured
+estimate. HTTPS is required except for loopback fixtures; no provider image
+URLs are followed. Models/credentials aren't tool inputs. Never include
+athlete records, identity, private uploads or secrets in a visual prompt.
 
-Only the visual prompt is sent to the configured service; coach instructions prohibit including athlete health records, profile/history, uploaded reference photos or secrets. The tool generates one square image, normalized to a safe 512×512 PNG in the private athlete blob store. Generation, showing a chat preview and applying an avatar are separate actions. Previous avatars remain private and exportable until account deletion. Current settings override older frozen persona text.
-
-`costPerImageUsd` is a required operator-maintained conservative per-attempt charge, not the provider invoice. Before a request it is included in existing daily/monthly budget accounting. Failed/cancelled/unknown attempts remain counted to avoid hiding uncertain external charges; generation is never retried automatically. This setting does not enforce a limit at the provider. Keep it at or above your expected maximum charge for the configured request. External requests are bounded and cancellable; durable attempt markers prevent redispatch after an uncertain interrupted call. Image costs appear in account/deployment usage totals; model-only turn token costs remain separate.
-
-Restart the server after configuration changes. Without this block the service is not called, the UI explains generation is unavailable, and naming remains usable. Skills and frozen prompts refresh at the next epoch; the situation report already points to the identity skill and states current permission/configuration. No existing coach workspace, training plan or published view is overwritten.
-
-
-### Voice notes
-
-Speech is configured separately from the coach model. An OpenAI key enables speech-to-text, text-to-speech and calls. A different provider or a local transcriber works too:
-
-```yaml
-voice:
-  stt:
-    provider: openai            # or openai-compatible with baseUrl (incl. /v1) implementing /audio/transcriptions
-    model: gpt-4o-transcribe
-    apiKeyEnv: OPENCOACH_SPEECH_API_KEY
-```
-
-Phones only allow microphone access over HTTPS. If speech isn't configured, the microphone button explains why instead of recording.
-
-### Live dictation
-
-With `OPENAI_API_KEY` set, the chat's microphone button becomes **live dictation**: words appear in the message box as you speak, ✓ keeps them for editing and ✕ restores what you had. Nothing is sent until you press send, and voice notes move to the **+** menu. The browser streams audio straight to OpenAI's realtime transcription with a short-lived key minted by the server (your API key never reaches the browser, and no audio is stored). Without an OpenAI key the button stays the voice-note recorder.
-
-```yaml
-voice:
-  dictation:
-    enabled: true                 # default; needs an OpenAI key
-    model: gpt-realtime-whisper   # or gpt-live-transcribe (OpenAI's newer low-latency model)
-    # delay: low                  # minimal | low | medium | high | xhigh, for models that support it
-    maxDurationS: 300             # per session; the app finishes dictation at this length
-    costPerMinuteUsd: 0.017       # counted against each athlete's AI budget
-    maxSessionsPerHour: 60
-```
-
-Usage is billed per session from the time it was open on the server, capped at `maxDurationS`, and appears with the other speech costs. A session is shortened to fit the athlete's remaining daily and monthly budget and refused when the budget is used up.
+Restart after configuration changes. Release 0.3.5 gives existing coaches an
+upgrade note and capability skill; no custom views or training data are replaced.
+Live synthetic OpenRouter samples verified the settings above; this doesn't
+certify every prompt/provider or future price. The [OpenRouter contract](https://openrouter.ai/docs/guides/overview/multimodal/image-generation)
+remains authoritative.
 
 ## Phone access and views
 

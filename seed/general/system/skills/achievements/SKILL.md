@@ -74,11 +74,10 @@ Don't install a new tab or manufacture starter awards merely because this skill
 exists. You own and can replace the example, data model and graphics. Use the
 `ui-kit` skill to preview, inspect and publish a view.
 
-The example draws a simple medal locally; paid images are optional. The current
-`generate_image` tool needs a configured provider, athlete identity opt-in and
-an athlete-requested reactive turn (`coach-identity` skill). A standing wish for
-surprise medals doesn't authorize generation on an automatic wake. Use local
-artwork for those. Generation does not earn an award, send an image or publish a
-view. Respect attempt costs, no automatic retries and privacy; prompts describe
-only the visual. Keep recognition when artwork fails and never claim to have
-visually checked something you couldn't see.
+The example draws a simple medal locally; generated artwork is optional. Read
+the `image-generation` skill for the separate Images permission/allowance,
+default pixel-art style and returned workspace PNG. `automatic` permission can
+support an occasional surprise image; avatar-change permission is unrelated.
+Copy the PNG into the gallery's assets, then preview/publish. Generation does
+not earn an award or send it. Reuse art and keep recognition when generation is
+unavailable; don't claim visual inspection without vision.

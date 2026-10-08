@@ -13,7 +13,7 @@ const seedRoot = join(root, 'seed');
 const packRoot = join(seedRoot, 'general');
 // First-party skills describe the app (procedures, data, tools); coaching knowledge is the model's and the coach's own.
 const requiredSkills = [
-  'achievements', 'calculators', 'calendar-export', 'coach-identity', 'data-hygiene', 'disciplines', 'file-import',
+  'achievements', 'calculators', 'calendar-export', 'coach-identity', 'data-hygiene', 'disciplines', 'file-import', 'image-generation',
   'intake', 'research', 'screenshot-extraction', 'ui-kit',
 ];
 const tables = ['activities', 'activity_gear', 'blocks', 'checkins', 'exercise_sets', 'gear', 'goal_events', 'metrics', 'planned_workouts'];
