@@ -123,6 +123,13 @@ expiry pauses while hovered or keyboard-focused. Chat uses a concise linked
 update entry. Full summaries and existing undo stay in screen history. Regression
 coverage checks title composition/source preservation, inline avatar placement
 and reset, history navigation, long summaries and focus-aware dismissal.
+Deployed 0.3.9 (`f9fda1d`) after backups and published the owner's Plan fix
+through normal history. Authenticated readback confirms all current view
+bundles load, Plan retains `omit-title`, and the original Markdown title is
+unchanged. The coach subsequently republished its views (Plan v7 at verification).
+All 801 harness/renderer tests, 164 web unit checks, 17 browser cases,
+build/typecheck and deterministic reference fast eval checks pass. Phone and
+desktop visual checks cover the inline identity control and both update notices.
 
 ## Open work (roughly by value)
 
