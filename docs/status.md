@@ -51,6 +51,8 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 
 Notification changes pass typecheck, all 796 harness/renderer tests, 163 web unit tests (12 existing skips) and all 14 browser end-to-end cases, including the misleading account-enabled/device-disconnected state. Provider delivery with connected clients, owned/rate-limited tests, expiration cleanup, permission states, VAPID repair and actual worker event handlers have focused regression coverage.
 
+Deployed notification fixes (`4baffbe`) to production with a pre-deploy backup. Verified the active service, newly served notification controls and service worker, and 401 responses for unauthenticated device-status/test requests. Physical Android/Chrome receipt remains pending the owner's on-device permission and test.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.
