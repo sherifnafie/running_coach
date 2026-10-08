@@ -1,6 +1,6 @@
 // Plan: a read-only overview of the current training block, for any sport or mix of sports. Shows the
 // typical pattern of a "summary" view: a few focused queries, results handed to kit components via properties.
-import { coach, h, types } from '/kit/1/kit.js';
+import { coach, h, types } from '/kit/1/kit.js?v=0.3.7';
 
 const t = (text) => coach.t(text);
 const $ = (id) => document.getElementById(id);

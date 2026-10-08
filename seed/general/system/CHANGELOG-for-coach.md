@@ -2,6 +2,20 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.7: clearer starter views (October 2026)
+
+The starter Today view no longer includes Quick check-in. Its unused form,
+queries and write/action declarations are gone; existing check-in data stays.
+The starter views use optional responsive groups and simpler sections for
+secondary information. `rc-grid-wide` and `rc-section` are available in the kit;
+read its layout docs when useful. Keep layouts proportionate to the content:
+simple views may need no grid. Native DOM insertion methods stringify missing
+children, so filter them or use `h()`; the starter Calendar fixes that bug.
+Existing customized views are yours and are not automatically replaced.
+Kit assets now revalidate; refreshed starters use a release query to bypass
+older immutable cached URLs. Older customized views can use the same query
+when republished if their kit styles are stale.
+
 ## v0.3.6: chat requests received while working (October 2026)
 
 Athlete input arriving during background work now gives that turn a reactive

@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title data-i18n="Plan">Plan</title>
-  <link rel="stylesheet" href="/kit/1/kit.css">
+  <link rel="stylesheet" href="/kit/1/kit.css?v=0.3.7">
   <link rel="stylesheet" href="view.css">
-  <script type="module" src="/kit/1/kit.js"></script>
+  <script type="module" src="/kit/1/kit.js?v=0.3.7"></script>
   <script type="module" src="view.js"></script>
 </head>
 <body>
@@ -40,13 +40,18 @@
       <div class="table-wrap"><table id="weeks" class="plan-table"></table></div>
     </rc-card>
 
-    <rc-card id="key-card" heading="Key sessions" data-i18n-heading="Key sessions" hidden>
+    <div class="rc-grid-wide">
+    <section id="key-card" class="rc-stack-sm" aria-labelledby="key-heading" hidden>
+      <h2 id="key-heading" class="rc-card__title" data-i18n="Key sessions">Key sessions</h2>
       <rc-list id="key-sessions" selectable></rc-list>
-    </rc-card>
+    </section>
 
-    <rc-card id="event-card" heading="Next goal" data-i18n-heading="Next goal" hidden>
+    <section id="event-card" class="rc-stack-sm" aria-labelledby="event-heading" hidden>
+      <h2 id="event-heading" class="rc-card__title" data-i18n="Next goal">Next goal</h2>
       <div id="event"></div>
-    </rc-card>
+    </section>
+
+    </div>
 
     <!-- Athlete-facing explanation, kept separate from the coach's working notes. -->
     <rc-card heading="Why this plan" data-i18n-heading="Why this plan">

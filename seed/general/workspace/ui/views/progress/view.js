@@ -1,7 +1,7 @@
 // Progress: training over the chosen range, for any sport or mix of sports. A few aggregate queries;
 // the components get their rows from here. Sections for distance sports and lifting only appear when
 // the athlete has that kind of data.
-import { coach, types } from '/kit/1/kit.js';
+import { coach, types } from '/kit/1/kit.js?v=0.3.7';
 
 const t = (text) => coach.t(text);
 const $ = (id) => document.getElementById(id);

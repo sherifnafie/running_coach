@@ -54,11 +54,17 @@ rc-calendar { display: block; container-type: inline-size; }
 .rc-cal__more { appearance: none; border: 0; background: transparent; color: var(--rc-text-2); font-size: var(--rc-text-xs); font-weight: 700; text-align: left; padding: 0 4px; min-height: 20px; cursor: pointer; }
 
 /* compact month cells: glyph chips only, until the calendar is wide enough for titles */
-.rc-cal--month .rc-cal__item:not(.is-full) .rc-cal__itemtitle,
 .rc-cal--month .rc-cal__item:not(.is-full) .rc-cal__itemmeta { display: none; }
+.rc-cal--month .rc-cal__item:not(.is-full) .rc-cal__itemtitle {
+  /* Keep the session name available to screen readers in glyph-only cells. */
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap;
+}
 .rc-cal--month .rc-cal__item:not(.is-full) { justify-content: center; padding: 1px 2px; }
 @container (min-width: 560px) {
-  .rc-cal--month .rc-cal__item:not(.is-full) .rc-cal__itemtitle { display: block; }
+  .rc-cal--month .rc-cal__item:not(.is-full) .rc-cal__itemtitle {
+    position: static; width: auto; height: auto; margin: 0; clip: auto;
+  }
   .rc-cal__cell { min-height: 104px; }
 }
 

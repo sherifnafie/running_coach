@@ -80,8 +80,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .rc-grid[data-cols='2'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .rc-grid[data-cols='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .rc-grid[data-cols='4'] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.rc-grid-wide { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--rc-space-4); align-items: start; }
+.rc-grid-wide > * { min-width: 0; }
+.rc-grid-wide:empty, .rc-grid-wide:not(:has(> :not([hidden]))) { display: none; }
+.rc-section { border-block-start: 1px solid var(--rc-border); padding-block-start: var(--rc-space-4); }
 @media (min-width: 700px) {
   .rc-grid-wide { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  /* One visible block needs no empty second column. These utilities are opt-in. */
+  .rc-grid-wide:not(:has(> :not([hidden]) ~ :not([hidden]))) { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* plain-element card (the <rc-card> element has the same look) */

@@ -26,6 +26,12 @@ provide a chat shortcut. Missing measurements stay missing; never invent data
 to fill a chart. Keep focused queries and small charts within the publish
 performance budget.
 
+For dense views, the kit has optional responsive grids and light section
+separators (see its layout docs). Group related facts so they can be scanned;
+keep long instructions and primary tasks readable. A simple view may need no
+grid or cards at all. Missing optional content should be omitted, not printed
+as `null` or `undefined`.
+
 Use text written for the athlete: training instructions, useful rationale,
 assumptions and uncertainty. Do not display raw working notes, briefings,
 helper drafts, SQL or file/tool bookkeeping. Keep a dedicated display source

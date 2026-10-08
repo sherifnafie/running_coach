@@ -74,7 +74,9 @@ export async function createGateway(deps: GatewayDeps) {
     const rel = (request.params as { '*': string })['*'];
     const file = await resolveSafeFile(deps.kitDir ?? await kitDistDir(), rel);
     if (!file) throw notFound();
-    return sendFile(request, reply, file, { cacheControl: 'public, max-age=31536000, immutable' });
+    // Major-version URLs change within compatible releases; only fingerprinted
+    // view bundles and web assets are immutable [UI-1].
+    return sendFile(request, reply, file, { cacheControl: 'public, max-age=0, must-revalidate' });
   });
   views.get('/v/:token/:bundle/*', async (request, reply) => {
     const { token, bundle, '*': rel } = request.params as { token: string; bundle: string; '*': string };

@@ -73,6 +73,20 @@ checks the header/avatar after `settings.changed` and reload.
 Deployed 0.3.6 (`72f0ad3`) with backup; verified the active service, new system
 skills/runtime code, public app/gateway/view kit and the owner's saved Miles name.
 
+**Scannable views and Settings (0.3.7, 2026-10-08):** starter views use compact
+secondary sections, light dividers and optional responsive pairs; no layout
+rule is enforced on coach-authored views. Settings groups controls under three
+sections, balances notifications beside model/voice/image settings, and pairs
+quiet-hour inputs. Quick check-in was removed from Today, including its form,
+queries and manifest grants; existing check-in records remain. Calendar details
+now omit null optional children before native DOM insertion. Calendar buttons
+also keep their session names accessible in compact month cells. Shared kit
+URLs revalidate instead of caching a mutable major version for a year, and
+updated starter URLs bypass old caches. Owner-account updates preserve the
+coach's VO₂max widget and date formatting and use the normal preview/publish
+and workspace history paths. Current/empty sample and owner previews pass
+all gates with zero serious/critical accessibility findings.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.

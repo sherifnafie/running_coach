@@ -125,6 +125,14 @@ column count. The host applies light/dark theme and accent. Respect
 `prefers-reduced-motion`. Use large tap targets, readable contrast outdoors,
 semantic headings, labelled controls, and text or glyphs alongside colour.
 
+For larger related blocks, `rc-grid-wide` uses one column on phones and two
+when there is room; a lone visible block takes the full width. `rc-section`
+adds a light separator and spacing. These are optional composition tools:
+group comparable information, use compact rows for short facts, and keep long
+instructions or a single primary task full width. A heading and plain section
+can be clearer than another card. Do not turn every view into a dashboard or
+force columns onto small screens.
+
 Build one clear primary action per view. Day zero must explain what to do next;
 missing measurements must remain missing rather than appearing as zero.
 Provide a chat shortcut when the athlete needs judgment. Keep queries focused
@@ -135,3 +143,6 @@ data in both themes before publishing.
 without HTML interpolation. Event attributes such as `onClick: fn` install
 listeners. Set structured component properties explicitly after construction.
 Do not interpolate athlete text with `innerHTML`.
+Optional children passed to `h()` may be null/undefined and are omitted.
+Native `append()` and `replaceChildren()` stringify those values; filter missing
+children first. Missing notes or measurements should never render as “null”.

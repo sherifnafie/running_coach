@@ -351,7 +351,7 @@ The implementation also ships a `research` skill: depth selection, source retrie
 
 | View | Shows | Interactions |
 |---|---|---|
-| `today` (home) | Today's sessions in any sport (sport and type, structure with exercises, key-session badge), readiness check-in shortcut, last activity with numbers that fit the sport, next key session | Mark done or skipped (direct write plus `act` with wake), "Ask coach", quick check-in form |
+| `today` (home) | Today's sessions in any sport (sport and type, structure with exercises, key-session badge), compact last activity and next key session sections | Mark done or skipped (direct write plus `act` with wake), "Ask coach"; no default Quick check-in form |
 | `calendar` | Month and week grid, planned vs. done, colour and letter by type (any word), goal events, legend built from the types in use, detail card per sport (sets for lifting) | Drag to move (direct write plus `act('workout_moved', …, {wake: true})`), tap for detail |
 | `plan` | Current block: phases timeline, planned weekly time stacked by sport (distance fallback), weekly table, key sessions, next goal event, "Why this plan" | Read-only; "Discuss this plan" opens chat with a reference |
 | `progress` | Weekly training time by sport, planned sessions done, weekly distance (if any distance sports), e1RM trends and top lifts (if any lifting), consistency *without* gamification pressure, results | Range toggle |

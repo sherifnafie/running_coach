@@ -1,10 +1,10 @@
 // Today: the home view. A worked example of the kit, for any sport or mix of sports:
 //   - coach.db.query for reads, coach.db.write for direct writes (no model turn),
 //   - coach.act(..., { wake: true }) to tell the coach about it,
-//   - kit components (<rc-card>, <rc-workout>, <rc-form> ...) assembled with h(),
+//   - kit components (<rc-card>, <rc-workout> ...) assembled with h(),
 //   - `types` for sport and session-type labels that match the calendar's colours.
 // h(tag, attrs, ...children) builds DOM without innerHTML; on* attributes add event listeners.
-import { coach, h, types } from '/kit/1/kit.js';
+import { coach, h, types } from '/kit/1/kit.js?v=0.3.7';
 
 const t = (text) => coach.t(text);
 const $ = (id) => document.getElementById(id);
@@ -18,12 +18,12 @@ let renderedLocale = coach.env.locale;
 coach.onEnv((env) => { if (env.locale !== renderedLocale) { renderedLocale = env.locale; coach.track(refresh()); } });
 const today = dates.todayIn(coach.env.now().getTime(), coach.env.tz);
 $('header').setAttribute('subheading', format.date(today, 'long'));
-coach.subscribe(['db:planned_workouts', 'db:activities', 'db:checkins', 'db:exercise_sets'], refresh);
+coach.subscribe(['db:planned_workouts', 'db:activities', 'db:exercise_sets'], refresh);
 await refresh();
 
 async function refresh() {
   $('header').setAttribute('subheading', format.date(today, 'long'));
-  const [todays, counts, last, next, checkins] = await Promise.all([
+  const [todays, counts, last, next] = await Promise.all([
     coach.db.query(
       `SELECT id, date, slot, sport, type, title, description, structure, target_distance_m, target_duration_s, key, status
          FROM planned_workouts WHERE date = ?
@@ -42,7 +42,6 @@ async function refresh() {
         ORDER BY date LIMIT 1`,
       [today],
     ),
-    coach.db.query('SELECT kind FROM checkins WHERE substr(at, 1, 10) = ?', [today]),
   ]);
   sessions = todays;
   const empty = (!counts || counts.planned === 0) && !(counts && counts.done > 0);
@@ -51,9 +50,9 @@ async function refresh() {
   $('onboarding').hidden = !empty;
   $('say-hi').onclick = () => coach.openChat({ prefill: t("Hi coach! Where do we start?") });
   renderSessions(empty);
-  renderCheckin(checkins.length, empty);
   await renderLast(last);
   renderNext(next);
+  $('supporting').hidden = !last && !next;
 }
 
 // ---------------------------------------------------------------- today's sessions
@@ -113,50 +112,6 @@ async function setStatus(w, status) {
     renderSessions(false);
     coach.toast(t("Couldn't save that. Try again."));
     coach.report('warn', `status update failed: ${err.message}`);
-  }
-}
-
-// ---------------------------------------------------------------- check-in shortcut
-
-function renderCheckin(doneKinds, empty) {
-  const card = $('checkin-card');
-  card.hidden = empty;
-  const form = $('checkin-form');
-  const open = $('checkin-open');
-  open.setAttribute('label', doneKinds ? t("Add to today’s check-in") : t("How are you feeling?"));
-  open.onclick = () => {
-    form.hidden = !form.hidden;
-  };
-  if (form.fields.length === 0) {
-    form.fields = [
-      { id: 'energy', type: 'scale', label: t("Energy"), min: 1, max: 5, anchors: { 1: t("Drained"), 5: t("Great") } },
-      { id: 'sleep', type: 'scale', label: t("Sleep last night"), min: 1, max: 5, anchors: { 1: t("Poor"), 5: t("Great") } },
-      { id: 'pain', type: 'body_map', label: t("Anything hurting?") },
-      { id: 'note', type: 'text', label: t("Anything else?"), multiline: true, max_len: 300 },
-    ];
-    form.addEventListener('submit', (e) => saveCheckin(e.detail.values));
-  }
-}
-
-async function saveCheckin(v) {
-  const at = coach.env.now().toISOString();
-  const rows = [];
-  if (v.energy) rows.push(['energy', { score: v.energy }]);
-  if (v.sleep) rows.push(['sleep', { score: v.sleep }]);
-  for (const p of v.pain ?? []) rows.push(['pain', p]); // { region, severity? } with region ids from the body map
-  if (v.note) rows.push(['note', { text: v.note }]);
-  if (rows.length === 0) return coach.toast(t("Pick at least one answer."));
-  try {
-    for (const [kind, value] of rows) {
-      await coach.db.write('checkins', 'insert', { id: coach.id(), at, kind, value: JSON.stringify(value), source: 'view' });
-    }
-    await coach.act('checkin_saved', { kinds: rows.map((r) => r[0]) }, { wake: true });
-    coach.toast(t("Thanks, saved."));
-    $('checkin-form').hidden = true;
-    $('checkin-form').reset();
-  } catch (err) {
-    coach.toast(t("Couldn't save your check-in."));
-    coach.report('warn', `check-in failed: ${err.message}`);
   }
 }
 

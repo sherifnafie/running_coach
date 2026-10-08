@@ -64,27 +64,25 @@ export function SettingsScreen() {
             {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'error' ? t('Could not save') : ''}
           </p>
         </div>
-        <div className="settings-grid" id="settings-personalize">
-        <AppearanceSection />
-        <ProfileSection />
-        <h2 className="settings-group" id="settings-coaching">{t('Coaching')}</h2>
-        <NotificationsSection />
-        <VoiceSection />
-        <AiSection />
-        <ImagesSection />
-        <h2 className="settings-group" id="settings-account">{t('Account & data')}</h2>
-        <PrivacySection />
-        <DevicesSection />
-        <CalendarSection />
-        <HealthConnectSection />
-        <ChangesSection />
-        <ViewHistorySection />
-        <DataSection />
-        <ResetSection />
-        <DeleteSection />
-        {me.athlete.isAdmin && <AdminSection />}
-        <AboutSection />
-        </div>
+        <section className="settings-category" id="settings-personalize" aria-labelledby="personalize-heading">
+          <h2 id="personalize-heading">{t('Personalize')}</h2>
+          <div className="settings-grid"><AppearanceSection /><ProfileSection /></div>
+        </section>
+        <section className="settings-category" id="settings-coaching" aria-labelledby="coaching-heading">
+          <h2 id="coaching-heading">{t('Coaching')}</h2>
+          <div className="settings-coaching-layout">
+            <NotificationsSection />
+            <div className="settings-side"><AiSection /><VoiceSection /><ImagesSection /></div>
+          </div>
+        </section>
+        <section className="settings-category" id="settings-account" aria-labelledby="account-heading">
+          <h2 id="account-heading">{t('Account & data')}</h2>
+          <div className="settings-grid">
+            <PrivacySection /><DevicesSection /><CalendarSection /><HealthConnectSection />
+            <ChangesSection /><ViewHistorySection /><DataSection /><ResetSection /><DeleteSection />
+            {me.athlete.isAdmin && <AdminSection />}<AboutSection />
+          </div>
+        </section>
         <div className="settings-signout">
           <button type="button" className="btn block" onClick={() => void signOut()}>
             {t("Sign out of this device")}</button>
@@ -230,10 +228,10 @@ function NotificationsSection() {
         onChange={(on) => save({ notifications: { quietHours: on ? { start: '22:00', end: '07:00' } : null } })}
       />
       {qh && (
-        <>
+        <div className="settings-fields">
           <TimeRow label={t("From")} value={qh.start} onCommit={(v) => save({ notifications: { quietHours: { start: v, end: qh.end } } })} />
           <TimeRow label={t("Until")} value={qh.end} onCommit={(v) => save({ notifications: { quietHours: { start: qh.start, end: v } } })} />
-        </>
+        </div>
       )}
       <NumberRow label={t("Maximum proactive messages per day")} hint={t("Only messages your coach starts count. This is a ceiling, not a target. 0 means replies only.")} value={n.proactivePerDay} min={0} max={10} integer onCommit={(v) => save({ notifications: { proactivePerDay: v } })} />
       <NumberRow label={t("Maximum proactive messages per week")} hint={t("Across the last 7 days. Your coach decides when a message is useful, within both limits.")} value={n.proactivePerWeek} min={0} max={50} integer onCommit={(v) => save({ notifications: { proactivePerWeek: v } })} />

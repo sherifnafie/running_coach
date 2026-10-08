@@ -1,7 +1,7 @@
 // Calendar: <rc-calendar> (see index.html) does the drawing, dragging and writing.
 // This script adds the layout toggle, deep links (coach.navigate('calendar', { date })), a legend built
 // from the types actually in use, and a detail card that fits the sport.
-import { coach, h, types } from '/kit/1/kit.js';
+import { coach, h, types } from '/kit/1/kit.js?v=0.3.7';
 
 const t = (text) => coach.t(text);
 const $ = (id) => document.getElementById(id);
@@ -66,8 +66,8 @@ async function showDetail(item) {
     ];
   }
   card.replaceChildren(
-    h('div', { class: 'rc-card__head' }, h('h2', { class: 'rc-card__title' }, item.title), h('p', { class: 'rc-card__sub' }, `${when} · ${statusText(item.status)}`)),
-    ...body,
+    h('div', { class: 'rc-card__head' }, h('h2', { class: 'rc-card__title' }, item.title), h('p', { class: 'rc-card__sub' }, [when, statusText(item.status)].filter(Boolean).join(' · '))),
+    ...body.filter(node => node != null && node !== false),
     h('div', { class: 'detail-actions' }, h('rc-button', { variant: 'ghost', icon: 'chat', onClick: () => coach.openChat({ prefill: `${t("About this session")} (${item.title}, ${format.date(item.date, 'medium')}): `, ref: { viewId: 'calendar', params: { date: item.date } } }) }, t("Ask coach about this"))),
   );
   card.hidden = false;
@@ -114,4 +114,4 @@ async function eventDetail(id) {
   ];
 }
 
-const statusText = (s) => ({ planned: t("Planned"), done: t("Done"), partial: t("Partly done"), skipped: t("Skipped"), moved: t("Moved") })[s] || s;
+const statusText = (s) => ({ planned: t("Planned"), done: t("Done"), partial: t("Partly done"), skipped: t("Skipped"), moved: t("Moved") })[s] || s || '';

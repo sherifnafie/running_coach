@@ -272,6 +272,7 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     expect(await iframe.getAttribute('sandbox')).toBe('allow-scripts');
     expect(new URL((await iframe.getAttribute('src'))!).origin).toBe(server.config.viewsUrl);
     const frame = page.frameLocator('iframe[title="Today"]');
+    expect(await frame.getByText('Quick check-in', { exact: true }).count()).toBe(0);
     await frame.getByRole('heading', { name: 'Gateway easy run' }).waitFor();
     await frame.getByRole('button', { name: 'Mark done', exact: true }).click();
     await frame.getByText('Done', { exact: true }).waitFor();
@@ -327,6 +328,24 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await composer.waitFor();
     expect(await composer.inputValue()).toContain('I have a question about my plan');
     await composer.fill('');
+  }, 60_000);
+
+  it('[UI-1] omits missing calendar detail sections instead of printing null', async () => {
+    const workspace = athletePaths(server.config.dataDir, athleteId).workspace;
+    const db = new DatabaseSync(join(workspace, 'data/coach.db'));
+    const now = server.clock.now().toISOString();
+    try {
+      db.prepare('INSERT INTO activities(id, started_at, sport, title, distance_m, duration_s, source, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,?)')
+        .run('missing-details', now, 'run', 'No optional notes', 5000, 1800, 'manual', now, now);
+    } finally { db.close(); }
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Calendar', exact: true }).click();
+    const frame = page.frameLocator('iframe[title="Calendar"]');
+    await frame.getByRole('button', { name: /No optional notes/ }).first().click();
+    await frame.locator('#detail').getByRole('heading', { name: 'No optional notes' }).waitFor();
+    const text = await frame.locator('#detail').innerText();
+    expect(text).not.toMatch(/\b(null|undefined)\b/);
+    expect(text).toContain('Distance');
+    expect(text).toContain('Ask coach about this');
   }, 60_000);
 
   it('[SAFE-2] displays the harness safety banner, then persists settings through the gateway', async () => {
@@ -444,6 +463,12 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await nav().getByRole('button', { name: 'Settings', exact: true }).click();
     await page.getByRole('heading', { name: 'Your coach, your way' }).waitFor();
     await audit();
+    if (process.env.OPENCOACH_CAPTURE_LAYOUT === '1') {
+      await page.locator('#settings-personalize').screenshot({ path: join(repo, 'work/settings-personalize-phone.png') });
+      await page.setViewportSize({ width: 1440, height: 1100 });
+      await page.locator('#settings-coaching').screenshot({ path: join(repo, 'work/settings-coaching-desktop.png') });
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
     if (process.env.OPENCOACH_CAPTURE_SETTINGS === '1') {
       await page.screenshot({ path: join(repo, 'docs/images/settings-phone.png') });
       await page.setViewportSize({ width: 1440, height: 1000 });

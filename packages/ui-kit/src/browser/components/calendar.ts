@@ -25,9 +25,9 @@ function itemMeta(it: DayItem): string {
   return '';
 }
 
-function itemLabel(it: DayItem): string {
+function itemContext(it: DayItem): string {
   const f = getCoach().format;
-  return `${it.title}, ${getCoach().t(typeLabel(it.type))}, ${f.date(it.date, 'long')}, ${getCoach().t(statusLabel(it.status)).toLowerCase()}`;
+  return `${getCoach().t(typeLabel(it.type))}, ${f.date(it.date, 'long')}, ${getCoach().t(statusLabel(it.status)).toLowerCase()}`;
 }
 
 function today(): string {
@@ -371,12 +371,12 @@ class RcCalendar extends RcBound {
         type: 'button',
         class: `rc-cal__item rc-type-${typeKey(it.type)} is-${it.status}${full ? ' is-full' : ''}${it.id === this.selId ? ' is-selected' : ''}${it.movable ? ' is-movable' : ''}`,
         'data-id': it.id,
-        'aria-label': itemLabel(it),
         'aria-pressed': String(it.id === this.selId),
       },
       h('span', { class: 'rc-cal__glyph', 'aria-hidden': 'true' }, glyph),
       h('span', { class: 'rc-cal__itemtitle' }, it.title),
       meta ? h('span', { class: 'rc-cal__itemmeta' }, meta) : null,
+      h('span', { class: 'rc-sr' }, itemContext(it)),
       mark ? h('span', { class: 'rc-cal__mark', 'aria-hidden': 'true' }, mark) : null,
     );
     b.addEventListener('click', () => {

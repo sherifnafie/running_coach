@@ -52,8 +52,9 @@ describe.skipIf(!chromiumAvailable())('[UI-1] [UI-3] Chromium seed view publish 
         expect(view.ok, JSON.stringify(view)).toBe(true);
       }
       if (data === 'sample') {
-        const today = report.views.find(v => v.viewId === 'today');
-        const shot = today?.screenshots.find(s => s.variant === 'phone-light');
+        // Today now fits on a phone; Progress still proves full-page capture.
+        const progress = report.views.find(v => v.viewId === 'progress');
+        const shot = progress?.screenshots.find(s => s.variant === 'phone-light');
         expect(shot).toBeDefined();
         const png = await readFile(shot!.path);
         expect(png.readUInt32BE(20), 'full-page screenshot includes content below the viewport').toBeGreaterThan(844);

@@ -344,7 +344,9 @@ describe('gateway views, history, export and administration [SEC-3] [SEC-5] [SEC
     expect((await f.views.inject('/v/token_123456789/today@1.0123456789ab/index.html')).statusCode).toBe(200);
     expect((await f.views.inject('/v/token_123456789/today@1.fedcba987654/index.html')).statusCode).toBe(404);
     expect((await f.views.inject('/v/token_123456789/today@1/%2e%2e/kit/kit.js')).statusCode).toBe(404);
-    expect((await f.views.inject('/kit/1/kit.js')).statusCode).toBe(200);
+    const kit = await f.views.inject('/kit/1/kit.js?v=0.3.7');
+    expect(kit.statusCode).toBe(200);
+    expect(kit.headers['cache-control']).toBe('public, max-age=0, must-revalidate');
     const headers = f.bearer(a.token);
     expect((await f.app.inject({ method: 'POST', url: '/v1/views/today/query', headers, payload: { sql: 'SELECT value' } })).json()).toEqual([{ value: 7 }]);
     expect((await f.app.inject({ method: 'POST', url: '/v1/views/today/file', headers, payload: { path: 'profile.md' } })).json()).toBe('# profile');
