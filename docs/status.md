@@ -148,6 +148,10 @@ Verification: full unit/renderer suite, all 13 focused inbox/freshness checks,
 typecheck/build and the 28-scenario deterministic reference fast gates pass.
 The three existing optional achievement judge checks remain unrun; this is
 harness verification, not a claim about live-model coaching quality.
+All 17 browser end-to-end cases also pass. Deployed 0.3.10 (`1f9f75d`) after a
+pre-deploy backup; verified the active service, schema 4 with no foreign-key
+violations, empty pending/held queues, authenticated app and all four current
+views, public HTTP 200 and unauthenticated API HTTP 401.
 
 ## Open work (roughly by value)
 
