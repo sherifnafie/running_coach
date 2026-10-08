@@ -4,7 +4,7 @@ import { VoiceConfig } from './voice';
 import { Effort } from './common';
 import { ImageGenerationConfig } from './image-generation';
 
-export const HARNESS_VERSION = '0.2.1';
+export const HARNESS_VERSION = '0.3.0';
 export const UI_KIT_MAJOR = '1';
 const HeaderName = z.string().regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/, 'invalid HTTP header name');
 
@@ -86,9 +86,12 @@ export const OpenRouterConfig = z.object({
   routing: OpenRouterRouting.default({ dataCollection: 'deny', requireParameters: true }),
   /** Models the server offers. Omit to use the built-in vetted catalog. */
   models: z.array(ModelCatalogEntry).optional(),
-  /** Catalog id used for every tier when `models.tiers` is not configured. */
+  /** Catalog id for the coach and fast tiers when `models.tiers` is not configured. */
   defaultModel: z.string().optional(),
-  maxOutputTokens: z.number().int().positive().default(16_384),
+  /** Catalog id for the deep tier (background plans, reviews, research) when `models.tiers` is not configured. */
+  deepModel: z.string().optional(),
+  /** Per-call output ceiling (reasoning included). High effort can use most of a 16k budget before answering. */
+  maxOutputTokens: z.number().int().positive().default(32_768),
 });
 export type OpenRouterConfig = z.infer<typeof OpenRouterConfig>;
 
@@ -96,15 +99,18 @@ export const LimitsConfig = z
   .object({
     reactiveMaxSteps: z.number().int().positive().default(60),
     otherMaxSteps: z.number().int().positive().default(80),
-    reactiveMaxWallMs: z.number().int().positive().default(300_000),
+    // Hard backstop; the model is asked to wrap up at half of it, and a stalled request is retried long before.
+    reactiveMaxWallMs: z.number().int().positive().default(600_000),
     otherMaxWallMs: z.number().int().positive().default(1_200_000),
     debounceIdleMs: z.number().int().nonnegative().default(2500),
     debounceMaxMs: z.number().int().nonnegative().default(8000),
     pinnedTokenCap: z.number().int().positive().default(12_000),
     briefingTokenCap: z.number().int().positive().default(6_000),
     compactionTriggerTokens: z.number().int().positive().default(80_000),
-    helperMaxSteps: z.number().int().positive().default(40),
-    helperMaxWallMs: z.number().int().positive().default(900_000),
+    // Background helpers do the deep work (a plan, an analysis, research), so they get room: the reply turn stays short
+    // and hands this off. They are asked to wrap up at half the wall time and keep partial work if stopped.
+    helperMaxSteps: z.number().int().positive().default(150),
+    helperMaxWallMs: z.number().int().positive().default(3_600_000),
     bashMaxOutputBytes: z.number().int().positive().default(1_048_576),
   })
   .prefault({});

@@ -59,17 +59,19 @@ export interface TurnOutcome {
 }
 
 /**
- * Reasoning effort per trigger class when the tier doesn't pin one. Quality beats a few cents: replies and check-ins
- * think hard; overnight consolidation (nobody waiting) thinks hardest; live calls stay quick to keep speech responsive.
- * Max is reserved for unattended work: one max-effort step can take a minute and a reply is several steps.
+ * Reasoning effort per trigger class when the tier doesn't pin one. Replies and check-ins think hard; live calls stay
+ * quick to keep speech responsive. Consolidation first sizes the day and does a short pass on quiet days, so it runs
+ * at high rather than max; deep analysis goes to deep-tier helpers, whose own effort is max.
  */
 const DEFAULT_EFFORT: Record<TriggerClass, Effort> = {
   reactive: 'high',
   call: 'low',
   followup: 'high',
   scheduled: 'high',
-  consolidation: 'max',
+  consolidation: 'high',
 };
+
+const BACKGROUND_LABEL = 'Working on it in the background…';
 
 const PROGRESS_LABELS: Record<string, string> = {
   read: 'Looking through notes…',
@@ -475,7 +477,11 @@ export class TurnRunner {
     for (const f of result.fallbacks) {
       core.log.warn('model fallback used', { athleteId, turnId, fallback: f });
     }
-    core.bus.setPresence(athleteId, 'idle');
+    // Background helpers keep working after the turn: show that, so "I'm building your plan" is visibly true.
+    if (core.helpers.runningCount(athleteId) > 0) {
+      core.bus.setPresence(athleteId, 'working');
+      core.bus.publish(athleteId, { t: 'progress', turnId, label: BACKGROUND_LABEL });
+    } else core.bus.setPresence(athleteId, 'idle');
 
     // history (best effort)
     const days = new Set<string>([epochDate(now, tz, '00:00'), ...triggers.map((t) => epochDate(new Date(t.ts), tz, '00:00'))]);

@@ -1,0 +1,24 @@
+# ADR 0008: Proportion, the athlete first, and effort by stakes
+
+- Status: accepted (2026-10-08).
+- Context: the owner's first real conversation with a fresh coach (Claude Haiku 5.5) went badly. The coach screened a healthy 23-year-old about a cold four times and kept doing it after he asked it to stop. It read "I could run every day" as "I will". It promised a four-week plan, then ran planner → reviewer (crashed on the output limit) → revisions → two more reviews overnight, and never delivered. It split thoughts across messages and sent a recap after a one-second call. Replaying the conversation in a new benchmark (`packages/evals-sim/src/chat-bench.ts`) showed most of this came from the instructions: sentences added to pass specific evals ("ask the health questions and wait for the answers before prescribing a new dose, even a provisional first week"; "do not put a new multiweek commitment into live blocks before the review is complete") that then applied to everyone. The precedence order also ranked the athlete's requests below skills and workspace notes, so the overnight turn re-imposed a screen the athlete had declined. Sonnet 5.5 on the same instructions listened better but still made the athlete wait on the mandatory review.
+- Decision: rewrite the steering around general principles, keep the safety floor, and make effort follow the stakes [RT-3] [SAFE-1].
+  - **Precedence (§9).** Safety, honesty and enforced harness policies first; then the athlete, whose wishes (including how they want to be coached) outrank skills and notes.
+  - **Proportion (§11).** "Safety is a floor, not a personality": red flags stay firm; ordinary training life is coaching. Mention a concern once, act on the answer, stop when asked.
+  - **Effort by stakes (§6, §12).** Quick things get quick answers. A plan the athlete will follow for a week or more is never written off the cuff: ask what would change it, say it's coming, give the next day's guidance, build it with a deep-tier helper and all the data, one review when stakes are high, then deliver the moment it's ready. The process is bounded (one design, at most one review). Follow-up questions are fine when the answer matters. Consolidation sizes the day first and does a short pass on quiet days.
+  - **Skills.** `intake`, `plan-design` and `illness-return` lost their gating rules; the planner reads capacity from evidence (a returning athlete with a strong history is not a beginner).
+  - **Harness.** `call.ended` is rendered as facts, without an instruction to recap. Helpers stopped by a limit keep their in-scope files and report the work as incomplete with the paths. A plain-text answer cut off by the output limit may continue twice. The OpenRouter output cap is 32k. Each model request has a 180 s stall timeout (retry, then fallback). Turns get a wrap-up note at half their wall time; reply turns have a 10 min backstop and background helpers 60 min and 150 steps. Presence stays "working" while background helpers run. `send_message` rejects an empty or unknown-key `ui`.
+  - **Models.** The deep tier defaults to DeepSeek V4.1 Flash at high effort; the coach stays on Claude Haiku 5.5 (see ADR 0007).
+- Evidence (2026-10-08, simulated athlete played by Haiku, real runtime):
+  - Haiku on the old instructions reproduced the failure: three health screens, a plan withheld, a message after the empty call.
+  - Haiku on the new instructions asked about health once and delivered a structured four-week block by its third reply, with no message after the empty call. A chest-pressure red-flag scenario still escalated correctly on Haiku, DeepSeek and GPT-6 Luna.
+  - Per-step latency with a real 30k-token context: Haiku about 6 s, GPT-6 Luna about 11 s, DeepSeek 16–27 s, with occasional stalls of several minutes.
+  - Sonnet 5.5 and GPT-6.1 Sol cost about 20 times Haiku per token and were ruled out for cost.
+- Alternatives rejected:
+  - A bigger chat model (cost).
+  - Harness-enforced planning workflows (coaching process in code fails the deletion test).
+  - Keeping the eval-driven sentences and adding exceptions (more rules for a small model to trip over).
+- Consequences:
+  - The planning evals still pass: health is still asked once when nothing is known, and a review still happens when the athlete asks for one.
+  - Small models still make arithmetic and consistency slips in long conversations. The benchmark makes this visible and is the tool for the next iterations.
+  - Existing coaches get `harness.upgraded` (0.3.0) with a changelog asking them to remove gating rules from their own notes.

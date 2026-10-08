@@ -8,7 +8,7 @@ import {
   type ModelStreamEvent,
   type ToolResultsItem,
 } from '@opencoach/protocol';
-import { MAX_TOKENS_NOTE, createAgentLoop, createScriptedProvider, type ScriptedStep } from '../src';
+import { WRAP_UP_NOTE, MAX_TOKENS_NOTE, createAgentLoop, createScriptedProvider, type ScriptedStep } from '../src';
 import { INVALID_TOOL_INPUT_KEY } from '../src/util';
 import { baseInput, collect, fakeTools, kinds, resolved, user } from './helpers';
 
@@ -433,6 +433,17 @@ describe('agent loop: limits and abort [RT-5]', () => {
     expect(r.steps).toBe(3); // 3 x 400ms >= 1000ms
   });
 
+  it('asks the model to wrap up once, at half the wall time, before the hard limit', async () => {
+    let t = 0;
+    const l = createAgentLoop({ monotonicNow: () => t });
+    const p = scripted(Array.from({ length: 20 }, () => ({ toolCalls: [{ name: 'echo', input: {} }] })));
+    const tools = fakeTools({ echo: () => { t += 300; return 'ok'; } });
+    const r = await l.runTurn(baseInput({ route: [resolved(p)], tools, limits: { maxSteps: 50, maxWallMs: 1000 } }));
+    const notes = r.newItems.filter((i) => i.kind === 'harness').map((i) => (i as { text: string }).text);
+    expect(notes).toEqual([WRAP_UP_NOTE]);
+    expect(r.stopReason).toBe('max_wall');
+  });
+
   it('enforces the wall limit on a model call that never returns', async () => {
     const hang: ModelProvider = {
       id: 'hang',
@@ -590,8 +601,19 @@ describe('agent loop: max_tokens, refusal', () => {
     expect(kinds(r.newItems)).toEqual(['assistant', 'harness', 'assistant']);
   });
 
-  it('ends the turn with max_tokens when plain text is cut off', async () => {
-    const p = scripted([{ text: 'a long answer that gets cut', stopReason: 'max_tokens' }]);
+  it('lets a cut-off text answer continue, so a long draft is not thrown away', async () => {
+    const p = scripted([
+      { text: 'part one of a long answer', stopReason: 'max_tokens' },
+      { text: 'part two, finished' },
+    ]);
+    const r = await loop.runTurn(baseInput({ route: [resolved(p)] }));
+    expect(r.stopReason).toBe('end_turn');
+    expect(r.finalText).toBe('part two, finished');
+  });
+
+  it('ends the turn with max_tokens when plain text keeps getting cut off', async () => {
+    const cut = { text: 'a long answer that gets cut', stopReason: 'max_tokens' as const };
+    const p = scripted([cut, cut, cut]);
     const r = await loop.runTurn(baseInput({ route: [resolved(p)] }));
     expect(r.stopReason).toBe('max_tokens');
     expect(r.finalText).toBe('a long answer that gets cut');

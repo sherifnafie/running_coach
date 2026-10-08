@@ -116,8 +116,7 @@ export function renderTriggerBody(e: AnyEvent, opts: RenderOptions): string {
       const p = e.payload;
       return (
         `Your call with the athlete ended (${duration(p.durationS)}, ended by ${p.endedBy}).\n` +
-        `Transcript: ${p.transcriptPath}\nNotes from the voice front-end: ${p.notesPath}\n` +
-        'Read them, update your notes and plan where needed, and send the athlete a short recap of what you agreed.'
+        `Transcript: ${p.transcriptPath}\nNotes from the voice front-end: ${p.notesPath}`
       );
     }
     case 'ui.error': {

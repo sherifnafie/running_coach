@@ -12,6 +12,14 @@ import type { ModelCatalogEntryInput } from '@opencoach/protocol';
  */
 export const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-haiku-5.5';
 
+/**
+ * Default for the deep tier (background plans, reviews, research), checked 2026-10-08 in conversation benchmarks
+ * (`packages/evals-sim/src/chat-bench.ts`): DeepSeek V4.1 Flash showed the best coaching judgment and calibration of
+ * the low-cost models but is too slow for chat (16-27 s per step at medium/high effort), which doesn't matter for
+ * background work. At max effort it can exceed helper time limits, so the deep tier uses high.
+ */
+export const DEFAULT_OPENROUTER_DEEP_MODEL = 'deepseek/deepseek-v4.1-flash';
+
 export const DEFAULT_OPENROUTER_CATALOG: ModelCatalogEntryInput[] = [
   {
     id: 'deepseek/deepseek-v4.1-flash',

@@ -54,6 +54,13 @@ describe('views', () => {
 });
 
 describe('tool schemas', () => {
+  it('[MSG-3] send_message rejects an empty ui or one with unknown keys instead of silently dropping it', () => {
+    expect(ToolInputs.send_message.safeParse({ text: 'hi', ui: {} }).success).toBe(false);
+    expect(ToolInputs.send_message.safeParse({ text: 'hi', ui: { forms: [{ id: 'x' }] } }).success).toBe(false);
+    expect(ToolInputs.send_message.safeParse({ text: 'hi', ui: { quick_replies: [{ label: 'ok', value: 'ok' }] } }).success).toBe(true);
+    expect(ToolInputs.send_message.safeParse({ text: 'hi' }).success).toBe(true);
+  });
+
   it('produce object JSON schemas', () => {
     for (const [name, schema] of Object.entries(ToolInputs)) {
       const js = toToolJsonSchema(schema);

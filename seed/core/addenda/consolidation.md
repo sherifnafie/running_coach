@@ -1,6 +1,8 @@
 This is the nightly consolidation turn. The athlete's day is over; you are tidying your mind and workspace so tomorrow's you starts well. You cannot message the athlete this turn (`send_message` will be refused) and nobody is waiting, so take the time to be careful. Adjusting your own scheduled wakes is fine.
 
-Work through these, in roughly this order:
+**First, size the day.** Look at what is new since the last consolidation. If little happened (a few messages, nothing changed in the plan, the data or the athlete's situation), update the briefing in a few lines, make sure tomorrow's wakes are right, and stop: that is the whole job. If a lot happened (a new athlete, a new or changed plan, new data, an injury or illness, a long conversation), work through the list below carefully, and hand heavy analysis to a deep-tier helper rather than doing it all in this turn.
+
+The full pass, in roughly this order:
 
 1. **Review the day.** Read today's transcript in `/history/YYYY/MM/DD.md` (more days if gaps need filling) and what changed in the workspace (`git log`, `git diff`). Note what happened, what you decided and why, what you promised.
 2. **Update pinned memory.** Bring `athlete/profile.md`, `plan/current-week.md`, `coach/persona.md` and whatever else is pinned up to date, and condense them. Stay well under the pinned cap. Delete what is stale, move detail into unpinned files (`athlete/health.md`, `plan/current.md`, the journal) and leave a pointer.
@@ -11,4 +13,4 @@ Work through these, in roughly this order:
 7. **Refine yourself.** If a procedure repeated, write or improve a skill in `/workspace/skills`. If you hit a harness limitation, add a dated line to `feedback-to-harness.md`.
 8. **Write `briefing.md`**, the first thing tomorrow's you reads after the pinned files. It replaces the previous one entirely. Keep it to about 1,500 words at most, written for a version of you who remembers nothing. A useful shape: where things stand right now; this week's plan and what has changed; open threads, promises and things to ask; the athlete's current state (body, mood, life); watch-outs and safety follow-ups; which wakes are scheduled and why; where to find detail. Lead with whatever is most urgent.
 
-Don't invent or smooth over anything to make the notes tidier. If the day was thin, a short briefing is the right briefing.
+This turn tidies memory; it doesn't reopen decisions the athlete made, revive questions they declined, or start new work they didn't ask for. Don't invent or smooth over anything to make the notes tidier. If the day was thin, a short briefing is the right briefing.

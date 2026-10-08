@@ -58,6 +58,8 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 - **Coach narrating app mechanics:** after a call, DeepSeek told the athlete "voices are coming through now, that was the shimmer run", because it had seen their voice-setting changes. The constitution (§4) now says not to narrate settings, voice or model choices, connection problems or housekeeping. An eval scenario for post-call recaps is still missing.
 - **Stale installed apps (fixed 2026-10-07):** an installed PWA left open in the background kept running old code after a deploy. It now checks for an update when brought to the foreground and reloads into it at a quiet moment (not during a call or while typing).
 
+- **Coach steering redesign (2026-10-08, [ADR 0008](adr/0008-proportion-and-effort-by-stakes.md)):** instructions rewritten for proportion, athlete-first precedence and effort by stakes; deep tier defaults to DeepSeek V4.1 Flash. Still open: small models make arithmetic and consistency slips in long planning conversations (half-written weeks, overlapping dates); Haiku sometimes writes a week's plan itself instead of using the planner; no automated grading for the conversation benchmark yet; no eval scenario for "don't message after an empty call".
+
 - **Bring-your-own OpenAI key for voice** is not implemented. Voice uses the server key. The credential store already supports `openai`; the voice services need per-athlete scoping.
 - **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting, "Small home instance"). Store them relative to the data directory.
 

@@ -167,6 +167,7 @@ export class HelperManager {
           const r = await job();
           if (parent.workspaceDir) await r.copyBack();
           else await core.minds.get(parent.athleteId).runExclusive(() => r.copyBack());
+          if (r.incomplete) throw new ToolError('LIMIT', incompleteMessage(r.incomplete, r.outputs));
           await core.store.updateTask(taskId, { state: 'done', endedAt: core.clock.now().toISOString(), summary: r.summary, outputs: r.outputs, costUsd: r.costUsd });
           const e = await core.store.appendEvent({
             athleteId: parent.athleteId,
@@ -187,6 +188,8 @@ export class HelperManager {
           if (!cancelled) core.minds.get(parent.athleteId).enqueue(e, 'followup');
         } finally {
           this.running.delete(taskId);
+          // A completed or failed task wakes a follow-up turn, which sets presence when it ends; a cancelled one doesn't.
+          if (abort.signal.aborted && this.runningCount(parent.athleteId) === 0) core.bus.setPresence(parent.athleteId, 'idle');
           resolveDone();
         }
       })();
@@ -202,6 +205,7 @@ export class HelperManager {
     try {
       const r = await job();
       await r.copyBack();
+      if (r.incomplete) throw new ToolError('LIMIT', incompleteMessage(r.incomplete, r.outputs));
       await core.store.updateTask(taskId, { state: 'done', endedAt: core.clock.now().toISOString(), summary: r.summary, outputs: r.outputs, costUsd: r.costUsd });
       return { ok: true, taskId, background: false, summary: r.summary, outputs: r.outputs, costUsd: r.costUsd, reverted: r.discarded };
     } catch (err) {
@@ -254,7 +258,7 @@ export class HelperManager {
     inputs: string[];
     route: ResolvedModel[];
     abort: AbortController;
-  }): Promise<{ summary: string; outputs: string[]; discarded: string[]; costUsd: number; copyBack: () => Promise<void> }> {
+  }): Promise<{ summary: string; outputs: string[]; discarded: string[]; costUsd: number; copyBack: () => Promise<void>; incomplete?: string }> {
     const core = this.core;
     const { parent, taskId } = a;
     const paths = core.paths(parent.athleteId);
@@ -395,9 +399,9 @@ export class HelperManager {
       await core.store.updateTask(taskId, { costUsd });
       if (result.stopReason === 'error') throw new Error(result.error ?? 'helper model error');
       if (result.stopReason === 'aborted') throw new Error('cancelled');
-      if (result.stopReason !== 'end_turn') {
-        throw new ToolError('LIMIT', `Incomplete helper (${result.stopReason}); no output was adopted. Use a smaller task or background work with appropriate limits. A draft or review is not complete merely because the helper stopped.`);
-      }
+      // A helper stopped by a limit (time, steps, output, budget) still hands back the in-scope files it wrote, such as a
+      // half-finished draft, so its work isn't lost; the caller reports the task as incomplete.
+      const incomplete = result.stopReason !== 'end_turn' ? result.stopReason : undefined;
 
       // A nested background helper must finish copying into this worktree before it is merged/removed.
       await Promise.all([...this.running.values()].filter((r) => r.parentTaskId === taskId).map((r) => r.done));
@@ -449,12 +453,17 @@ export class HelperManager {
         }
       };
       const summary = result.finalText.trim();
-      return { summary, outputs, discarded, costUsd, copyBack };
+      return { summary, outputs, discarded, costUsd, copyBack, incomplete };
     } catch (e) {
       await cleanup();
       throw e;
     }
   }
+}
+
+function incompleteMessage(reason: string, outputs: string[]): string {
+  const files = outputs.length ? ` Its partial files were kept: ${outputs.join(', ')}. Check them and finish the work yourself, or rerun a smaller task.` : ' It wrote no files.';
+  return `Incomplete helper (stopped by ${reason}); the work is not finished.${files} A draft or review is not complete merely because the helper stopped.`;
 }
 
 async function exists(p: string): Promise<boolean> {

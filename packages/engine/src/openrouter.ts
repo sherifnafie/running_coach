@@ -61,7 +61,8 @@ export function routingBody(routing: OpenRouterRouting | undefined): Record<stri
 
 export function createOpenRouterProvider(opts: OpenRouterProviderOptions, deps: OpenRouterProviderDeps = {}): ModelProvider {
   const id = opts.id ?? 'openrouter';
-  const outputCap = opts.maxOutputTokens ?? 16_384;
+  // High reasoning effort can spend most of a smaller budget before any answer is written.
+  const outputCap = opts.maxOutputTokens ?? 32_768;
   const client: CompatibleClientLike = deps.client ?? new OpenAI({ apiKey: opts.apiKey, baseURL: opts.baseUrl ?? 'https://openrouter.ai/api/v1', maxRetries: 0 });
   const catalog = new Map(opts.models.map((m) => [m.id, ModelCatalogEntry.parse(m)]));
   const headers: Record<string, string> = { 'X-Title': opts.appTitle ?? 'OpenCoach' };

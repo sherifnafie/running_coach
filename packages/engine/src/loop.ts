@@ -35,6 +35,13 @@ export interface AgentLoopOptions {
 }
 
 /** Harness note appended when a response was cut off by the output token limit. */
+/** Continuations allowed after plain text is cut off by the output limit, before the turn ends as max_tokens. */
+const MAX_TEXT_CUTOFFS = 2;
+/** A model request that sends nothing for this long is treated as stalled and retried (then the fallback chain). */
+export const STREAM_IDLE_MS = 180_000;
+/** Past this share of the turn's wall time the model is asked to finish; the hard limit stays a backstop. */
+const WRAP_UP_AT = 0.5;
+export const WRAP_UP_NOTE = 'This turn has used half of its time limit. Finish now: deliver what is needed (if the athlete is waiting, send the reply), save your work, and hand anything longer to a background helper.';
 export const MAX_TOKENS_NOTE = 'Your previous response was cut off by the output token limit; continue concisely.';
 
 const MAX_BACKOFF_MS = 30_000;
@@ -141,6 +148,9 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
   let usageTotal: Usage = { ...ZERO_USAGE };
   let costUsd = 0;
   let steps = 0;
+  // A reply cut off mid-text (often reasoning that used up the output budget) gets a bounded chance to continue.
+  let textCutoffs = 0;
+  let wrapNoted = false;
   let routeIndex = 0;
   let current: ResolvedModel | undefined = route[0];
 
@@ -201,10 +211,33 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
     const started = new Set<string>();
     const ended = new Set<string>();
     let end: StepData['end'] | undefined;
-    const iterator = entry.provider.stream(req, ctrl.signal)[Symbol.asyncIterator]();
+    // Per-attempt signal: the turn's signal, plus a stall timer that resets whenever the stream sends anything.
+    const attempt = new AbortController();
+    const onTurnAbort = () => attempt.abort();
+    if (ctrl.signal.aborted) attempt.abort();
+    else ctrl.signal.addEventListener('abort', onTurnAbort, { once: true });
+    let stalled = false;
+    let idle: ReturnType<typeof setTimeout> | undefined;
+    const armIdle = () => {
+      if (idle) clearTimeout(idle);
+      idle = setTimeout(() => {
+        stalled = true;
+        attempt.abort();
+      }, STREAM_IDLE_MS);
+      idle.unref?.();
+    };
+    armIdle();
+    const iterator = entry.provider.stream(req, attempt.signal)[Symbol.asyncIterator]();
     try {
       for (;;) {
-        const next = await raceAbort(iterator.next(), ctrl.signal);
+        let next: IteratorResult<ModelStreamEvent>;
+        try {
+          next = await raceAbort(iterator.next(), attempt.signal);
+        } catch (e) {
+          if (stalled && !ctrl.signal.aborted) throw new ProviderError(`model stream stalled (nothing for ${STREAM_IDLE_MS / 1000} s)`, { kind: 'timeout', retryable: true });
+          throw e;
+        }
+        armIdle();
         if (next.done) break;
         const ev = next.value;
         switch (ev.type) {
@@ -230,6 +263,8 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
         }
       }
     } finally {
+      if (idle) clearTimeout(idle);
+      ctrl.signal.removeEventListener('abort', onTurnAbort);
       // best effort: release the underlying connection if we stopped early
       void Promise.resolve(iterator.return?.()).catch(() => undefined);
     }
@@ -345,6 +380,10 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
         } catch {
           // a faulty steering source must not lose the turn
         }
+        if (!wrapNoted && Number.isFinite(limits.maxWallMs) && elapsed() >= limits.maxWallMs * WRAP_UP_AT) {
+          wrapNoted = true;
+          pendingNotes.push(WRAP_UP_NOTE);
+        }
         for (const text of pendingNotes.splice(0)) append({ kind: 'harness', text });
         try {
           const extra = input.beforeStep?.({ step: steps + 1, elapsedMs: elapsed(), costUsd, items: [...items] });
@@ -381,7 +420,8 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
 
       const calls = item.parts.filter((p): p is ToolCallPart => p.type === 'tool_call');
       if (calls.length === 0) {
-        if (cutOff) {
+        if (cutOff || (truncated && textCutoffs < MAX_TEXT_CUTOFFS)) {
+          if (!cutOff) textCutoffs += 1;
           pendingNotes.push(MAX_TOKENS_NOTE);
           continue;
         }

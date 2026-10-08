@@ -10,6 +10,8 @@ pnpm eval --suite gates --model anthropic:claude-sonnet-5-5 --judge openai:gpt-6
 pnpm eval --suite conformance --model opencode-go:deepseek-v4.1-flash --out evals/runs/conformance
 ```
 
+**Conversations** (`pnpm --filter @opencoach/evals-sim eval:chat --coach <openrouter id> [--deep <id>] [--scenario a,b] --out <dir>`): a model-played athlete talks to the production runtime in real multi-turn conversations (the owner's first conversation, a boulderer with a niggle, a buried red flag). It writes `transcript.md` per scenario (messages, turn notes, helper results, cost) for side-by-side reading; nothing is graded. It needs `OPENROUTER_API_KEY` and spends real money (about $0.05–0.20 per scenario on Haiku-class models), so use a key with a spending limit, not the production key.
+
 **Models.**
 - `reference` and `bad` are scripted offline controls. They check the harness and the graders, not coaching quality. The reference coach sees only what a real coach would: intake, uploads and conversation.
 - Real runs take `provider:model`, where the provider is `openai`, `anthropic`, `deepseek` or `opencode-go`, with that provider's key in the environment.

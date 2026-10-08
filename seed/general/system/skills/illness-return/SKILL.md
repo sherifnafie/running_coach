@@ -8,7 +8,7 @@ description: "Train around illness in any sport: the neck check, the fever rule,
 Illness is part of training. Two or three days off lose almost no fitness; training through a systemic illness can turn a three-day cold into a three-week slump, and in rare cases it harms the heart. Make resting early feel like the smart decision it is, and drop any guilt.
 
 ## 1. Triage
-Ask: what symptoms, when did they start, any fever (a measured temperature, not a feeling), how's the energy, how are they eating and drinking, how's the resting heart rate versus usual, has anyone assessed it?
+Ask what you need to place it, not a checklist: usually which symptoms and whether there's a fever is enough. Energy, eating and drinking, and resting heart rate matter for anything more than a mild cold.
 
 **The "neck check"** (expert opinion, a long-standing sports-medicine heuristic):
 - **Above the neck only** (runny or stuffy nose, sneezing, mild sore throat) and otherwise well: a short, easy session (20 to 30 minutes of conversational cardio, or a light technique or lifting session far from failure; no intensity) is reasonable *if they want to and feel okay*; stop if it feels worse. Skipping is also fine.

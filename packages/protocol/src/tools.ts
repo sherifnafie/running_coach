@@ -55,7 +55,11 @@ export const ToolInputs = {
       )
       .max(10)
       .optional(),
-    ui: MicroUI.optional(),
+    // Strict, and never empty: an unknown key (a form under the wrong name) would otherwise be stripped silently and
+    // the athlete would get a message promising buttons that never appear.
+    ui: MicroUI.strict()
+      .refine((u) => !!(u.quick_replies?.length || u.form || u.notification_actions?.length), 'ui needs quick_replies, a form or notification_actions; leave ui out for a plain message')
+      .optional(),
     voice_note: z.boolean().optional().describe('Also deliver as a TTS audio note in your voice.'),
     notify: z.enum(['none', 'silent', 'normal']).optional(),
     reply_to: z.string().optional().describe('Event id of the athlete message this answers.'),

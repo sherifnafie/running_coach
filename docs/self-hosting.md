@@ -24,7 +24,7 @@ Settings come from YAML (`OPENCOACH_CONFIG`, see `opencoach.config.example.yaml`
 | `PUBLIC_URL`, `VIEWS_URL` | Browser-facing origins of the app and the views; they must differ |
 | `OPENCOACH_TRUST_PROXY` | `true`, or trusted proxy addresses (`loopback`, `10.0.0.0/8`), when a reverse proxy or tunnel fronts the server. Without it, all clients share the proxy's rate-limit bucket. |
 | `OPENCOACH_DEMO` | `1` for the scripted demo coach |
-| `OPENROUTER_API_KEY` | Chat models (all tiers default to the catalog's default model) |
+| `OPENROUTER_API_KEY` | Chat models (the coach uses the catalog's default model; deep background work uses the deep-tier default) |
 | `OPENAI_API_KEY` | Voice only: speech-to-text, text-to-speech, calls |
 | `BRAVE_API_KEY`, `TAVILY_API_KEY`, `SEARXNG_URL` | Web search for the coach |
 | `TELEGRAM_BOT_TOKEN`, `OPENCOACH_ADMIN_TOKEN` | Telegram channel; bearer token for `/admin/*` |
@@ -33,7 +33,7 @@ Settings come from YAML (`OPENCOACH_CONFIG`, see `opencoach.config.example.yaml`
 
 ### Models
 
-Chat models go through [OpenRouter](https://openrouter.ai) with one key ([ADR 0007](adr/0007-openrouter-only-chat.md)). Set `OPENROUTER_API_KEY` and leave `models` out: every tier uses the default model of the built-in catalog (Claude Haiku 5.5. Reasoning effort follows the situation: high for replies and check-ins, max for deep planning and overnight consolidation, low on voice calls. Quality matters more than the few cents this costs). With no key and no explicit models, the server runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes.
+Chat models go through [OpenRouter](https://openrouter.ai) with one key ([ADR 0007](adr/0007-openrouter-only-chat.md)). Set `OPENROUTER_API_KEY` and leave `models` out: the coach and fast tiers use the catalog's default model (Claude Haiku 5.5: quick and reliable in conversation), and the deep tier, which does background work such as multi-week plans, reviews and research, uses DeepSeek V4.1 Flash at high effort (better judgment in our benchmarks, too slow for chat, which doesn't matter in the background). Override them with `providers.openrouter.defaultModel` and `deepModel`. Reasoning effort follows the situation: high for replies, check-ins and consolidation, low on voice calls. The model picker in Settings changes the coach's model; deep work keeps the deep-tier default. With no key and no explicit models, the server runs the demo. With explicit tiers, an unavailable provider fails startup. Keys stay in the server process and never reach athlete sandboxes.
 
 The catalog lists the models the settings picker offers, with their capabilities and fallback prices. OpenRouter reports what each call cost, and that amount counts against budgets. The defaults:
 

@@ -5,6 +5,7 @@
   "scripts": {
     "eval": "tsx src/cli.ts",
     "eval:selftest": "tsx src/cli.ts --selftest",
+    "eval:chat": "tsx src/chat-bench.ts",
     "test": "vitest run --root ../.. packages/evals-sim"
   },
   "type": "module",

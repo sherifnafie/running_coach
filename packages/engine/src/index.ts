@@ -8,13 +8,13 @@
 import type { AssistantPart } from '@opencoach/protocol';
 
 // agent loop
-export { createAgentLoop, MAX_TOKENS_NOTE } from './loop';
+export { createAgentLoop, MAX_TOKENS_NOTE, WRAP_UP_NOTE, STREAM_IDLE_MS } from './loop';
 export type { AgentLoopOptions } from './loop';
 
 // providers
 export { createOpenRouterProvider } from './openrouter';
 export type { OpenRouterProviderOptions, OpenRouterProviderDeps } from './openrouter';
-export { DEFAULT_OPENROUTER_CATALOG, DEFAULT_OPENROUTER_MODEL } from './openrouter-catalog';
+export { DEFAULT_OPENROUTER_CATALOG, DEFAULT_OPENROUTER_DEEP_MODEL, DEFAULT_OPENROUTER_MODEL } from './openrouter-catalog';
 export { createCompatibleProvider } from './compatible';
 export { createImageProvider } from './image-generation';
 export type { CompatibleClientLike, CompatibleProviderDeps } from './compatible';

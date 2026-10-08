@@ -38,3 +38,5 @@
   - max: 65 s, $0.007, asked for more data instead of writing the sessions.
 
   Defaults are therefore high for replies, follow-ups and scheduled check-ins, low for live calls, and max for overnight consolidation and the deep tier, where nobody is waiting. The fast tier runs at medium.
+
+**Update 2026-10-08.** The deep tier (background plans, reviews, research) now defaults to DeepSeek V4.1 Flash at high effort, set separately with `providers.openrouter.deepModel`. The coach and fast tiers stay on Claude Haiku 5.5. The settings model picker changes only the coach's model. See [ADR 0008](0008-proportion-and-effort-by-stakes.md).

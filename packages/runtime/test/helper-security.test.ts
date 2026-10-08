@@ -98,13 +98,14 @@ describe('helper worktree isolation [SUB-3] [SEC-2]', () => {
 });
 
 
-it('[RT-6] [SUB-1] reports a capped helper as incomplete and does not adopt its partial draft', async () => {
+it('[SUB-1] reports a capped helper as incomplete and keeps its in-scope partial draft for the coach to finish', async () => {
   h = await makeHarness({ config: { limits: { helperMaxSteps: 1 } } });
   const { id } = await h.runtime.createAthlete({ displayName: 'Sam', tz: 'UTC', locale: 'en', isAdmin: false });
   h.setHandler(() => ({ toolCalls: [{ name: 'write', input: { path: 'plan/drafts/partial.md', content: 'Unreviewed partial output' } }] }));
   const result = await h.runtime.core.helpers.spawn({ athleteId: id, turnId: 'limited-parent', depth: 0 }, { task: 'Write a draft', tools: ['write'], write_scope: ['plan/drafts/**'] });
   expect(result).toMatchObject({ ok: false, code: 'LIMIT', message: expect.stringContaining('max_steps') });
-  await expect(readFile(join(h.runtime.core.paths(id).workspace, 'plan/drafts/partial.md'))).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(result).toMatchObject({ message: expect.stringContaining('/workspace/plan/drafts/partial.md') });
+  expect(await readFile(join(h.runtime.core.paths(id).workspace, 'plan/drafts/partial.md'), 'utf8')).toBe('Unreviewed partial output');
   const tasks = await h.runtime.core.store.listTasks(id);
   expect(tasks[0]).toMatchObject({ state: 'failed', error: expect.stringContaining('Incomplete helper') });
 });

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { ServerConfig, type ModelsConfig } from '@opencoach/protocol';
-import { DEFAULT_OPENROUTER_MODEL } from '@opencoach/engine';
+import { DEFAULT_OPENROUTER_DEEP_MODEL, DEFAULT_OPENROUTER_MODEL } from '@opencoach/engine';
 
 /**
  * Server configuration loader (SPEC §4.4, docs/self-hosting.md).
@@ -187,9 +187,10 @@ export function defaultModels(config: ServerConfig): ModelsConfig | undefined {
   const model = openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL;
   return {
     tiers: {
-      // No coach effort: it follows the trigger class (high for replies and check-ins, max overnight, low on calls).
+      // No coach effort: it follows the trigger class (high for replies, check-ins and consolidation, low on calls).
       coach: { provider: 'openrouter', model },
-      deep: { provider: 'openrouter', model, effort: 'max' },
+      // Deep work runs in the background, where a slower model with better judgment costs nothing in responsiveness.
+      deep: { provider: 'openrouter', model: openrouter.deepModel ?? DEFAULT_OPENROUTER_DEEP_MODEL, effort: 'high' },
       fast: { provider: 'openrouter', model, effort: 'medium' },
     },
     fallbacks: {},

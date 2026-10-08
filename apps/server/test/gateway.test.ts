@@ -538,7 +538,8 @@ describe('model access: managed allowance, own keys, model choice and recovery [
     expect((await f.app.inject({ method: 'PUT', url: '/v1/settings', headers, payload: { budgets: { monthlyUsd: 50 } } })).statusCode).toBe(200);
     const picked = await f.app.inject({ method: 'PUT', url: '/v1/ai/model', headers, payload: { model: 'z-ai/glm-5.3-flash' } });
     expect(picked.json().model).toBe('z-ai/glm-5.3-flash');
-    expect((await f.store.getSettings(sis.athleteId)).models.deep).toEqual({ provider: 'openrouter', model: 'z-ai/glm-5.3-flash', effort: 'max' });
+    expect((await f.store.getSettings(sis.athleteId)).models.coach).toEqual({ provider: 'openrouter', model: 'z-ai/glm-5.3-flash' });
+    expect((await f.store.getSettings(sis.athleteId)).models.deep).toBeUndefined();
     const start = (await f.app.inject({ method: 'POST', url: '/v1/ai/openrouter/oauth/start', headers })).json().url as string;
     expect(new URL(start).origin).toBe('https://openrouter.test');
     expect(new URL(start).searchParams.get('code_challenge_method')).toBe('S256');

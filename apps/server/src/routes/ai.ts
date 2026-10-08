@@ -62,9 +62,8 @@ export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
   async function setModel(athleteId: string, model: string) {
     const { models } = requireModels();
     if (!models.catalog.some((m) => m.id === model)) throw badRequest('Choose one of the offered models.');
-    await runtime.updateSettings(athleteId, {
-      models: { coach: { provider: 'openrouter', model }, deep: { provider: 'openrouter', model, effort: 'max' } },
-    });
+    // The picker chooses the coach's own model; deep background work keeps the server's deep-tier default.
+    await runtime.updateSettings(athleteId, { models: { coach: { provider: 'openrouter', model } } });
   }
 
   async function storeKey(athleteId: string, key: string, owner: 'athlete' | 'admin') {
