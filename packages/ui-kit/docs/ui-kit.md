@@ -31,6 +31,21 @@ document.getElementById('distance').setAttribute('value', rows[0]?.value ?? 0);
 Declare `db:activities` in this view's `reads`. See `bridge.md` for data access
 and `views.md` for manifests, preview, and publish.
 
+## Your own components: `ui/lib/`
+
+`/workspace/ui/lib/` holds components that belong to you. It starts with tabs, a
+bottom sheet, a workout timer and a sortable table (see its
+`README.md`), and you can change, add or delete anything there. It is copied
+into every view when you publish, as `lib/`, so a view uses it with
+`<link rel="stylesheet" href="lib/lib.css">` and
+`<script type="module" src="lib/timer.js"></script>`. Published views are
+immutable: republish the views that use a file after changing it. A view with
+its own `lib/` folder gets that instead.
+
+The kit defines an element only if its name isn't taken. To replace a kit
+component, define your own version in `ui/lib/` and load that script before
+`/kit/1/kit.js`. The kit's readable source is in `/system/docs/ui-kit-source/`.
+
 ## Components
 
 Attributes use strings; structured data goes in JSON attributes or the named

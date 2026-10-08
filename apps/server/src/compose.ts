@@ -9,7 +9,7 @@ import {
 import { createCoachRuntime, createSafetyScreen, createWebSearchBackend, localDayStartIso, localMonthStartIso } from '@opencoach/runtime';
 import { createSandboxProvider } from '@opencoach/sandbox';
 import { openSqliteStore } from '@opencoach/store';
-import { createPlaywrightRenderer, chromiumAvailable, kitDistDir, kitDocsDir } from '@opencoach/ui-kit';
+import { createPlaywrightRenderer, chromiumAvailable, kitDistDir, kitDocsDir, kitSourceDir } from '@opencoach/ui-kit';
 import { createCallService, createDictationService, createOpenAIRealtimeProvider, createSynthesizer, createTranscriber } from '@opencoach/voice';
 import { createFsBlobStore, exportAthlete, stripImageLocation } from '@opencoach/workspace';
 import { isDemoConfig, loadConfigDetailed, type LoadConfigOptions } from './config';
@@ -86,6 +86,8 @@ export async function composeServer(opts: ComposeOptions = {}) {
     const kitDir = await kitDistDir();
     const docs = kitDocsDir();
     const extraSystemDocs = Object.fromEntries(['ui-kit', 'bridge', 'views'].map((name) => [`${name}.md`, join(docs, `${name}.md`)]).filter(([, file]) => existsSync(file!)));
+    // The kit's own source, read-only, so the coach can start from any component when it wants its own version.
+    if (existsSync(kitSourceDir())) extraSystemDocs['ui-kit-source'] = kitSourceDir();
     const browserPath = process.env.OPENCOACH_CHROMIUM_PATH ?? (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
     const renderer = opts.renderer === false ? undefined : opts.renderer ?? (chromiumAvailable(browserPath) ? createPlaywrightRenderer({ executablePath: browserPath }) : undefined);
     if (renderer) cleanup.unshift(() => renderer.dispose());

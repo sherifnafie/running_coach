@@ -9,6 +9,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { BridgeParams, BridgeRequest, UI_KIT_MAJOR, type ViewManifest } from '@opencoach/protocol';
@@ -153,6 +154,8 @@ export class PreviewServer {
       const ctx = this.o.views.get(id);
       if (!ctx) return this.send(res, 404, 'unknown view');
       const rel = decodeURIComponent(v[2] ?? '') || ctx.manifest.entry;
+      // Shared components: ui/lib/ is served as lib/ unless the view has its own (same layout as a published bundle).
+      if (rel.startsWith('lib/') && !existsSync(join(ctx.dir, 'lib'))) return this.file(res, join(this.o.workspaceDir, 'ui'), rel, true);
       return this.file(res, ctx.dir, rel, true);
     }
     if (path === '/favicon.ico') return this.send(res, 204, '');

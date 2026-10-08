@@ -2,6 +2,12 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.2: your own shared components (October 2026)
+
+**What changed.** Views can now share components that you own. Anything in `/workspace/ui/lib/` is copied into every view when you publish, as `lib/` (a view with its own `lib/` keeps that). New workspaces start with a few: tabs, a bottom sheet, a workout timer (stopwatch, countdown, intervals) and a sortable table, plus styles for expandable sections, sliders and switches. The kit's readable source is now in `/system/docs/ui-kit-source/`, and the kit only defines an element whose name isn't taken, so you can replace any kit component with your own. `/system/docs/ui-kit.md` has the details.
+
+**Existing workspace.** You have no `ui/lib/` yet. If you want the starter components, copy them from `/system/seed-workspace/ui/lib/`. Nothing changes for your views until you use them.
+
 ## v0.3.1: weather (October 2026)
 
 **What changed.** A new `weather` tool gives conditions now, hour-by-hour detail and a daily forecast for a town, with dew point, wind, UV and air quality, in the athlete's units and local time. The situation report says whether it's available. Use it when weather could change an outdoor session (the `environment` skill says what to do with the numbers); a routine forecast check before an indoor session isn't needed.

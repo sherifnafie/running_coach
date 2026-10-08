@@ -60,6 +60,9 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 
 - **Coach steering redesign (2026-10-08, [ADR 0008](adr/0008-proportion-and-effort-by-stakes.md)):** instructions rewritten for proportion, athlete-first precedence and effort by stakes; deep tier defaults to DeepSeek V4.1 Flash. Still open: small models make arithmetic and consistency slips in long planning conversations (half-written weeks, overlapping dates); Haiku sometimes writes a week's plan itself instead of using the planner; no automated grading for the conversation benchmark yet; no eval scenario for "don't message after an empty call".
 
+- **Coach-owned UI components (2026-10-08):** `ui/lib/` in the workspace is copied into each published view as `lib/` (checked by the same static gates), with starter tabs, sheet, workout timer and table; the kit source is readable at `/system/docs/ui-kit-source/` and kit elements can be overridden by defining them first. Default views deliberately don't use them; the coach decides.
+- **Weather tool (2026-10-08):** `weather` (Open-Meteo, no key, town-level, cached). Not yet covered by an eval scenario.
+
 - **Bring-your-own OpenAI key for voice** is not implemented. Voice uses the server key. The credential store already supports `openai`; the voice services need per-athlete scoping.
 - **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting, "Small home instance"). Store them relative to the data directory.
 

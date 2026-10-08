@@ -27,6 +27,19 @@ describe('[UI-3] view static validation and assets', () => {
     for (const doc of ['ui-kit.md', 'bridge.md', 'views.md']) expect((await readFile(join(kitDocsDir(), doc), 'utf8')).length).toBeGreaterThan(500);
   });
 
+  it('checks the shared ui/lib like the view itself: references resolve and external code is blocked', async () => {
+    const { mkdir } = await import('node:fs/promises');
+    await mkdir(join(dir, 'ui/lib'), { recursive: true });
+    await writeFile(join(dir, 'ui/lib/mine.js'), "import 'https://bad.test/x.js';");
+    const html = await readFile(join(dir, 'ui/views/today/index.html'), 'utf8');
+    await writeFile(join(dir, 'ui/views/today/index.html'), html.replace('</head>', '<script type="module" src="lib/mine.js"></script></head>'));
+    const result = await checkViewStatic(dir, 'today', readDbSchema(join(dir, 'data/coach.db')));
+    const errors = result.errors.join('\n');
+    expect(errors).toContain('lib/mine.js');
+    expect(errors).toContain('external import');
+    expect(errors).not.toMatch(/lib\/mine\.js.*(missing|does not exist)/);
+  });
+
   it('reports missing references and schema drift before rendering', async () => {
     const manifest = { id: 'today', title: 'Today', entry: 'missing.html', reads: ['db:missing_table'], writes: [{ db: 'activities', ops: ['update'], columns: ['missing_col'] }] };
     await writeFile(join(dir, 'ui/views/today/view.json'), JSON.stringify(manifest));

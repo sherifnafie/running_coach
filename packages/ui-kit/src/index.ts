@@ -6,7 +6,7 @@
  * Build: `pnpm --filter @opencoach/ui-kit build` (kitDistDir() also builds on demand).
  */
 import type { UiRenderer } from '@opencoach/protocol';
-import { kitDistDir as kitDistDirImpl, kitDocsDir as kitDocsDirImpl } from './node/assets';
+import { kitDistDir as kitDistDirImpl, kitDocsDir as kitDocsDirImpl, kitSourceDir as kitSourceDirImpl } from './node/assets';
 import { PlaywrightRenderer, type PlaywrightRendererOptions as RendererOptions } from './node/renderer';
 
 /** Absolute path of the built kit directory (contains kit.js, kit.css, icons). Builds if missing. */
@@ -17,6 +17,10 @@ export async function kitDistDir(): Promise<string> {
 /** Absolute path of the coach-facing kit docs (ui-kit.md, bridge.md, views.md) to be placed in /system/docs. */
 export function kitDocsDir(): string {
   return kitDocsDirImpl();
+}
+
+export function kitSourceDir(): string {
+  return kitSourceDirImpl();
 }
 
 export type PlaywrightRendererOptions = RendererOptions;

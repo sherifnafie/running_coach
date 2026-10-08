@@ -141,6 +141,12 @@ export async function copyPublishedView(paths: AthletePaths, viewId: string, ver
   const tmp = path.join(paths.published, viewId, `.${version}.tmp-${randomSuffix()}`);
   try {
     await copyTree(src, tmp, { skip: (rel, isDir) => isDir && rel.split('/').includes('.git') });
+    // The workspace's shared ui/lib/ (the coach's own components) ships inside the bundle as lib/, unless the view has
+    // its own lib/. Copied at publish time, so a published version never changes when the library does.
+    const lib = path.join(paths.workspace, 'ui', 'lib');
+    if ((await pathExists(lib)) && !(await pathExists(path.join(tmp, 'lib')))) {
+      await copyTree(lib, path.join(tmp, 'lib'), { skip: (rel, isDir) => isDir && rel.split('/').includes('.git') });
+    }
     await fsp.rename(tmp, dest);
   } catch (e) {
     await fsp.rm(tmp, { recursive: true, force: true }).catch(() => {});

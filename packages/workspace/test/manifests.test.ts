@@ -120,6 +120,16 @@ describe('copyPublishedView', () => {
     return paths;
   }
 
+  it('ships the shared ui/lib inside the bundle as lib/, unless the view has its own', async () => {
+    const paths = await setup();
+    await write(path.join(paths.workspace, 'ui/lib/timer.js'), 'export const shared = 1;');
+    const dir = await copyPublishedView(paths, 'today', '1');
+    expect(await fsp.readFile(path.join(dir, 'lib/timer.js'), 'utf8')).toBe('export const shared = 1;');
+    await write(path.join(paths.workspace, 'ui/views/today/lib/timer.js'), 'export const own = 1;');
+    const own = await copyPublishedView(paths, 'today', '2');
+    expect(await fsp.readFile(path.join(own, 'lib/timer.js'), 'utf8')).toBe('export const own = 1;');
+  });
+
   it('copies the view into published/<id>/<version> and returns the dir', async () => {
     const paths = await setup();
     const dir = await copyPublishedView(paths, 'today', '1');

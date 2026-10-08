@@ -21,3 +21,8 @@ export async function kitDistDir(): Promise<string> {
 export function kitDocsDir(): string {
   return join(pkgRoot, 'docs');
 }
+
+/** The kit's readable browser source, shown to the coach so it can copy and change any component. */
+export function kitSourceDir(): string {
+  return join(pkgRoot, 'src', 'browser');
+}

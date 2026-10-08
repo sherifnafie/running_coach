@@ -1,0 +1,143 @@
+/* Shared styles for the components in ui/lib. Uses the kit's tokens, so it follows theme, dark mode and accent. */
+
+/* ---- native <details>: expandable sections ---- */
+details.rc-details {
+  border: 1px solid var(--rc-border);
+  border-radius: var(--rc-radius);
+  background: var(--rc-surface);
+}
+details.rc-details + details.rc-details { margin-top: var(--rc-space-2); }
+details.rc-details > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rc-space-3);
+  min-height: var(--rc-tap);
+  padding: 0 var(--rc-space-4);
+  font-weight: 600;
+}
+details.rc-details > summary::-webkit-details-marker { display: none; }
+details.rc-details > summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--rc-text-2);
+  border-bottom: 2px solid var(--rc-text-2);
+  transform: rotate(45deg);
+  transition: transform 0.15s;
+}
+details.rc-details[open] > summary::after { transform: rotate(-135deg); }
+details.rc-details > :not(summary) { padding: 0 var(--rc-space-4) var(--rc-space-4); }
+
+/* ---- range slider ---- */
+input[type='range'].rc-range { width: 100%; accent-color: var(--rc-accent); min-height: var(--rc-tap); }
+
+/* ---- switch: <label class="switch"><input type="checkbox"> Label</label> ---- */
+label.switch { display: inline-flex; align-items: center; gap: var(--rc-space-3); min-height: var(--rc-tap); cursor: pointer; }
+label.switch input {
+  appearance: none;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--rc-surface-3);
+  border: 1px solid var(--rc-border-strong);
+  position: relative;
+  transition: background 0.15s;
+  flex: none;
+}
+label.switch input::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--rc-surface);
+  box-shadow: var(--rc-shadow);
+  transition: transform 0.15s;
+}
+label.switch input:checked { background: var(--rc-accent); border-color: var(--rc-accent); }
+label.switch input:checked::after { transform: translateX(18px); }
+label.switch input:focus-visible { outline: 2px solid var(--rc-focus); outline-offset: 2px; }
+
+/* ---- rc-tabs ---- */
+rc-tabs { display: block; }
+.rc-tabs__list {
+  display: flex;
+  gap: var(--rc-space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--rc-border);
+  margin-bottom: var(--rc-space-4);
+}
+.rc-tabs__tab {
+  flex: none;
+  min-height: var(--rc-tap);
+  padding: 0 var(--rc-space-4);
+  border: 0;
+  background: none;
+  color: var(--rc-text-2);
+  font: inherit;
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.rc-tabs__tab[aria-selected='true'] { color: var(--rc-text); border-bottom-color: var(--rc-accent); }
+.rc-tabs__tab:focus-visible { outline: 2px solid var(--rc-focus); outline-offset: -2px; }
+rc-tab[hidden] { display: none; }
+rc-tab { display: block; }
+
+/* ---- rc-sheet ---- */
+dialog.rc-sheet {
+  border: 0;
+  padding: 0;
+  margin: auto auto 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  border-radius: var(--rc-radius-lg) var(--rc-radius-lg) 0 0;
+  background: var(--rc-surface);
+  color: var(--rc-text);
+  box-shadow: var(--rc-shadow);
+}
+dialog.rc-sheet::backdrop { background: rgb(0 0 0 / 40%); }
+.rc-sheet__head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rc-space-3);
+  padding: var(--rc-space-3) var(--rc-space-4);
+  background: var(--rc-surface);
+  border-bottom: 1px solid var(--rc-border);
+}
+.rc-sheet__head h2 { margin: 0; font-size: var(--rc-text-lg); }
+.rc-sheet__close { min-width: var(--rc-tap); min-height: var(--rc-tap); border: 0; background: none; color: var(--rc-text-2); font-size: 22px; cursor: pointer; }
+.rc-sheet__body { padding: var(--rc-space-4) var(--rc-space-4) calc(var(--rc-space-6) + var(--rc-safe-bottom)); overflow-y: auto; }
+
+/* ---- rc-timer ---- */
+rc-timer { display: block; text-align: center; }
+.rc-timer__label { color: var(--rc-text-2); font-weight: 600; min-height: 1.4em; }
+.rc-timer__time { font-family: var(--rc-font-mono); font-variant-numeric: tabular-nums; font-size: clamp(48px, 18vw, 96px); font-weight: 700; line-height: 1.1; }
+.rc-timer__next { color: var(--rc-text-3); font-size: var(--rc-text-sm); min-height: 1.4em; }
+.rc-timer__bar { height: 6px; border-radius: 3px; background: var(--rc-surface-3); overflow: hidden; margin: var(--rc-space-3) 0; }
+.rc-timer__bar > span { display: block; height: 100%; width: 0; background: var(--rc-accent); transition: width 0.25s linear; }
+.rc-timer__controls { display: flex; justify-content: center; gap: var(--rc-space-3); margin-top: var(--rc-space-3); }
+
+/* ---- rc-table ---- */
+rc-table { display: block; overflow-x: auto; }
+rc-table table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+rc-table th, rc-table td { text-align: start; padding: var(--rc-space-2) var(--rc-space-3); border-bottom: 1px solid var(--rc-border); white-space: nowrap; }
+rc-table th button { all: unset; cursor: pointer; font-weight: 600; color: var(--rc-text-2); min-height: 32px; display: inline-flex; align-items: center; gap: 4px; }
+rc-table th button:focus-visible { outline: 2px solid var(--rc-focus); }
+rc-table th[aria-sort] button { color: var(--rc-text); }
+rc-table td.num, rc-table th.num { text-align: end; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-timer__bar > span, details.rc-details > summary::after, label.switch input, label.switch input::after { transition: none; }
+}

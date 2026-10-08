@@ -15,7 +15,7 @@ This is my persistent workspace as {{athlete_name}}'s coach inside OpenCoach. An
 - `journal/YYYY/MM/DD.md`: my daily notes: observations, decisions and why.
 - `briefing.md`: what I wrote for tomorrow-me during consolidation. Replaced every night.
 - `data/`: `coach.db` (SQLite) is the source of truth for activities (any sport), lifting sets, planned workouts, check-ins, metrics, goal events (races, meets, tests) and gear. Schema docs: `data/schema.md`. Migrations: `data/migrations/`. Nightly SQL dumps in `data/dump/` are written by the harness.
-- `ui/`: the athlete's app. `app.json` = nav and theme. Views in `ui/views/<id>/`. Guide: `/system/docs/ui-kit.md`.
+- `ui/`: the athlete's app. `app.json` = nav and theme. Views in `ui/views/<id>/`; shared components I own in `ui/lib/` (copied into every view on publish). Guide: `/system/docs/ui-kit.md`.
 - `skills/`: procedures I've written for myself (first-party skills are read-only in `/system/skills`). `agents/`: helper profiles.
 - `research/`: source-backed findings and evidence reviews, with dates, URLs, caveats and unanswered questions. Quick lookups use `researcher`; deeper reviews use `deep-researcher` or a profile I create.
 - `exports/calendar.ics`: subscribed by the athlete's calendar. Regenerate after any plan change (`calendar-export` skill).

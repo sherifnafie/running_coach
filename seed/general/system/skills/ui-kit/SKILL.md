@@ -10,6 +10,8 @@ Use this skill when building or changing an athlete's app views. Read
 before editing. The seed Today, Calendar, Plan, and Progress views demonstrate
 the current starter schema and component conventions.
 
+Shared components you own (tabs, sheet, workout timer, table, and anything you add) live in `/workspace/ui/lib/`, and the kit's own source is in `/system/docs/ui-kit-source/` if you want your version of a kit component; `/system/docs/ui-kit.md` explains both.
+
 Build under `/workspace/ui/views/<id>/`; keep `view.json` reads, writes, actions,
 entry, and kit version accurate. Use external scripts and the kit assets at
 `/kit/1/`. Access data only through `coach.db` and `coach.files`, and wait for

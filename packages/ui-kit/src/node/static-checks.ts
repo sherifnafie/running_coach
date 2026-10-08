@@ -166,6 +166,12 @@ export async function checkViewStatic(workspaceDir: string, viewId: string, sche
   } catch (e) {
     fail(`cannot read view directory: ${(e as Error).message}`);
   }
+  // The workspace's shared ui/lib/ ships inside every bundle as lib/ (unless the view has its own lib/), so it is
+  // checked like the view's own files.
+  if (!files.some((f) => f.rel.startsWith('lib/'))) {
+    const shared = await walk(join(workspaceDir, 'ui', 'lib')).catch(() => []);
+    files.push(...shared.map((f) => ({ ...f, rel: `lib/${f.rel}` })));
+  }
   res.bundleKb = Math.round((files.reduce((a, f) => a + f.size, 0) / 1024) * 10) / 10;
   const fileSet = new Set(files.map((f) => f.rel));
 
