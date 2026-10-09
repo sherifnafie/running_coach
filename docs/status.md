@@ -169,6 +169,10 @@ achievement judge checks remain unrun). Browser coverage checks the five-screen
 batch after reload, collapsed size, keyboard expansion, deduplicated Markdown
 and history navigation. Phone/desktop visual checks cover the compact row and
 expanded detail.
+Deployed 0.3.11 (`97aa65c`) after backup. Verified the live release, new client
+styles, authenticated app/all five current views, public HTTP 200 and API auth
+boundary. Read-only owner-history verification folds 32 publication events into
+15 compact entries, including the five-screen batch; source events are retained.
 
 ## Open work (roughly by value)
 
