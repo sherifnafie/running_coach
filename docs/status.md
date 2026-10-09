@@ -184,6 +184,8 @@ Verified 171 web unit tests, web typecheck/build and all 18 browser cases on a
 clean repeat. Visual review covers light/dark 390px phones, 320px fit and desktop;
 the browser checks screen/history navigation, keyboard expansion and 44px
 targets within the expanded panel.
+Deployed `460ffab` after backup; verified the active service, newly served
+panel styles, authenticated app/all five views and unchanged auth boundary.
 
 ## Open work (roughly by value)
 
