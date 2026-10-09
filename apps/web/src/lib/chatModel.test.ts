@@ -152,6 +152,56 @@ describe('micro-UI answers', () => {
 });
 
 describe('system lines', () => {
+  const publication = (id: string, viewId: string, turnId?: string, commit = 'commit', summary = 'One change'): AnyEvent => ({
+    id, athleteId: 'ath_1', actor: 'coach', ts: '2026-10-06T10:00:00.000Z', type: 'coach.ui_published', turnId,
+    payload: { viewId, version: id, commit, summary },
+  });
+
+  it('[UI-1] groups a five-screen publish into one timeline entry without rewriting its source events', () => {
+    const events = ['log', 'calendar', 'today', 'plan', 'progress'].map((id, i) => publication(`evt_${i}`, id, 'turn_1'));
+    const state = run(initialChatState, { type: 'history', events, mode: 'initial' });
+    const timeline = buildTimeline(state);
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0]).toMatchObject({ key: 'evt_0', viewUpdate: { views: events.map(e => ({ viewId: (e.payload as {viewId: string}).viewId, summary: 'One change' })) } });
+    expect(state.events).toHaveLength(5);
+  });
+
+  it('[UI-1] groups legacy publications by commit and summary and keeps only the latest version of a screen', () => {
+    const events = [publication('evt_1', 'today'), publication('evt_2', 'calendar'), publication('evt_3', 'today')];
+    const timeline = buildTimeline(run(initialChatState, { type: 'history', events, mode: 'initial' }));
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0]).toMatchObject({ viewUpdate: { views: [{ viewId: 'today' }, { viewId: 'calendar' }] } });
+  });
+
+  it('[UI-1] preserves separate changes across conversation, quick replies and different turns', () => {
+    const events: AnyEvent[] = [
+      publication('evt_1', 'today', 'turn_1'),
+      { id: 'evt_2', athleteId: 'ath_1', actor: 'athlete', ts: '2026-10-06T10:00:00.000Z', type: 'user.ui_action', payload: { source: { messageId: 'm' }, action: 'quick_reply', wake: true } },
+      publication('evt_3', 'calendar', 'turn_1'),
+      publication('evt_4', 'plan', 'turn_2'),
+      { ...coach('Done'), id: 'evt_5', ts: '2026-10-06T10:00:00.000Z' },
+      publication('evt_6', 'progress', 'turn_2'),
+    ];
+    const timeline = buildTimeline(run(initialChatState, { type: 'history', events, mode: 'initial' }));
+    expect(timeline).toHaveLength(5);
+    expect(timeline.filter(i => i.kind === 'system')).toHaveLength(4);
+  });
+
+  it('[UI-1] produces the same grouped timeline after history pagination and duplicate delivery', () => {
+    const a = publication('evt_1', 'today', 'turn_1'); const b = publication('evt_2', 'calendar', 'turn_1');
+    const state = run(initialChatState, { type: 'history', events: [b], mode: 'initial' },
+      { type: 'history', events: [a], mode: 'older' }, { type: 'event', event: b });
+    expect(buildTimeline(state)).toEqual(buildTimeline(run(initialChatState, { type: 'history', events: [a, b], mode: 'initial' })));
+  });
+
+  it('[UI-1] does not split an update batch on read receipts or device telemetry', () => {
+    const events: AnyEvent[] = [publication('evt_1', 'today', 'turn_1'),
+      { id: 'evt_2', athleteId: 'ath_1', actor: 'athlete', ts: '2026-10-06T10:00:00.000Z', type: 'user.read', payload: { messageIds: ['m'] } },
+      { id: 'evt_3', athleteId: 'ath_1', actor: 'device', ts: '2026-10-06T10:00:00.000Z', type: 'device.context', payload: { tz: 'Europe/Amsterdam', locale: 'en' } },
+      publication('evt_4', 'calendar', 'turn_1')];
+    expect(buildTimeline(run(initialChatState, { type: 'history', events, mode: 'initial' }))).toHaveLength(1);
+  });
+
   it('shows ui_published, call and visible notices but not safety_flag or invisible notices', () => {
     const base = { athleteId: 'ath_1', actor: 'harness' as const };
     const events: AnyEvent[] = [

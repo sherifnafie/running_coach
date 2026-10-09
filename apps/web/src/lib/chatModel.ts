@@ -236,7 +236,9 @@ export type TimelineItem =
   | { kind: 'user.upload'; key: string; ts: string; event: EventEnvelope<'user.upload'> }
   | { kind: 'user.voice_note'; key: string; ts: string; event: EventEnvelope<'user.voice_note'> }
   | { kind: 'coach.message'; key: string; ts: string; event: EventEnvelope<'coach.message'>; answer?: AnswerView }
-  | { kind: 'system'; key: string; ts: string; text: string; viewId?: string; viewUpdate?: { title: string; summary: string } }
+  | { kind: 'system'; key: string; ts: string; text: string; viewId?: string; viewUpdate?: {
+      batchKey: string; views: Array<{ viewId: string; title: string; summary: string }>;
+    } }
   | { kind: 'provisional'; key: string; ts: string; item: Provisional }
   | { kind: 'pending'; key: string; ts: string; item: PendingMessage };
 
@@ -292,8 +294,13 @@ export function buildTimeline(state: ChatState, opts: TimelineOptions = {}): Tim
     }
   }
   const out: TimelineItem[] = [];
+  let updateSegment = 0;
   for (const e of state.events) {
     if (deleted.has(e.id)) continue;
+    // Hidden quick replies/view actions are still a new athlete interaction, not part of an old batch.
+    if (e.type === 'user.message' || e.type === 'user.upload' || e.type === 'user.voice_note'
+      || e.type === 'user.ui_action' || e.type === 'user.ui_write' || e.type === 'user.view_reverted'
+      || e.type === 'user.message_deleted') updateSegment++;
     switch (e.type) {
       case 'user.message':
         out.push({ kind: 'user.message', key: e.id, ts: e.ts, event: e });
@@ -316,8 +323,15 @@ export function buildTimeline(state: ChatState, opts: TimelineOptions = {}): Tim
       }
       case 'coach.ui_published': {
         const title = opts.viewTitle?.(e.payload.viewId) ?? e.payload.viewId;
-        out.push({ kind: 'system', key: e.id, ts: e.ts, text: `Your coach updated ${title}${e.payload.summary ? `: ${e.payload.summary}` : ''}`, viewId: e.payload.viewId,
-          viewUpdate: { title, summary: e.payload.summary } });
+        const batchKey = `${updateSegment}:` + (e.turnId ? `turn:${e.turnId}` : JSON.stringify([e.payload.commit, e.payload.summary]));
+        const previous = out.at(-1);
+        const view = { viewId: e.payload.viewId, title, summary: e.payload.summary };
+        if (previous?.kind === 'system' && previous.viewUpdate?.batchKey === batchKey) {
+          const index = previous.viewUpdate.views.findIndex(v => v.viewId === view.viewId);
+          if (index < 0) previous.viewUpdate.views.push(view);
+          else previous.viewUpdate.views[index] = view;
+        } else out.push({ kind: 'system', key: e.id, ts: e.ts, text: `Your coach updated ${title}${e.payload.summary ? `: ${e.payload.summary}` : ''}`,
+          viewUpdate: { batchKey, views: [view] } });
         break;
       }
       case 'call.started':

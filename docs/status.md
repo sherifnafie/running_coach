@@ -153,6 +153,23 @@ pre-deploy backup; verified the active service, schema 4 with no foreign-key
 violations, empty pending/held queues, authenticated app and all four current
 views, public HTTP 200 and unauthenticated API HTTP 401.
 
+**Quieter screen updates (0.3.11, 2026-10-09, [UI-1]):** chat now folds adjacent
+screen publications from one turn into one compact disclosure, including older
+conversation history. Identical summaries appear once on expansion, with all
+screen links and history/undo still available; conversation and quick-reply
+boundaries preserve distinct changes. Duplicate delivery of the same update
+marker does not restart its dismissal timer. Publish comparison now includes
+inherited `ui/lib/` (respecting screen-local overrides); the old comparison
+treated every inherited library as a change and unnecessarily republished
+unmodified screens. Explicit unchanged selections also skip version/alert
+creation. Shared-library changes and deletions still update affected bundles.
+All 816 harness/renderer tests, 171 web unit tests, 18 browser cases,
+typecheck/build and the 28-scenario reference fast gates pass (three optional
+achievement judge checks remain unrun). Browser coverage checks the five-screen
+batch after reload, collapsed size, keyboard expansion, deduplicated Markdown
+and history navigation. Phone/desktop visual checks cover the compact row and
+expanded detail.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.

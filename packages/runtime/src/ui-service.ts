@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
-import { join, relative } from 'node:path';
+import { cp, lstat, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { backup, DatabaseSync } from 'node:sqlite';
 import picomatch from 'picomatch';
 import {
@@ -40,27 +40,30 @@ export async function athleteForViewToken(store: Core['store'], token: string): 
   return store.getKv(TOKEN_REV(token));
 }
 
-async function dirHash(dir: string): Promise<string | null> {
+/** Compare the effective published bundle, including inherited lib/; match copyPublishedView. */
+async function dirHash(dir: string, sharedLib?: string): Promise<string | null> {
   try {
     await stat(dir);
   } catch {
     return null;
   }
   const h = createHash('sha256');
-  const walk = async (d: string) => {
+  const files = new Map<string, string>();
+  const walk = async (d: string, prefix = '') => {
     const entries = (await readdir(d, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name));
     for (const e of entries) {
       const p = join(d, e.name);
-      if (e.isDirectory()) await walk(p);
+      const name = prefix ? `${prefix}/${e.name}` : e.name;
+      if (e.isDirectory() && e.name !== '.git') await walk(p, name);
       else if (e.isFile()) {
-        h.update(relative(dir, p));
-        h.update('\0');
-        h.update(await readFile(p));
-        h.update('\0');
+        files.set(name, createHash('sha256').update(await readFile(p)).digest('hex'));
       }
     }
   };
   await walk(dir);
+  const ownLib = await lstat(join(dir, 'lib')).catch(() => null);
+  if (sharedLib && (!ownLib || ownLib.isSymbolicLink()) && (await lstat(sharedLib).catch(() => null))?.isDirectory()) await walk(sharedLib, 'lib');
+  for (const [name, hash] of [...files].sort(([a], [b]) => a.localeCompare(b))) h.update(JSON.stringify([name, hash]));
   return h.digest('hex');
 }
 
@@ -129,7 +132,7 @@ export class UiService {
         changed.push(id);
         continue;
       }
-      const [a, b] = await Promise.all([dirHash(join(ws, 'ui', 'views', id)), dirHash(cur.dir)]);
+      const [a, b] = await Promise.all([dirHash(join(ws, 'ui', 'views', id), join(ws, 'ui', 'lib')), dirHash(cur.dir)]);
       if (a !== b) changed.push(id);
     }
     return changed.sort();
@@ -225,7 +228,10 @@ export class UiService {
   private async publishInner(athleteId: string, views: string[] | undefined, summary: string, turnId?: string): Promise<PublishResult> {
     const core = this.core;
     const paths = core.paths(athleteId);
-    const list = views && views.length ? views : await this.changedViews(athleteId);
+    const changed = new Set(await this.changedViews(athleteId));
+    const { views: available } = await readUiManifests(paths.workspace);
+    // Explicit selections still validate unknown IDs, but unchanged bundles need no version or alert.
+    const list = views && views.length ? [...new Set(views)].filter(id => changed.has(id) || !available[id]) : [...changed];
     let appChange: AppManifest | null = null;
     try {
       appChange = await this.appJsonChanged(athleteId, paths.workspace);

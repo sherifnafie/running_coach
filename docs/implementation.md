@@ -41,7 +41,7 @@ athletes/<athleteId>/             see athletePaths() in protocol/src/config.ts
 ```
 seed/core/constitution.md              harness-generic constitution with {{pack_coaching}} and {{pack_safety}} slots
 seed/core/addenda/*.md                 helper, voice, consolidation, upgrade, safety-notice preambles
-seed/general/pack.json                 { "id": "general", "version": "0.3.10", "name": "General coaching" }
+seed/general/pack.json                 { "id": "general", "version": "0.3.11", "name": "General coaching" }
 seed/general/constitution/coaching.md  fills {{pack_coaching}} (any sport, chosen by the athlete; ADR 0006)
 seed/general/constitution/safety.md    fills {{pack_safety}} (red flags for all sports, weight-cut and high-risk rules)
 seed/general/system/                   → /system: docs/*.md, skills/<name>/SKILL.md (+ refs, scripts), CHANGELOG-for-coach.md
@@ -71,6 +71,7 @@ with separate image permissions/allowances and fixed rendering parameters
 - View HTML loads the kit with absolute paths: `<link rel="stylesheet" href="/kit/1/kit.css"><script type="module" src="/kit/1/kit.js"></script>`.
 - Kit major-version paths revalidate because compatible releases can change them. Updated starters use a release query to bypass previously immutable cached kit URLs; published view bundles keep their commit fingerprints and immutable cache policy.
 - The shell embeds views in `<iframe sandbox="allow-scripts">` (never allow-same-origin) and runs the bridge host. The bridge is JSON-RPC 2.0 over postMessage (`BridgeRequest` in protocol/views.ts). The host validates `event.source === iframe.contentWindow`.
+- Publish comparison includes the shared `ui/lib/` copied into each bundle, unless a view supplies its own `lib/`. Unchanged selections create no version or alert. Chat folds adjacent screen publications from one turn (legacy events: matching commit/summary) into one compact disclosure; full per-screen history/revert stays available. Conversation and athlete-action boundaries keep separate changes separate.
 - Data access always goes through the gateway (`POST /v1/views/:id/query|file|write|act`), which enforces the manifest server-side.
 
 ## Conventions

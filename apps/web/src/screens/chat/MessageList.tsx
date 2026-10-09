@@ -196,7 +196,7 @@ function renderItem(item: TimelineItem, ctx: { tz?: string; locale?: string }, r
     case 'pending':
       return <PendingBubble item={item.item} />;
     case 'system':
-      if (item.viewUpdate && item.viewId) return <ViewUpdateMessage title={item.viewUpdate.title} summary={item.viewUpdate.summary} onOpen={() => navigate({ name: 'view', viewId: item.viewId!, params: {} })} />;
+      if (item.viewUpdate) return <ViewUpdateMessage views={item.viewUpdate.views} />;
       return <SystemLine text={item.text} onOpen={item.viewId ? () => navigate({ name: 'view', viewId: item.viewId!, params: {} }) : undefined} />;
   }
 }

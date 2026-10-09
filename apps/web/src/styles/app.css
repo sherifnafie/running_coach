@@ -1933,8 +1933,18 @@ input[aria-invalid='true'] {
 .view-update-copy p, .view-update-summary { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 2px 0 0; color: var(--rc-muted); font-size: .78rem; line-height: 1.45; overflow-wrap: anywhere; }
 .view-update-history { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 40px; padding: 0 9px; border: 1px solid var(--rc-border); border-radius: 9px; background: transparent; color: var(--rc-text); cursor: pointer; font: inherit; font-size: .8rem; }
 .view-update-history span { display: none; }
-.chat-view-update { display: flex; align-items: center; gap: 10px; align-self: center; width: min(100%, 430px); margin: 7px 0; padding: 10px 12px; border: 1px solid var(--rc-border); border-radius: 13px; background: var(--rc-surface); color: var(--rc-text); font: inherit; cursor: pointer; }
-.chat-view-update:hover { background: var(--rc-surface-2); }
+.chat-view-update { align-self: center; width: min(100%, 430px); margin: 2px 0; color: var(--rc-muted); font-size: .78rem; }
+.chat-view-update > summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 5px 9px; border-radius: 10px; list-style: none; cursor: pointer; }
+.chat-view-update > summary::-webkit-details-marker { display: none; }
+.chat-view-update > summary:hover { background: var(--rc-surface); }
+.chat-view-update > summary:focus-visible { outline: 2px solid var(--rc-accent); outline-offset: 2px; }
+.chat-view-update-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-view-update > summary > svg { flex: none; }
+.chat-view-update[open] > summary > svg:last-child { transform: rotate(90deg); }
+.chat-view-update-detail { padding: 0 12px 10px; border-bottom: 1px solid var(--rc-border); color: var(--rc-text); font-size: .84rem; overflow-wrap: anywhere; }
+.chat-view-update-detail .md + .md { margin-top: 8px; }
+.chat-view-update-links { display: flex; flex-wrap: wrap; gap: 0 10px; margin-top: 6px; }
+.chat-view-update-links .btn { display: inline-flex; align-items: center; gap: 3px; min-height: 44px; }
 .view-update-tag { margin-inline-start: 5px; color: var(--rc-muted); font-size: .73rem; font-weight: 400; }
 @media (min-width: 600px) { .view-update-history span { display: inline; } }
 

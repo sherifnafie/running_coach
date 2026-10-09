@@ -465,8 +465,61 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     const card = page.locator('.chat-view-update').filter({ hasText: 'Updated the session layout' });
     await card.waitFor();
     if (process.env.OPENCOACH_CAPTURE_POLISH === '1') await card.screenshot({ path: join(repo, 'work/view-update-chat-phone.png') });
-    await card.click();
+    await card.locator('summary').click();
+    await card.getByRole('button', { name: 'Today', exact: true }).click();
     await page.waitForURL(/#\/view\/today/);
+  }, 120_000);
+
+  it('[UI-1] groups a five-screen change in old and reloaded chat with keyboard-accessible detail', async () => {
+    const workspace = athletePaths(server.config.dataDir, athleteId).workspace;
+    await cp(join(workspace, 'ui/views/today'), join(workspace, 'ui/views/log'), { recursive: true });
+    const manifestPath = join(workspace, 'ui/views/log/view.json');
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    manifest.id = 'log'; manifest.title = 'Log';
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const selected = ['log', 'calendar', 'today', 'plan', 'progress'];
+    for (const id of selected) {
+      const entry = join(workspace, 'ui/views', id, 'index.html');
+      await writeFile(entry, await readFile(entry, 'utf8') + '\n<!-- grouped update fixture -->\n');
+    }
+    const summary = 'Added a **Log** for sessions and changed the calendar default.';
+    const result = await server.runtime.core.ui.publish(athleteId, selected, summary, 'turn_grouped_update_fixture');
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.published).toHaveLength(5);
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Chat', exact: true }).click();
+    await page.reload();
+    const row = page.locator('.chat-view-update').filter({ hasText: 'changed the calendar default' });
+    await row.waitFor();
+    expect(await row.count()).toBe(1);
+    expect(await row.getAttribute('open')).toBeNull();
+    expect((await row.boundingBox())!.height).toBeLessThan(50);
+    expect(await row.locator('summary').innerText()).toContain('Log, Calendar +3');
+    await row.locator('summary').focus(); await page.keyboard.press('Enter');
+    await row.getByRole('button', { name: 'Calendar', exact: true }).waitFor();
+    expect(await row.locator('.md').count()).toBe(1);
+    expect(await row.locator('.md strong').innerText()).toBe('Log');
+    if (process.env.OPENCOACH_CAPTURE_POLISH === '1') {
+      const originalTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+      await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
+      await row.locator('summary').click();
+      await row.screenshot({ path: join(repo, 'work/grouped-updates-phone-dark.png') });
+      await page.evaluate(() => { document.documentElement.dataset.theme = 'light'; });
+      await row.screenshot({ path: join(repo, 'work/grouped-updates-phone-light.png') });
+      await row.locator('summary').click();
+      await row.screenshot({ path: join(repo, 'work/grouped-updates-phone-expanded.png') });
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await row.locator('summary').click();
+      await row.screenshot({ path: join(repo, 'work/grouped-updates-desktop.png') });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await row.locator('summary').click();
+      await page.evaluate(theme => {
+        if (theme === null) document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.dataset.theme = theme;
+      }, originalTheme);
+    }
+    await row.getByRole('button', { name: 'View history', exact: true }).click();
+    await page.locator('#settings-settings-history').getByRole('heading', { name: 'Screen history', exact: true }).waitFor();
   }, 120_000);
 
   it('[WS-4] presents local coach history readably and persists maximum message limits [MSG-4]', async () => {

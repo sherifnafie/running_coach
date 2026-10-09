@@ -676,7 +676,7 @@ The bridge provides: `coach.db.query(sql, params)` (read-only connection, row ca
 2. **Headless render** (Chromium in the sandbox) at 390×844 and 768×1024, light and dark, against **(a)** the athlete's current data and **(b)** an empty-state fixture.
 3. **Runtime checks:** zero uncaught errors and CSP violations; first render < 1.5 s on 4× CPU throttling; bundle ≤ 500 KB excluding the kit; axe-core: no *critical* accessibility violations (serious ones are warnings in v1).
 4. **Screenshots returned to the coach** for visual self-review. The coach is expected to look at them.
-5. **Atomic publish:** git tag `ui/<id>@<n>`. The client receives `coach.ui_published` and shows a subtle "Updated by your coach" marker.
+5. **Atomic publish:** git tag `ui/<id>@<n>`. The client receives `coach.ui_published` and shows a subtle "Updated by your coach" marker. `[UI-1]` Unchanged effective bundles (including inherited shared UI files) do not create new versions or update alerts, even when explicitly selected. Chat groups adjacent screen publications from a turn into one compact, expandable entry; the summary is not repeated for every screen. Full summaries, screen links and per-screen history/revert remain accessible. Historical event records are preserved.
 6. **Last-known-good:** if a published view throws on a device, the client falls back to the previous version and reports `ui.error`, which triggers a follow-up turn to fix it.
 
 - `[UI-3]` After any `coach.db` migration, all views that read the changed tables MUST be re-validated. Failures are reported to the coach in the same turn.

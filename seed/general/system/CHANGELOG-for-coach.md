@@ -2,6 +2,15 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.11: quieter screen updates (October 2026)
+
+`publish_ui` compares the effective view bundle, including inherited `ui/lib/`,
+and skips unchanged screens even when explicitly selected. A shared-library
+change still updates affected bundles. Chat groups adjacent screen publications
+from the same turn into one compact disclosure, including older history; full
+summaries, screen links and screen history remain available on expansion.
+No workspace migration or athlete announcement is needed.
+
 ## v0.3.10: current messages after delays and restarts (October 2026)
 
 Held outreach is an undelivered draft. New athlete messages, uploads, voice

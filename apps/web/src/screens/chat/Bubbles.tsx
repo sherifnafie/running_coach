@@ -11,6 +11,7 @@ import { discardPending, react, retryPending } from '../../lib/controller';
 import { chat } from '../../lib/endpoints';
 import { basename, formatBytes, formatDuration, formatTime } from '../../lib/format';
 import { createStore, useStore } from '../../lib/store';
+import { navigate } from '../../lib/router';
 
 export interface BubbleCtx {
   tz?: string;
@@ -344,14 +345,25 @@ export const ProvisionalBubble = memo(function ProvisionalBubble({ item }: { ite
   );
 });
 
-export function ViewUpdateMessage({ title, summary, onOpen }: { title: string; summary: string; onOpen: () => void }) {
+export function ViewUpdateMessage({ views }: { views: Array<{ viewId: string; title: string; summary: string }> }) {
   const t = useI18n();
-  return <button type="button" className="chat-view-update" onClick={onOpen}>
-    <span className="view-update-icon" aria-hidden="true"><Icon name="check" size={16} /></span>
-    <span className="view-update-copy"><strong>{t(title)} <span className="view-update-tag">{t('Updated')}</span></strong>
-      {summary && <span className="view-update-summary">{summary}</span>}
-    </span><Icon name="chevron" size={16} />
-  </button>;
+  const titles = views.map(v => t(v.title));
+  const label = titles.slice(0, 2).join(', ') + (titles.length > 2 ? ` +${titles.length - 2}` : '');
+  const summaries = [...new Set(views.map(v => v.summary.trim()).filter(Boolean))];
+  return <details className="chat-view-update">
+    <summary aria-label={`${t('Updated')}: ${titles.join(', ')}`}>
+      <Icon name="check" size={14} />
+      <span className="chat-view-update-label">{label}</span>
+      <span className="view-update-tag">{t('Updated')}</span><Icon name="chevron" size={14} />
+    </summary>
+    <div className="chat-view-update-detail">
+      {summaries.map(summary => <Markdown key={summary} text={summary} />)}
+      <div className="chat-view-update-links">
+        {views.map(view => <button key={view.viewId} type="button" className="btn link small" onClick={() => navigate({ name: 'view', viewId: view.viewId, params: {} })}>{t(view.title)}<Icon name="chevron" size={13} /></button>)}
+        <button type="button" className="btn link small" onClick={() => navigate({ name: 'settings', section: 'history' })}>{t('View history')}<Icon name="clock" size={13} /></button>
+      </div>
+    </div>
+  </details>;
 }
 
 export function SystemLine({ text, onOpen }: { text: string; onOpen?: () => void }) {

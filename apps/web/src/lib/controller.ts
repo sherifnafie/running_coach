@@ -370,7 +370,8 @@ export async function refreshApp(): Promise<void> {
 }
 
 export function markUpdated(viewId: string, version: string, summary: string): void {
-  appStore.setState((s) => ({ ...s, updated: { ...s.updated, [viewId]: { version, summary } } }));
+  appStore.setState((s) => s.updated[viewId]?.version === version && s.updated[viewId]?.summary === summary
+    ? s : ({ ...s, updated: { ...s.updated, [viewId]: { version, summary } } }));
 }
 
 export function clearUpdated(viewId: string): void {

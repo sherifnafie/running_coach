@@ -4,7 +4,7 @@ import { VoiceConfig } from './voice';
 import { Effort } from './common';
 import { ImageGenerationConfig } from './image-generation';
 
-export const HARNESS_VERSION = '0.3.10';
+export const HARNESS_VERSION = '0.3.11';
 export const UI_KIT_MAJOR = '1';
 const HeaderName = z.string().regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/, 'invalid HTTP header name');
 
