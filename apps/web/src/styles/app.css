@@ -1933,18 +1933,31 @@ input[aria-invalid='true'] {
 .view-update-copy p, .view-update-summary { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 2px 0 0; color: var(--rc-muted); font-size: .78rem; line-height: 1.45; overflow-wrap: anywhere; }
 .view-update-history { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 40px; padding: 0 9px; border: 1px solid var(--rc-border); border-radius: 9px; background: transparent; color: var(--rc-text); cursor: pointer; font: inherit; font-size: .8rem; }
 .view-update-history span { display: none; }
-.chat-view-update { align-self: center; width: min(100%, 430px); margin: 2px 0; color: var(--rc-muted); font-size: .78rem; }
+.chat-view-update { align-self: center; width: min(100%, 430px); margin: 2px 0; border: 1px solid transparent; border-radius: 14px; color: var(--rc-muted); font-size: .78rem; }
 .chat-view-update > summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 5px 9px; border-radius: 10px; list-style: none; cursor: pointer; }
 .chat-view-update > summary::-webkit-details-marker { display: none; }
 .chat-view-update > summary:hover { background: var(--rc-surface); }
-.chat-view-update > summary:focus-visible { outline: 2px solid var(--rc-accent); outline-offset: 2px; }
+.chat-view-update > summary:focus-visible { outline: 2px solid var(--rc-accent); outline-offset: -3px; }
 .chat-view-update-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-view-update > summary > svg { flex: none; }
+.chat-view-update[open] { border-color: var(--rc-border); background: var(--rc-surface); }
+.chat-view-update[open] > summary { justify-content: flex-start; padding-inline: 13px; border-bottom: 1px solid var(--rc-border); border-radius: 13px 13px 0 0; }
+.chat-view-update[open] .chat-view-update-label { flex: 1; color: var(--rc-text); font-weight: 500; }
 .chat-view-update[open] > summary > svg:last-child { transform: rotate(90deg); }
-.chat-view-update-detail { padding: 0 12px 10px; border-bottom: 1px solid var(--rc-border); color: var(--rc-text); font-size: .84rem; overflow-wrap: anywhere; }
-.chat-view-update-detail .md + .md { margin-top: 8px; }
-.chat-view-update-links { display: flex; flex-wrap: wrap; gap: 0 10px; margin-top: 6px; }
-.chat-view-update-links .btn { display: inline-flex; align-items: center; gap: 3px; min-height: 44px; }
+.chat-view-update-detail { padding: 13px; color: var(--rc-text); overflow-wrap: anywhere; }
+.chat-view-update-summaries { margin-bottom: 12px; font-size: .82rem; line-height: 1.6; }
+.chat-view-update-summaries .md + .md { margin-top: 10px; }
+.chat-view-update-summaries .md > :first-child { margin-top: 0; }
+.chat-view-update-summaries .md > :last-child { margin-bottom: 0; }
+.chat-view-update-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat-view-update-screen { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; max-width: 100%; min-height: 44px; padding: 6px 11px; border: 1px solid var(--rc-border); border-radius: 9px; background: var(--rc-surface-2); color: var(--rc-text); font: inherit; font-size: .76rem; line-height: 1.35; text-align: start; cursor: pointer; }
+.chat-view-update-screen span { min-width: 0; overflow-wrap: anywhere; }
+.chat-view-update-screen svg { flex: none; color: var(--rc-muted); }
+.chat-view-update-screen:hover { border-color: var(--rc-muted); }
+.chat-view-update-history { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 9px 13px; border: 0; border-top: 1px solid var(--rc-border); border-radius: 0 0 13px 13px; background: transparent; color: var(--rc-muted); font: inherit; font-size: .75rem; text-align: start; cursor: pointer; }
+.chat-view-update-history span { flex: 1; }
+.chat-view-update-history:hover { background: var(--rc-surface-2); color: var(--rc-text); }
+.chat-view-update-screen:focus-visible, .chat-view-update-history:focus-visible { outline: 2px solid var(--rc-accent); outline-offset: -3px; }
 .view-update-tag { margin-inline-start: 5px; color: var(--rc-muted); font-size: .73rem; font-weight: 400; }
 @media (min-width: 600px) { .view-update-history span { display: inline; } }
 

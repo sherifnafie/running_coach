@@ -482,7 +482,7 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
       const entry = join(workspace, 'ui/views', id, 'index.html');
       await writeFile(entry, await readFile(entry, 'utf8') + '\n<!-- grouped update fixture -->\n');
     }
-    const summary = 'Added a **Log** for sessions and changed the calendar default.';
+    const summary = 'Added a **Log** for sessions and changed the calendar default. Session notes save as you type and can be submitted without starting a chat reply.';
     const result = await server.runtime.core.ui.publish(athleteId, selected, summary, 'turn_grouped_update_fixture');
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.message);
@@ -499,9 +499,19 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
     await row.getByRole('button', { name: 'Calendar', exact: true }).waitFor();
     expect(await row.locator('.md').count()).toBe(1);
     expect(await row.locator('.md strong').innerText()).toBe('Log');
+    const panel = (await row.boundingBox())!;
+    for (const button of await row.getByRole('button').all()) {
+      const box = (await button.boundingBox())!;
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.x).toBeGreaterThanOrEqual(panel.x);
+      expect(box.x + box.width).toBeLessThanOrEqual(panel.x + panel.width + 1);
+    }
     if (process.env.OPENCOACH_CAPTURE_POLISH === '1') {
       const originalTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+      await row.locator('summary').evaluate(element => (element as HTMLElement).blur());
+      await page.mouse.move(5, 5);
       await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
+      await row.screenshot({ path: join(repo, 'work/grouped-updates-phone-expanded-dark.png') });
       await row.locator('summary').click();
       await row.screenshot({ path: join(repo, 'work/grouped-updates-phone-dark.png') });
       await page.evaluate(() => { document.documentElement.dataset.theme = 'light'; });
@@ -509,10 +519,11 @@ describe.skipIf(!executablePath)('PWA against the real composed gateway', () => 
       await row.locator('summary').click();
       await row.screenshot({ path: join(repo, 'work/grouped-updates-phone-expanded.png') });
       await page.setViewportSize({ width: 1440, height: 1000 });
-      await row.locator('summary').click();
       await row.screenshot({ path: join(repo, 'work/grouped-updates-desktop.png') });
+      await page.setViewportSize({ width: 320, height: 720 });
+      expect((await row.boundingBox())!.width).toBeLessThanOrEqual(320);
+      await row.screenshot({ path: join(repo, 'work/grouped-updates-small-phone-expanded.png') });
       await page.setViewportSize({ width: 390, height: 844 });
-      await row.locator('summary').click();
       await page.evaluate(theme => {
         if (theme === null) document.documentElement.removeAttribute('data-theme');
         else document.documentElement.dataset.theme = theme;

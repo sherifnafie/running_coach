@@ -357,12 +357,16 @@ export function ViewUpdateMessage({ views }: { views: Array<{ viewId: string; ti
       <span className="view-update-tag">{t('Updated')}</span><Icon name="chevron" size={14} />
     </summary>
     <div className="chat-view-update-detail">
-      {summaries.map(summary => <Markdown key={summary} text={summary} />)}
+      {summaries.length > 0 && <div className="chat-view-update-summaries">
+        {summaries.map(summary => <Markdown key={summary} text={summary} />)}
+      </div>}
       <div className="chat-view-update-links">
-        {views.map(view => <button key={view.viewId} type="button" className="btn link small" onClick={() => navigate({ name: 'view', viewId: view.viewId, params: {} })}>{t(view.title)}<Icon name="chevron" size={13} /></button>)}
-        <button type="button" className="btn link small" onClick={() => navigate({ name: 'settings', section: 'history' })}>{t('View history')}<Icon name="clock" size={13} /></button>
+        {views.map(view => <button key={view.viewId} type="button" className="chat-view-update-screen" onClick={() => navigate({ name: 'view', viewId: view.viewId, params: {} })}><span>{t(view.title)}</span><Icon name="chevron" size={12} /></button>)}
       </div>
     </div>
+    <button type="button" className="chat-view-update-history" onClick={() => navigate({ name: 'settings', section: 'history' })}>
+      <Icon name="clock" size={14} /><span>{t('View history')}</span><Icon name="chevron" size={13} />
+    </button>
   </details>;
 }
 

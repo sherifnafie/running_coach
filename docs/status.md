@@ -174,6 +174,17 @@ styles, authenticated app/all five current views, public HTTP 200 and API auth
 boundary. Read-only owner-history verification folds 32 publication events into
 15 compact entries, including the five-screen batch; source events are retained.
 
+**Expanded update polish (2026-10-09, [UI-1]):** the expanded chat update is
+one contained panel, with a connected header, readable inset summary, compact
+neutral screen buttons and a separate history footer. The collapsed row stays
+quiet. Buttons retain 44px touch targets and keyboard focus; grouping, full
+summaries, screen navigation and history/undo behavior are unchanged. This is
+a shell-only presentation patch on 0.3.11; no coach upgrade or workspace edits.
+Verified 171 web unit tests, web typecheck/build and all 18 browser cases on a
+clean repeat. Visual review covers light/dark 390px phones, 320px fit and desktop;
+the browser checks screen/history navigation, keyboard expansion and 44px
+targets within the expanded panel.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.
@@ -182,6 +193,11 @@ boundary. Read-only owner-history verification folds 32 publication events into
 4. Validate the external services live: Web Push, voice notes and calls, and Telegram.
 
 ## Known issues and cleanup backlog
+
+- **Intermittent browser-test database contention (2026-10-09):** one full browser
+  run recorded `database is locked`, causing three later shared-error-list
+  assertions to fail. The update-panel case passed; a clean repeat passed all
+  18 cases. The source of the sporadic DB contention has not been isolated.
 
 - **Leaked tool syntax (fixed 2026-10-07):** DeepSeek V4.1 Flash through OpenRouter once wrote `</text><parameter name="ui">…` inside a `send_message` text, and the athlete saw it raw. The adapter now splits such tails back into arguments (`repairLeakedParameters`), and `send_message` rejects any remaining tool markup so the model resends. Watch for other shapes of the same failure.
 
