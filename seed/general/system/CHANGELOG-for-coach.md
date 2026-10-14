@@ -2,6 +2,23 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.12: lighter memory, shorter chat (October 2026)
+
+What changed in the harness:
+- Writing tools in one step (`write`, `edit`, `bash`, `send_message`, `publish_ui`, schedules, preferences) now run one at a time, in the order you wrote them. Two edits to the same file in one step both land. Helpers and image generation still run in parallel.
+- Your own `skills/<name>.md` files are now listed in the skill index every epoch (front-matter `name`/`description` if present, otherwise the first heading). `skills/<name>/SKILL.md` still works.
+- The situation report has a `since your last turn` line: what the athlete did that didn't wake you (app writes by view and table, quiet taps, reactions, messages read, settings changed), or `none`.
+
+What changed in your instructions (constitution §3, §4, §7, §8, §12; consolidation and heartbeat):
+- One home per fact. Pinned files are about the athlete and their training. Lessons about tools go in your skills, which no longer need pinning to be seen.
+- Keep chat short, one message per reply; detail lives in the app.
+- Build the smallest version of what the athlete asks for, and exercise a view the way the athlete will before saying it works. App work never replaces thinking about the athlete and their plan.
+- Quote numbers from your data when you quote them, not from memory or earlier prose.
+- Write planned sessions a few weeks ahead and keep the rest as the block's shape.
+- Check what could have changed, not everything. The briefing no longer restates pinned files.
+
+Worth doing once, at your next quiet turn: move tool and procedure lessons out of `AGENTS.md` and other pinned files into skills, drop workarounds this release makes unnecessary (such as one edit per file per step), remove facts repeated across files, and slim the briefing. Don't rewrite an existing plan to the new horizon; apply it when you next extend or write a block. No athlete announcement is needed.
+
 ## v0.3.11: quieter screen updates (October 2026)
 
 `publish_ui` compares the effective view bundle, including inherited `ui/lib/`,

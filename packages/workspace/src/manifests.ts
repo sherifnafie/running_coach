@@ -101,6 +101,13 @@ async function scanSkills(dir: string, virtualPrefix: string, source: SkillInfo[
   entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   const out: SkillInfo[] = [];
   for (const ent of entries) {
+    // A plain `<name>.md` beside the skill folders is a skill too: coaches often write their procedures that way, and an
+    // unindexed procedure only gets remembered by copying it into pinned memory.
+    if (ent.isFile() && /\.md$/i.test(ent.name) && !/^readme\.md$/i.test(ent.name)) {
+      const flat = await readFlatSkill(path.join(dir, ent.name));
+      if (flat) out.push({ ...flat, name: flat.name || ent.name.replace(/\.md$/i, ''), path: `${virtualPrefix}/${ent.name}`, source });
+      continue;
+    }
     if (!ent.isDirectory()) continue;
     const file = path.join(dir, ent.name, 'SKILL.md');
     let text: string;
@@ -119,7 +126,23 @@ async function scanSkills(dir: string, virtualPrefix: string, source: SkillInfo[
   return out;
 }
 
-/** Scan <dir>/<skill>/SKILL.md front-matter in /system/skills and /workspace/skills. */
+async function readFlatSkill(file: string): Promise<{ name: string; description: string } | undefined> {
+  let text: string;
+  try {
+    const st = await fsp.lstat(file);
+    if (!st.isFile() || st.size > 512 * 1024) return undefined;
+    text = await fsp.readFile(file, 'utf8');
+  } catch {
+    return undefined;
+  }
+  const { data, body } = parseFrontMatter(text);
+  const name = typeof data['name'] === 'string' ? data['name'].trim() : '';
+  if (typeof data['description'] === 'string' && data['description'].trim()) return { name, description: data['description'].trim().replace(/\s*\n\s*/g, ' ') };
+  const first = body.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '';
+  return { name, description: first.replace(/^#+\s*/, '').replace(/^skill:\s*/i, '').slice(0, 200) };
+}
+
+/** Scan <dir>/<skill>/SKILL.md (and plain <dir>/<skill>.md) front-matter in /system/skills and /workspace/skills. */
 export async function listSkills(opts: { systemDir: string; workspaceDir: string }): Promise<SkillInfo[]> {
   const system = await scanSkills(path.join(opts.systemDir, 'skills'), '/system/skills', 'system');
   const workspace = await scanSkills(path.join(opts.workspaceDir, 'skills'), '/workspace/skills', 'workspace');

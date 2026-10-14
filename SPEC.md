@@ -280,10 +280,10 @@ Outbound and trace events: `coach.message`, `coach.ui_published`, `coach.schedul
 
 | Class | Triggers | Reply expected? | Default tier and effort |
 |---|---|---|---|
-| **Reactive** | `user.message`, `user.upload`, `user.voice_note`, `user.ui_action` with `wake: true` | **Yes**: at least one `send_message` or an explicit `no_reply` | coach / medium |
-| **Scheduled** | `schedule.fired`, `system.heartbeat` | No; silence is a valid outcome | coach / low |
-| **Follow-up** | `task.completed`, `task.failed`, `call.ended`, `ui.error`, `harness.upgraded`, `workspace.external_change` | Depends on the event | coach / medium |
-| **Consolidation** | Nightly (§5.3.5) | No messages allowed | coach / medium, via batch API where available |
+| **Reactive** | `user.message`, `user.upload`, `user.voice_note`, `user.ui_action` with `wake: true` | **Yes**: at least one `send_message` or an explicit `no_reply` | coach / high |
+| **Scheduled** | `schedule.fired`, `system.heartbeat` | No; silence is a valid outcome | coach / high |
+| **Follow-up** | `task.completed`, `task.failed`, `call.ended`, `ui.error`, `harness.upgraded`, `workspace.external_change` | Depends on the event | coach / high |
+| **Consolidation** | Nightly (§5.3.5) | No messages allowed | coach / high, via batch API where available |
 
 **Lifecycle requirements**
 
@@ -296,6 +296,7 @@ Outbound and trace events: `coach.message`, `coach.ui_published`, `coach.schedul
 - `[RT-7]` **Provider failure:** retry with backoff, then the configured fallback model chain (§5.7). Every fallback is recorded in the turn trace.
 - `[RT-8]` **Commit:** at turn end the runtime MUST git-commit workspace changes. The message includes turn id, trigger and model. If `coach.db` changed, the runtime takes a DB snapshot. These commits feed the athlete-visible "Coach's changes" feed (§6.3).
 - `[RT-9]` **Progress visibility:** while a turn runs, the gateway streams presence and progress to the client ("Coach is looking at your splits…"). This comes from the model's progress notes where the provider supports them (e.g. Claude's `display: "updates"`) or from a mapping of tool names to friendly labels.
+- `[RT-10]` **Ordered side effects:** tool calls from one model step MAY run concurrently, but state-changing calls (workspace writes and edits, `bash`, messages, schedules, preferences, publish/rollback) MUST execute one at a time in the order the model emitted them. Helper spawns and image generation stay concurrent.
 
 ```mermaid
 sequenceDiagram
@@ -355,6 +356,8 @@ pinned context: 9.8k/12k · epoch: 2026-10-07 #1 · model: claude-sonnet-5-5 (co
 budget: 41% of monthly used (day 7 of 31) · this turn: max 60 steps
 </situation>
 ```
+
+The report includes a `since your last turn` line: athlete activity that did not wake the coach (view writes by view and table, quiet taps, reactions, reads, settings changes), or `none`. It lets the coach skip re-checking state that nothing touched.
 
 Where the provider supports it, the report goes in as a mid-conversation system message, e.g. Anthropic's mid-conversation `system` role, which keeps the cached prefix intact. Otherwise it goes in as a clearly delimited harness note.
 
@@ -580,7 +583,7 @@ Voice sessions get a separate, smaller toolset (§11.2).
 
 ## 8. Skills
 
-- `[SK-1]` Skills use the **Agent Skills** open format (`SKILL.md` with name and description front-matter, plus optional scripts and references), loaded with progressive disclosure: only the index sits in context (L2); bodies load when used. The format is supported by Claude, Codex, Gemini CLI, Hermes, OpenClaw and others (Appendix A §A.4), so skills port across harnesses, including the Phase 0 testbed.
+- `[SK-1]` Skills use the **Agent Skills** open format (`SKILL.md` with name and description front-matter, plus optional scripts and references), loaded with progressive disclosure: only the index sits in context (L2); bodies load when used. A coach's workspace skill may also be a single `skills/<name>.md` (front-matter optional, otherwise the first heading describes it); it is indexed the same way. The format is supported by Claude, Codex, Gemini CLI, Hermes, OpenClaw and others (Appendix A §A.4), so skills port across harnesses, including the Phase 0 testbed.
 - **First-party skills** (`/system/skills`, read-only, versioned) describe *this app*: procedures, data conventions and bundled tools a model can't know from training. Coaching knowledge (periodization, a sport's methods, injury and illness handling, fueling, competition preparation) is the model's own, researched when needed and written down by the coach as workspace skills (`[SK-2]`); the safety floor lives in the constitution (§11), not in skills (ADR 0010). The coach may ignore or override first-party skills. Seed library (details in Appendix D §D.6):
   - Coaching in this app: `intake` (the first conversation and where each fact is recorded), `disciplines` (recording sports and priorities, writing a workspace skill for a sport, fitting its data and views, logging several sports), `calculators` (`plan_check.py`, `load.py`, `e1rm.py`, `vdot.py` for training arithmetic)
   - Data and app: `screenshot-extraction` and `file-import` (watch exports, FIT/GPX/TCX/CSV/ZIP, gym-app logs), `data-hygiene` (dedupe, units, timezones), `calendar-export` (ICS), `ui-kit` (how to build good views), `research`, `coach-identity`, `image-generation` (small owned artwork, permission, allowance and using returned assets), `achievements` (optional, occasional evidence-based recognition and agreed challenges; editable ledger/gallery examples, no default tab or award tool)

@@ -29,7 +29,8 @@ This is my persistent workspace as {{athlete_name}}'s coach inside OpenCoach. An
 - Exercise names in use (`exercise_sets.exercise`): none yet.
 - Every activity records `source`, `source_refs` (raw blob hashes), `extracted_by`, `confidence` and `confirmed`.
 - Schema changes go in `data/migrations/NNNN_name.sql`, are applied, and are documented in `data/schema.md` (with a line in its migration log).
-- Pinned files stay short. Detail goes in unpinned files with a pointer.
+- Pinned files stay short and each fact lives in one file. Detail goes in unpinned files with a pointer.
+- This file is the map. Lessons about tools and procedures go in `skills/<name>.md`, which the skill index lists every epoch.
 - After a plan change: `plan/current-week.md`, `plan/athlete-summary.md`, `planned_workouts`, `exports/calendar.ics` and my scheduled wakes must agree.
 - Athlete-facing text explains training, reasons and uncertainty. Working notes, briefings and helper drafts need review and rewriting before display; no implementation bookkeeping in ordinary coaching screens.
 

@@ -87,6 +87,8 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   lines.push(`budget: $${dayCost.toFixed(2)} of $${b.dailyUsd.toFixed(2)} today · $${monthCost.toFixed(2)} of $${b.monthlyUsd.toFixed(2)} this month${monthCost >= 0.8 * b.monthlyUsd || dayCost >= 0.8 * b.dailyUsd ? ' — over 80%: be economical' : ''}`);
   lines.push(`turn limits: ${s.limits.maxSteps} steps, ${Math.round(s.limits.maxWallMs / 60_000)} min`);
 
+  lines.push(await sinceLastTurn(core, s, now));
+
   const views = await store.getCurrentUiVersions(s.athleteId);
   lines.push(`app views published: ${views.length ? views.map((v) => `${v.viewId} v${v.version}`).join(', ') : 'none'}`);
 
@@ -98,4 +100,42 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   if (s.nudge) lines.push(`reminder: ${s.nudge}`);
   for (const x of s.extra ?? []) lines.push(x);
   return `<situation>\n${lines.join('\n')}\n</situation>`;
+}
+
+/** Event types that don't wake the coach, so they would otherwise go unseen until the coach goes looking. */
+const QUIET_ATHLETE_TYPES = ['user.ui_write', 'user.ui_action', 'user.reaction', 'user.read', 'user.settings_changed', 'user.message_deleted'] as const;
+
+/**
+ * What the athlete did that didn't wake the coach, since its previous turn ended: app writes, quiet taps, reactions,
+ * reads, settings. Facts only; with it the coach doesn't have to re-query everything to learn that nothing changed.
+ */
+async function sinceLastTurn(core: Core, s: SituationInput, now: Date): Promise<string> {
+  const previous = (await core.store.listTurns({ athleteId: s.athleteId, agent: 'coach', limit: 5 })).find((t) => t.endedAt);
+  if (!previous?.endedAt) return 'since your last turn: this is your first turn';
+  const triggerIds = new Set(s.triggers.map((t) => t.id));
+  const events = (await core.store.listEvents({ athleteId: s.athleteId, types: QUIET_ATHLETE_TYPES, since: previous.endedAt, order: 'asc', limit: 500 })).filter((e) => !triggerIds.has(e.id));
+  const writes = new Map<string, number>();
+  const settings = new Set<string>();
+  let taps = 0, reactions = 0, reads = 0, deleted = 0;
+  for (const e of events) {
+    const p = e.payload as Record<string, unknown>;
+    if (e.type === 'user.ui_write') {
+      const key = `${String(p['viewId'])} → ${String(p['target'])}`;
+      writes.set(key, (writes.get(key) ?? 0) + 1);
+    } else if (e.type === 'user.ui_action') taps += 1;
+    else if (e.type === 'user.reaction') reactions += 1;
+    else if (e.type === 'user.read') reads += Array.isArray(p['messageIds']) ? p['messageIds'].length : 1;
+    else if (e.type === 'user.settings_changed') for (const k of Object.keys((p['diff'] as object | undefined) ?? {})) settings.add(k.split('.')[0]!);
+    else if (e.type === 'user.message_deleted') deleted += 1;
+  }
+  const parts = [
+    writes.size ? `app writes ${[...writes].map(([k, n]) => `${k} ×${n}`).join(', ')}` : '',
+    taps ? `${taps} quiet tap(s)` : '',
+    reactions ? `${reactions} reaction(s)` : '',
+    reads ? `read ${reads} of your messages` : '',
+    settings.size ? `changed settings (${[...settings].join(', ')})` : '',
+    deleted ? `deleted ${deleted} message(s)` : '',
+  ].filter(Boolean);
+  const when = formatLocal(previous.endedAt, s.settings.profile.tz);
+  return `since your last turn (ended ${when}, ${ago(previous.endedAt, now)}), athlete activity that didn't wake you: ${parts.length ? parts.join(' · ') : 'none'}`;
 }

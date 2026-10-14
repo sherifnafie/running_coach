@@ -86,7 +86,7 @@ describe('readPinnedList', () => {
 });
 
 describe('listSkills', () => {
-  it('reads front-matter from system and workspace skills with virtual paths', async () => {
+  it('reads front-matter from system and workspace skills, including plain workspace .md skills, with virtual paths', async () => {
     const sys = await tmpDir('sys-');
     const ws = await tmpDir('ws-');
     await write(path.join(sys, 'skills/intake/SKILL.md'), '---\nname: intake\ndescription: Conducting a coaching intake conversationally\n---\n# Intake');
@@ -94,11 +94,15 @@ describe('listSkills', () => {
     await write(path.join(ws, 'skills/hill-repeats/SKILL.md'), '---\nname: hill-repeats\ndescription: My own hill session recipe\n---\nbody');
     await write(path.join(ws, 'skills/no-front-matter/SKILL.md'), '# Just text');
     await write(path.join(ws, 'skills/not-a-skill/readme.md'), 'ignored');
-    await write(path.join(ws, 'skills/loose-file.md'), 'ignored');
+    await write(path.join(ws, 'skills/loose-file.md'), '\n# Skill: changing a session (skip, move)\n\nbody');
+    await write(path.join(ws, 'skills/front.md'), '---\nname: weekly-review\ndescription: How this athlete likes a weekly review\n---\nbody');
+    await write(path.join(ws, 'skills/README.md'), 'ignored');
     expect(await listSkills({ systemDir: sys, workspaceDir: ws })).toEqual([
       { name: 'intake', description: 'Conducting a coaching intake conversationally', path: '/system/skills/intake/SKILL.md', source: 'system' },
       { name: 'zones-and-paces', description: 'Setting and using intensity guidance', path: '/system/skills/zones/SKILL.md', source: 'system' },
+      { name: 'weekly-review', description: 'How this athlete likes a weekly review', path: '/workspace/skills/front.md', source: 'workspace' },
       { name: 'hill-repeats', description: 'My own hill session recipe', path: '/workspace/skills/hill-repeats/SKILL.md', source: 'workspace' },
+      { name: 'loose-file', description: 'changing a session (skip, move)', path: '/workspace/skills/loose-file.md', source: 'workspace' },
       { name: 'no-front-matter', description: '', path: '/workspace/skills/no-front-matter/SKILL.md', source: 'workspace' },
     ]);
   });

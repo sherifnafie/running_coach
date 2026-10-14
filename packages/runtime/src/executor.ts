@@ -52,6 +52,9 @@ const SIDE_EFFECTS = new Set<string>([
   'spawn_agent', 'cancel_task', 'publish_ui', 'rollback_ui', 'set_preferences', 'generate_image',
 ]);
 
+/** Side effects that run in written order within a step. Helpers and images stay parallel: they don't touch shared state until merged. */
+const ORDERED = new Set<string>([...SIDE_EFFECTS].filter((n) => !['spawn_agent', 'cancel_task', 'generate_image'].includes(n)));
+
 export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & { allowed: ToolName[] } {
   const isCoach = o.agent.kind === 'coach';
   const scheduler: SchedulerPort = isCoach
@@ -94,6 +97,9 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
   };
 
   const executing = new Map<string, Promise<ToolResult>>();
+  // The loop starts a step's calls together, in the order the model wrote them. Side effects still run one at a time in
+  // that order, so two edits to one file (or an edit and a bash script) can't race and silently drop a change [RT-10].
+  let sideEffectQueue: Promise<unknown> = Promise.resolve();
   const executor: ToolExecutor & { allowed: ToolName[] } = {
     allowed: o.tools,
     specs: () => [...toolSpecsFor(o.agent.kind, o.tools), ...(o.agent.kind === 'voice' ? [] : core.mcp.specs(o.agent.kind))],
@@ -102,7 +108,9 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
       const key = `tool:${o.athleteId}:${o.turnId}:${call.id}`;
       const pending = executing.get(key);
       if (pending) return pending;
+      const previous = ORDERED.has(call.name) ? sideEffectQueue : undefined;
       const job = (async () => {
+        await previous?.catch(() => {});
         const cached = await core.store.getIdempotent(key) as ToolResult | undefined;
         if (cached) return cached;
         const result = await executeOnce(call, signal);
@@ -111,6 +119,7 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
         await core.store.putIdempotent(key, result, new Date(core.clock.now().getTime() + 7 * 86_400_000).toISOString());
         return result;
       })();
+      if (ORDERED.has(call.name)) sideEffectQueue = job;
       executing.set(key, job);
       try {
         return await job;

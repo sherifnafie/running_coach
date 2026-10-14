@@ -242,6 +242,26 @@ describe('runtime: proactivity policies', () => {
     expect((await messages()).filter((m) => m.payload.proactive && m.payload.delivery === 'sent')).toHaveLength(2);
   });
 
+  it('tells a heartbeat what the athlete did in the app since the last turn [CTX-1]', async () => {
+    h = await makeHarness({ start: '2026-10-07T05:00:00Z' });
+    const id = await newAthlete(h);
+    await greet(h, id);
+    expect(situationText(h.requests.at(-1)!)).toContain('since your last turn: this is your first turn');
+    await h.clock.advanceTo('2026-10-07T05:10:00Z');
+    for (const text of ['ran 4k', 'ran 4k easy']) {
+      await h.runtime.core.store.appendEvent({ athleteId: id, type: 'user.ui_write', actor: 'athlete', payload: { viewId: 'today', target: 'athlete_logs', op: 'insert', row: { text } } });
+    }
+    h.setHandler(() => ({ text: 'Nothing to say.' }));
+    await h.clock.advanceTo('2026-10-07T05:31:00Z');
+    await h.runtime.tickScheduler();
+    await h.settle(id);
+    expect(situationText(h.requests.at(-1)!)).toMatch(/since your last turn \(ended [^)]+\), athlete activity that didn't wake you: app writes today → athlete_logs ×2/);
+    await h.clock.advanceTo('2026-10-08T05:31:00Z');
+    await h.runtime.tickScheduler();
+    await h.settle(id);
+    expect(situationText(h.requests.at(-1)!)).toMatch(/athlete activity that didn't wake you: none/);
+  });
+
   it('allows a heartbeat to end silently with unused allowance [MSG-4]', async () => {
     h = await makeHarness({ start: '2026-10-07T05:00:00Z' });
     const id = await newAthlete(h);

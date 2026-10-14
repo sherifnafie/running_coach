@@ -187,6 +187,39 @@ targets within the expanded panel.
 Deployed `460ffab` after backup; verified the active service, newly served
 panel styles, authenticated app/all five views and unchanged auth boundary.
 
+**Production review → rolling plan detail, lean memory, ordered side effects (0.3.12, 2026-10-14, [RT-10], [SK-1], [CTX-1], [COST-3], [ADR 0013](adr/0013-lean-memory-and-ordered-side-effects.md)):**
+a review of the owner's first production week found sound coaching but:
+- a fully materialized 12-week plan that drifted from its prose, including a
+  wrong peak quoted to the athlete;
+- facts copied across five pinned or briefing files;
+- tool workarounds kept in pinned `AGENTS.md`;
+- verbose day-one chat;
+- over-built and untested view requests;
+- daily re-verification of unchanged state.
+
+Harness:
+- State-changing tool calls in one step run in written order. Two same-file
+  edits previously raced and lost one.
+- Plain `skills/<name>.md` files are indexed.
+- The situation report has a `since your last turn` line.
+- SPEC §5.2 effort now matches the code (high for all non-call turns).
+
+Seed: rolling plan-detail horizon, numbers quoted from data, one home per
+fact, tool lessons in skills, briefing without restating pinned files, short
+chat, smallest exercised app builds without crowding out coaching, and
+proportional checks. Thinking time, output volume and in-context app work are
+acceptable by the owner's choice.
+
+Validation:
+- Typecheck passes.
+- All 814 harness/renderer tests pass. New tests cover same-step edit
+  ordering (fails on the old code), flat skill indexing and the digest.
+- The 28-scenario reference fast gates pass; the three optional achievement
+  judge checks remain unrun.
+
+Real-model effect is unmeasured: compare the next production week to the
+ADR 0013 baseline.
+
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.
@@ -217,6 +250,13 @@ panel styles, authenticated app/all five views and unchanged auth boundary.
 
 - **Bring-your-own OpenAI key for voice** is not implemented. Voice uses the server key. The credential store already supports `openai`; the voice services need per-athlete scoping.
 - **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting, "Small home instance"). Store them relative to the data directory.
+
+- **Coach-reported harness gaps not yet addressed (from the owner's `feedback-to-harness.md`, 2026-10-08→12):**
+  - A view `db.write` update that matches no row resolves successfully.
+  - A view's error-level report of an offline read appears to trigger fallback to the previous version, including from kit components.
+  - `call.ended` can't distinguish a call that never connected from a hang-up (2 of 6 calls were empty).
+  - The call front-end has no tools, such as weather.
+  - A stalled helper's partial work isn't surfaced in `task.failed`.
 
 These are smaller findings from the code review on 2026-10-07 that haven't been fixed yet:
 - **Harness wording that coaches the model:** some harness strings tell the model how to behave and could move to `seed/` (the deletion test). Examples: the delegation advice in `runtime/src/capabilities.ts`, the helper LIMIT message in `helpers.ts`, and the `spawn_agent` and `set_preferences` tool descriptions.
