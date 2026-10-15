@@ -6,6 +6,8 @@ history in commits, ADRs and the coach changelog, not here.
 ## State
 
 Phase 1 (MVP) and most of Phase 2 are implemented. Production is on **0.3.14** (harness and `general` pack).
+The **0.3.15** source candidate explicitly emphasizes AI's sustained analytical advantage beyond generic 80/20
+coaching, including substantial research/computation and focused helpers writing analysis scripts.
 It removes time pressure from coach context, adds goal-adequacy and
 early-assessment guidance, retains helper traces and refreshes cached prompts on release changes
 ([ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md)). `pnpm typecheck`, `pnpm test`, `pnpm build`,

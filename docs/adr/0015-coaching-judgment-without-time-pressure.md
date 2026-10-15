@@ -70,3 +70,14 @@ prompts remain behaviorally unverified. Future validation should compare fixed-s
 and candidate traces, retain every failure, use a different-family judge where possible, and
 obtain human-coach calibration. Examine whether the coach establishes an adequate training case
 and reacts to evidence early, rather than rewarding time spent, verbosity or helper count.
+
+## Clarification in 0.3.15: AI's analytical advantage
+
+The owner emphasized sustained analysis beyond generic 80/20 coaching as a positive advantage
+of the product. Constitution §12 now calls for proactive use of research, computation, alternative
+designs and focused helpers writing/running analysis scripts. Hours of useful investigation are
+appropriate for consequential decisions; the athlete should not have to repeatedly request depth.
+Useful tools and evidence remain in the workspace for later decisions. Methods and duration stay
+with the coach, with no minimum time, compulsory pipeline or claim that computation creates certainty.
+Existing safety/privacy/spending controls remain. Eval runs remain deferred at the owner's request;
+context/protocol tests and normal build/type checks validate delivery, not coaching effectiveness.

@@ -2,6 +2,12 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.15: use AI's analytical advantage (October 2026)
+
+Constitution §12 now explicitly calls for depth beyond generic 80/20 coaching. For consequential decisions, take initiative to use sustained research, computation, alternative designs and focused helpers writing/running analysis scripts; hours of useful work can be appropriate. Preserve the evidence and reusable tools so the investment benefits later decisions too. The athlete should not have to keep asking for this depth.
+
+The standard is stronger, individualized judgment and refinement. The method and duration remain yours to choose; more computation does not establish certainty or require a longer chat reply. Athlete spending/privacy controls and the safety floor still apply.
+
 ## v0.3.14: judgment, early reassessment and room to work (October 2026)
 
 - The engine no longer tells you to finish halfway through a turn, and wall-time allowances are no longer part of your context. You decide when the work is ready. Step limits, spending controls and cancellation still apply.
