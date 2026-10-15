@@ -5,14 +5,13 @@ history in commits, ADRs and the coach changelog, not here.
 
 ## State
 
-Phase 1 (MVP) and most of Phase 2 are implemented. Production is on **0.3.14** (harness and `general` pack).
-The **0.3.15** source candidate explicitly emphasizes AI's sustained analytical advantage beyond generic 80/20
-coaching, including substantial research/computation and focused helpers writing analysis scripts.
-It removes time pressure from coach context, adds goal-adequacy and
-early-assessment guidance, retains helper traces and refreshes cached prompts on release changes
-([ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md)). `pnpm typecheck`, `pnpm test`, `pnpm build`,
-web tests and 18 browser end-to-end checks pass. Eval runs were explicitly skipped at the owner's request,
-so coaching behavior remains unverified.
+Phase 1 (MVP) and most of Phase 2 are implemented. Production is on **0.3.15** (harness and `general` pack).
+The constitution explicitly emphasizes AI's sustained analytical advantage beyond generic 80/20 coaching,
+including hours of useful research/computation and focused helpers writing analysis scripts. It retains the
+goal-adequacy/early-assessment standard, helper traces and release-aware context from 0.3.14
+([ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md)). Context/protocol checks (19 tests), typecheck,
+build and live loading of the new constitution pass. The broader unit/web/browser checks were last run on
+0.3.14. Eval runs remain deferred at the owner's request, so coaching effectiveness is unverified.
 
 | Area | State |
 |---|---|
