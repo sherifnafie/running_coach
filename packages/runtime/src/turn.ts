@@ -101,6 +101,9 @@ export function partialText(json: string): string | undefined {
   }
 }
 
+/** Harness retries of an unanswered input after a failed reply [RT-4]. */
+const MAX_REPLY_RETRIES = 3;
+
 export class TurnRunner {
   private active = new Map<string, { athleteId: string; abort: AbortController }>();
 
@@ -384,8 +387,9 @@ export class TurnRunner {
           system: ep.system,
           items: [...ep.items, ...newItems, ...result.newItems, reminder],
           tools: executor,
-          limits: { maxSteps: 4, maxWallMs: 90_000 },
-          effort,
+          // The work is done; this run only has to write the reply, so it gets low effort and room for one slow step.
+          limits: { maxSteps: 4, maxWallMs: 180_000 },
+          effort: 'low',
           cacheKey: athleteId,
           signal: abort.signal,
           onEvent,
@@ -421,6 +425,8 @@ export class TurnRunner {
 
     if (replyRequired && !msgState.replied && msgState.allowMessaging && result.stopReason !== 'aborted') {
       await this.replyFallback(athleteId, msgState.triggers, result.error ?? `turn ended (${result.stopReason}) without a reply`);
+    } else if (msgState.replied && !msgState.proactive && ((await store.getKv(`reply-retries:${athleteId}`)) ?? '0') !== '0') {
+      await store.setKv(`reply-retries:${athleteId}`, '0');
     }
 
     // ---- finalize
@@ -568,17 +574,28 @@ export class TurnRunner {
     this.core.bus.publish(athleteId, { t: 'notice', kind, text });
   }
 
-  /** [RT-4]: harness-authored fallback + a retry wake. */
+  /**
+   * [RT-4]: harness-authored fallback + a retry wake. A failing provider must not turn into a notice every few minutes:
+   * the athlete is told once per outage, and retries back off (10, 20, 40 min) and stop after MAX_REPLY_RETRIES.
+   * The counter resets when the coach next replies.
+   */
   private async replyFallback(athleteId: string, triggers: AnyEvent[], reason: string): Promise<void> {
     const core = this.core;
-    const text = "Your coach couldn't respond just now and will follow up shortly.";
-    const e = await core.store.appendEvent({ athleteId, type: 'harness.notice', actor: 'harness', payload: { kind: 'reply_fallback', athleteVisible: true, text, detail: { reason } } });
-    core.bus.publish(athleteId, { t: 'event', event: e });
-    core.bus.publish(athleteId, { t: 'notice', kind: 'reply_fallback', text });
+    core.log.warn('reply fallback', { athleteId, reason });
+    const key = `reply-retries:${athleteId}`;
+    const attempt = Number((await core.store.getKv(key)) ?? '0');
+    await core.store.setKv(key, String(attempt + 1));
+    if (attempt === 0) {
+      const text = "Your coach couldn't respond just now and will follow up shortly.";
+      const e = await core.store.appendEvent({ athleteId, type: 'harness.notice', actor: 'harness', payload: { kind: 'reply_fallback', athleteVisible: true, text, detail: { reason } } });
+      core.bus.publish(athleteId, { t: 'event', event: e });
+      core.bus.publish(athleteId, { t: 'notice', kind: 'reply_fallback', text });
+    }
+    if (attempt >= MAX_REPLY_RETRIES) return;
     const ref = triggers.find((t) => t.actor === 'athlete');
     await core.scheduler.harnessWake(
       athleteId,
-      new Date(core.clock.now().getTime() + 10 * 60_000),
+      new Date(core.clock.now().getTime() + 10 * 60_000 * 2 ** attempt),
       `Follow-up (set by the harness): your previous turn ended without replying to the athlete${ref ? ` (event ${ref.id})` : ''}. Reply to them now. Reason: ${reason.slice(0, 300)}`,
       { kind: 'reply_retry' },
     );

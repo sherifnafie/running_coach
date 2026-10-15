@@ -242,8 +242,10 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
         const ev = next.value;
         switch (ev.type) {
           case 'text_delta':
-          case 'progress':
             emit(ev);
+            break;
+          case 'progress':
+            if (ev.text) emit(ev); // empty progress is a keep-alive (e.g. reasoning chunks)
             break;
           case 'tool_call_start':
             names.set(ev.id, ev.name);

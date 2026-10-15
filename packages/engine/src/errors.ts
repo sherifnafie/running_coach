@@ -35,7 +35,7 @@ export function classifyHttpError(info: HttpErrorInfo): { kind: ProviderErrorKin
   if (status === 529 || status === 503 || t === 'overloaded_error') return { kind: 'overloaded', retryable: true };
   if (status === 408 || t === 'timeout_error') return { kind: 'timeout', retryable: true };
   if (status !== undefined && status >= 500) return { kind: 'unknown', retryable: true };
-  if (t === 'api_error') return { kind: 'unknown', retryable: true };
+  if (t === 'api_error' || c === 'server_error') return { kind: 'unknown', retryable: true };
   if (status === 409) return { kind: 'unknown', retryable: true };
   if (status === 401 || status === 403 || t === 'authentication_error' || t === 'permission_error' || t === 'billing_error') {
     return { kind: 'auth', retryable: false };
@@ -88,9 +88,11 @@ export function isAbortError(e: unknown): boolean {
 export function httpInfoFromSdkError(e: unknown): HttpErrorInfo | undefined {
   if (!isRecord(e) && !(e instanceof Error)) return undefined;
   const r = e as unknown as Record<string, unknown>;
-  const status = typeof r.status === 'number' ? r.status : undefined;
   const body = isRecord(r.error) ? r.error : undefined;
   const inner = body && isRecord(body.error) ? body.error : undefined;
+  // Errors sent inside an already-open stream (OpenRouter) carry no HTTP status, only a numeric code in the body.
+  const numericCode = [r.code, inner?.code, body?.code].find((c): c is number => typeof c === 'number' && c >= 400 && c < 600);
+  const status = typeof r.status === 'number' ? r.status : numericCode;
   const bodyType =
     (typeof r.type === 'string' ? r.type : undefined) ??
     (inner && typeof inner.type === 'string' ? inner.type : undefined) ??

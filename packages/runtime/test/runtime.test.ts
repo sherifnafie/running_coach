@@ -128,6 +128,35 @@ describe('runtime: onboarding & reactive turns', () => {
     expect(schedules.some((s) => s.purpose.includes('without replying'))).toBe(true);
   });
 
+  it('tells the athlete once and stops retrying after a bounded number of attempts [RT-4]', async () => {
+    h = await makeHarness();
+    const id = await newAthlete(h);
+    await greet(h, id);
+    h.setHandler(() => ({ text: 'thinking quietly' }));
+    await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'hello?', clientId: 'c2' } });
+    await h.settle(id);
+    const turns = async () => (await h!.runtime.core.store.listTurns({ athleteId: id, limit: 100 })).filter((t) => t.triggerClass === 'reactive').length;
+    const first = await turns();
+    for (let i = 0; i < 8; i++) {
+      await h.clock.advanceTo(new Date(h.clock.now().getTime() + 2 * 3_600_000).toISOString());
+      await h.runtime.tickScheduler();
+      await h.settle(id);
+    }
+    const settled = await turns();
+    expect(settled - first).toBe(3); // MAX_REPLY_RETRIES
+    await h.clock.advanceTo(new Date(h.clock.now().getTime() + 24 * 3_600_000).toISOString());
+    await h.runtime.tickScheduler();
+    await h.settle(id);
+    expect(await turns()).toBe(settled);
+    const notices = (await h.events(id, ['harness.notice'])) as Array<Extract<AnyEvent, { type: 'harness.notice' }>>;
+    expect(notices.filter((n) => n.payload.kind === 'reply_fallback')).toHaveLength(1);
+    // a later reply resets the counter, so the next outage is announced again
+    h.setHandler((req) => (lastItemKind(req) === 'tool_results' ? { text: '' } : send('Back now.')));
+    await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'there?', clientId: 'c4' } });
+    await h.settle(id);
+    expect(await h.runtime.core.store.getKv(`reply-retries:${id}`)).toBe('0');
+  });
+
   it('accepts no_reply as a valid outcome', async () => {
     h = await makeHarness();
     const id = await newAthlete(h);

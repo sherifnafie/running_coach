@@ -231,7 +231,9 @@ describe('compatible: stream parsing', () => {
     const out = await parse([chunk({ reasoning_content: 'Hmm, ' }), chunk({ reasoning_content: 'the week.' }), chunk({ tool_calls: [{ index: 0, id: 't', function: { name: 'read', arguments: '{}' } }] }), chunk({}, 'tool_calls')]);
     expect(endOf(out).item.raw).toEqual({ reasoning_content: 'Hmm, the week.' });
     // reasoning is not shown as text
-    expect(out.some((e) => e.type === 'text_delta' || e.type === 'progress')).toBe(false);
+    expect(out.some((e) => e.type === 'text_delta' || (e.type === 'progress' && e.text))).toBe(false);
+    // but each reasoning chunk keeps the stream alive for the loop's stall timer
+    expect(out.filter((e) => e.type === 'progress')).toHaveLength(2);
   });
 
   it('maps finish reasons; a truncated tool call is dropped without tool_call_end', async () => {
@@ -327,6 +329,10 @@ describe('compatible: errors and provider', () => {
     expect(mapCompatibleError(gen(401, 'bad key'))).toMatchObject({ kind: 'auth', retryable: false });
     expect(mapCompatibleError(gen(400, "This model's maximum context length is 131072 tokens"))).toMatchObject({ kind: 'context_length' });
     expect(mapCompatibleError(new OpenAI.APIConnectionError({ message: 'ECONNREFUSED' }))).toMatchObject({ kind: 'network', retryable: true });
+    // An error sent inside an open stream (OpenRouter) has no HTTP status, only a code in the body.
+    expect(mapCompatibleError(new OpenAI.APIError(undefined, { code: 502, message: 'Provider returned error' }, 'Provider returned error', undefined))).toMatchObject({ retryable: true });
+    expect(mapCompatibleError(new OpenAI.APIError(undefined, { code: 'server_error', message: 'upstream' }, 'upstream', undefined))).toMatchObject({ retryable: true });
+    expect(mapCompatibleError(new OpenAI.APIError(undefined, { code: 400, message: 'bad' }, 'bad', undefined))).toMatchObject({ retryable: false });
   });
 
   it('runs a tool loop through the agent loop, echoing reasoning_content within the loop', async () => {

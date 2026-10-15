@@ -65,7 +65,7 @@ describe('compatible adapter on the real SDK (fake fetch)', () => {
     const out = await drain(provider.stream(req({ model: 'deepseek-v4-pro', system: [{ text: 'Coach.', cache: false }], tools: [{ name: 'echo', description: 'e', inputSchema: { type: 'object' } }] })));
     expect(r.seen[0]?.url).toBe('https://api.deepseek.example/v1/chat/completions');
     expect(r.seen[0]?.body).toMatchObject({ model: 'deepseek-v4-pro', stream: true, stream_options: { include_usage: true }, max_tokens: 4096, messages: [{ role: 'system', content: 'Coach.' }, { role: 'user', content: 'hi' }] });
-    expect(out.map((e) => e.type)).toEqual(['tool_call_start', 'tool_input_delta', 'tool_call_end', 'message_end']);
+    expect(out.filter((e) => e.type !== 'progress').map((e) => e.type)).toEqual(['tool_call_start', 'tool_input_delta', 'tool_call_end', 'message_end']);
     expect(endOf(out)).toMatchObject({
       stopReason: 'tool_use',
       usage: { inputTokens: 40, cachedInputTokens: 60, outputTokens: 8 },

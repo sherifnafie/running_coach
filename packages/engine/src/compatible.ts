@@ -234,6 +234,8 @@ export async function* parseCompatibleStream(chunks: AsyncIterable<Chunk>, ctx: 
     const delta = choice.delta as Chunk['choices'][number]['delta'] & DeltaExt;
     if (delta.reasoning_content) reasoning += delta.reasoning_content;
     if (Array.isArray(delta.reasoning_details)) mergeReasoningDetails(reasoningDetails, delta.reasoning_details);
+    // A long reasoning phase streams no text: tell the loop the stream is alive so its stall timer doesn't fire.
+    if (delta.reasoning_content || (Array.isArray(delta.reasoning_details) && delta.reasoning_details.length)) yield { type: 'progress', text: '' };
     if (delta.content) {
       text += delta.content;
       yield { type: 'text_delta', text: delta.content };

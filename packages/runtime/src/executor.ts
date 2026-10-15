@@ -52,8 +52,14 @@ const SIDE_EFFECTS = new Set<string>([
   'spawn_agent', 'cancel_task', 'publish_ui', 'rollback_ui', 'set_preferences', 'generate_image',
 ]);
 
-/** Side effects that run in written order within a step. Helpers and images stay parallel: they don't touch shared state until merged. */
-const ORDERED = new Set<string>([...SIDE_EFFECTS].filter((n) => !['spawn_agent', 'cancel_task', 'generate_image'].includes(n)));
+/**
+ * Side effects that run in written order within a step. Helpers and images stay parallel: they don't touch shared
+ * state until merged. A plain reply (or no_reply) never waits behind slow work such as a long bash or a view publish;
+ * a reply with attachments does, because it may point at a file or view written earlier in the step.
+ */
+const ORDERED = new Set<string>([...SIDE_EFFECTS].filter((n) => !['spawn_agent', 'cancel_task', 'generate_image', 'send_message', 'no_reply'].includes(n)));
+const isOrdered = (call: ToolCallPart): boolean =>
+  ORDERED.has(call.name) || (call.name === 'send_message' && ((call.input as { attachments?: unknown[] } | undefined)?.attachments?.length ?? 0) > 0);
 
 export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & { allowed: ToolName[] } {
   const isCoach = o.agent.kind === 'coach';
@@ -108,9 +114,12 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
       const key = `tool:${o.athleteId}:${o.turnId}:${call.id}`;
       const pending = executing.get(key);
       if (pending) return pending;
-      const previous = ORDERED.has(call.name) ? sideEffectQueue : undefined;
+      const ordered = isOrdered(call);
+      const previous = ordered ? sideEffectQueue : undefined;
       const job = (async () => {
         await previous?.catch(() => {});
+        // The turn may have ended while this call waited its turn: the model was already told it didn't run.
+        if (signal.aborted) return { callId: call.id, name: call.name, isError: true, content: [{ type: 'text' as const, text: 'Not run: the turn was aborted before this tool could start.' }] };
         const cached = await core.store.getIdempotent(key) as ToolResult | undefined;
         if (cached) return cached;
         const result = await executeOnce(call, signal);
@@ -119,7 +128,7 @@ export function createExecutor(core: Core, o: ExecutorOptions): ToolExecutor & {
         await core.store.putIdempotent(key, result, new Date(core.clock.now().getTime() + 7 * 86_400_000).toISOString());
         return result;
       })();
-      if (ORDERED.has(call.name)) sideEffectQueue = job;
+      if (ordered) sideEffectQueue = job;
       executing.set(key, job);
       try {
         return await job;

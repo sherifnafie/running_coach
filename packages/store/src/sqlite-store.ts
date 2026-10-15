@@ -365,7 +365,7 @@ export class SqliteStore implements Store {
         this.run('DELETE FROM idempotency WHERE substr(key, 1, length(?)) = ?', prefix, prefix);
         this.run('DELETE FROM kv WHERE substr(key, 1, length(?)) = ?', prefix, prefix);
       }
-      for (const key of [`app-manifest:${id}`, `harness-version:${id}`, `last-head:${id}`, `turns-since-pinned-write:${id}`, `upload-drafts:${id}`]) {
+      for (const key of [`app-manifest:${id}`, `harness-version:${id}`, `last-head:${id}`, `turns-since-pinned-write:${id}`, `upload-drafts:${id}`, `reply-retries:${id}`]) {
         this.run('DELETE FROM kv WHERE key = ?', key);
       }
       this.run("DELETE FROM kv WHERE substr(key, 1, 7) = 'notice:' AND substr(key, -length(?)) = ?", `:${id}`, `:${id}`);
