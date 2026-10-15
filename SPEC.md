@@ -336,12 +336,12 @@ The athlete sees **one infinite conversation**. Context windows are finite, and 
 
 **5.3.1 Epochs.** A context epoch is a fresh context window that starts from L0–L4.
 - `[CTX-1]` A new epoch MUST start at the first event after a local "day boundary" (default 04:00 athlete time). It MUST also start on a model change and on explicit request. Within an epoch, history is append-only, which keeps the prompt cache valid and satisfies providers that bind reasoning blocks to an unedited history (Appendix A §A.1).
-- `[CTX-2]` If L5 exceeds the compaction trigger mid-epoch, the runtime MUST compact. It uses provider-native compaction when available and well-behaved (e.g. Anthropic's compaction beta). Otherwise it uses harness compaction: the coach writes an "epoch so far" summary, which replaces the older transcript.
+- `[CTX-2]` If L5 exceeds the compaction trigger mid-epoch, the runtime MUST compact. It uses provider-native compaction when available and well-behaved (e.g. Anthropic's compaction beta). Otherwise it uses harness compaction: the coach writes an "epoch so far" summary, which replaces the older transcript. The trigger scales with the model: `limits.compactionTriggerTokens` (default 160k prompt tokens) or 60% of the model's context window, whichever is smaller. Any context opened mid-day (after compaction or a model switch) also carries the latest chat messages verbatim, so the athlete's own words survive.
 - Continuity across epochs comes from L3/L4 plus **retrieval**. The coach can grep the read-only rendered transcripts in `/history/YYYY/MM/DD.md` or call `search_history` (FTS over the event log).
 
 **5.3.2 Pinned memory.** The coach chooses what is always in context by listing files in `AGENTS.md` front-matter (Appendix D). `[CTX-3]` The harness MUST enforce the L3 cap. When the cap is exceeded it loads files in list order until the cap, then reports the truncation in the situation report ("pinned context 14.2k > 12k cap; condense `athlete/profile.md`").
 
-**5.3.3 Memory writing is the coach's job.** The harness does not extract "memories" with a hidden pipeline. The coach decides what to record, and where. This is P1 and P5. To counter forgetting, the runtime **nudges**, an idea borrowed from Hermes Agent's agent-curated memory with periodic nudges. After a call, after an onboarding-like conversation, or after N turns without any write to pinned files, the situation report carries a line such as *"Consider whether anything from this conversation belongs in your notes."*
+**5.3.3 Memory writing is the coach's job.** The harness does not extract "memories" with a hidden pipeline. The coach decides what to record, and where. This is P1 and P5. The harness does not nudge it to write either: elapsed turns or a finished call say nothing about whether memory needs changing, and a recurring reminder pushes facts into pinned files (production, 2026-10: it fired on every turn once eight passed without a pinned write). What counters forgetting is context that is honest about itself: the constitution explains what survives an epoch, compaction keeps the recent conversation verbatim, and the coach can search its history.
 
 **5.3.4 The situation report** (L6) is the model's ground truth for time and state. Example:
 
@@ -844,7 +844,7 @@ Full detail is in Appendix C §C.5. The event stream vocabulary is **modeled on 
 
 - `WS /v1/stream`: server→client (`coach.message.delta`, `coach.message`, `presence`, `progress`, `ui.published`, `notice`); client→server (`user.typing`, acks)
 - `POST /v1/messages` · `POST /v1/uploads` (multipart, resumable) · `POST /v1/voice-notes`
-- `GET /v1/events?before=&limit=` (history) · `POST /v1/ui-actions` · `POST /v1/ui-writes`
+- `GET /v1/events?before=&limit=` (history) · `POST /v1/ui-actions` · `POST /v1/views/:id/write`
 - `GET /v1/app` (manifest) · views served from the isolated origin `https://views.<host>/<athlete>/<view>@<ver>/…`
 - `POST /v1/calls` (returns WebRTC session parameters and an ephemeral token) · `POST /v1/calls/:id/end`
 - `GET /v1/exports/calendar.ics?token=` · `POST /v1/export` · `DELETE /v1/account`

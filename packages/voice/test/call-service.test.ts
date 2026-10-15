@@ -64,6 +64,13 @@ describe('start()', () => {
     ]);
   });
 
+  it('refuses to start once the athlete\'s AI budget is used up [COST-1]', async () => {
+    h = await makeHarness({ budget: async () => ({ dayUsd: 0.5, monthUsd: 30, dailyUsd: 2, monthlyUsd: 30 }) });
+    await expectVoiceError(h.service.start(ATHLETE, {}), 'budget_exhausted');
+    expect(h.calls.briefing).toEqual([]);
+    expect(h.events).toEqual([]);
+  });
+
   it('cascaded: no connect info, no briefing, provider/model describe the STT+TTS pair', async () => {
     h = await makeHarness({ realtime: false, transcriber: true, synthesizer: true });
     const info = await h.service.start(ATHLETE, {});

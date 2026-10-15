@@ -1,272 +1,87 @@
 # Project status
 
-What works, what has been verified, and what's next. Keep this current when you finish or find something.
+What works, what is verified, what's open. Keep this page current: change the facts when they change, and put the
+history in commits, ADRs and the coach changelog, not here.
 
 ## State
 
-Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:e2e` and `pnpm eval:selftest` all pass.
+Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:e2e` and
+`pnpm eval:selftest` pass. Current release: **0.3.13** (harness and `general` pack).
 
 | Area | State |
 |---|---|
 | `packages/protocol` | Contracts (zod). Browser-safe. |
-| `packages/engine` | Agent loop. OpenRouter for all chat models with a vetted model catalog ([ADR 0007](adr/0007-openrouter-only-chat.md)); OpenAI-compatible endpoints (Ollama, OpenCode GO); scripted demo coach. |
-| `packages/runtime`, `packages/tools` | Mind loop, epochs, situation report, messaging policy, scheduler, helpers in git worktrees, UI publish/revert, MCP, safety screen, web search/fetch. |
+| `packages/engine` | Agent loop. OpenRouter for all chat models with a vetted catalog ([ADR 0007](adr/0007-openrouter-only-chat.md)); OpenAI-compatible endpoints (Ollama, OpenCode GO); scripted demo coach. |
+| `packages/runtime`, `packages/tools` | Mind loop, epochs and compaction, situation report, messaging policy and durable inbox, scheduler, helpers in git worktrees, UI publish/revert, MCP, safety screen, web search/fetch, weather. |
 | `packages/store`, `workspace`, `sandbox` | SQLite store; athlete workspace (git, coach.db, history, virtual FS, blobs, export/import/delete); local namespace sandbox and Docker sandbox. |
-| `packages/ui-kit` | Browser kit, bridge, Playwright preview renderer with publish gates, coach-facing docs. |
-| `packages/voice` | STT/TTS, realtime calls with server sideband, cascaded calls. |
-| `seed/` | Constitution and one general pack for any sport or combination ([ADR 0006](adr/0006-multi-discipline-coaching.md)): 12 skills that describe the app (coaching knowledge is the model's own, [ADR 0010](adr/0010-skills-describe-the-app.md)), helper profiles, a sport-agnostic workspace template and four starter views (Today, Calendar, Plan, Progress). |
-| `apps/server` | Gateway (HTTP, WebSocket, auth, passkeys, CSRF), separate views origin, push, Telegram, CLI, Docker packaging. Per-athlete encrypted OpenRouter keys: managed (hard monthly allowance) or bring-your-own (OAuth PKCE or pasted). Admin recovery codes. |
-| `ops/` | systemd user units, deploy with rollback, nightly consistent backups for a small home instance. |
-| `apps/web` | React PWA: chat (streaming, micro-UI, attachments, voice notes), coach views in sandboxed iframes, settings (incl. language/theme), calls. |
+| `packages/ui-kit` | Browser kit, bridge, Playwright preview renderer with publish gates (writes run on a throwaway copy of the data), coach-facing docs. |
+| `packages/voice` | STT/TTS, realtime calls with server sideband, cascaded calls, dictation. |
+| `seed/` | Constitution and one general pack for any sport ([ADR 0006](adr/0006-multi-discipline-coaching.md)): skills that describe the app ([ADR 0010](adr/0010-skills-describe-the-app.md)), helper profiles, a sport-agnostic workspace template and four starter views. |
+| `apps/server` | Gateway (HTTP, WebSocket, auth, passkeys, CSRF), separate views origin, push, Telegram, CLI, Docker packaging. Per-athlete encrypted OpenRouter keys: managed (administrator's allowance and model) or bring-your-own. |
+| `ops/` | systemd user units, deploy with health check and rollback, nightly and pre-deploy backups as separate series. |
+| `apps/web` | React PWA: chat (streaming, micro-UI, attachments, voice notes, dictation), coach views in sandboxed iframes, settings, calls. |
 | `packages/evals-sim`, `evals/` | Simulator with virtual time, personas, graders/judges, suites, CLI. See `evals/README.md`. |
 | `apps/native` | Capacitor Android shell and Health Connect plugin. **Never compiled** (no Android SDK yet). |
 
+## Production
+
+The owner's instance runs from `~/opencoach-prod` on a home server (`ops/`, [self-hosting](self-hosting.md#small-home-instance)),
+reachable through Tailscale Funnel, with three athletes. Chat goes through one deployment OpenRouter key; the owner
+chooses their own model (GPT-6.1 Sol since 2026-10-15; DeepSeek V4.1 Flash, the default, before). That key has a
+lifetime spending limit set in the OpenRouter dashboard: when it runs out every turn fails with a 403 and athletes see
+"the provider refused the key". Check it with `GET https://openrouter.ai/api/v1/key` before suspecting the harness.
+
+Production reviews of the owner's conversations are the main feedback loop for the harness and seed:
+[ADR 0013](adr/0013-lean-memory-and-ordered-side-effects.md) (first week) and
+[ADR 0014](adr/0014-truthful-environment-over-instructions.md) (second week, two independent reviewers). Each
+records what to compare in the following week.
+
 ## Verified vs. unverified
 
-- **Verified live:** OpenCode GO with DeepSeek V4.1 Flash, using synthetic athletes. Covered: streaming tool calls, signup, delivered replies, saved intake, plan and activity, all four views showing the data, delegation to helpers, and the owner's own phone test. The server Docker image builds and runs the demo with isolated sandboxes.
-- **Verified live through OpenRouter (2026-10-07):**
-  - Streamed tool call with `reasoning_details` replayed within the tool loop.
-  - `usage.cost` reported on every call.
-  - Prompt cache hits with pinned hosts (5632 of 5643 input tokens cached).
-  - A workout screenshot read correctly by all five catalog models under `data_collection: deny`.
-  - The live instance runs from `~/opencoach-prod` through Tailscale Funnel, and both origins were reachable from the public internet.
-- **Verified live (2026-10-07, later):**
-  - Claude Haiku 5.5 through OpenRouter, the default at that time: tools, reasoning replay across tool loops, request-level 1h prompt caching, screenshot reading, and three `disciplines` eval scenarios.
-  - The OpenAI key on prod: TTS and STT round trip with gpt-4o-mini-tts and gpt-4o-transcribe. The realtime, whisper and live-transcribe models are available to the key.
+- **Verified live (OpenRouter, 2026-10-07/08):** streamed tool calls with reasoning replay, `usage.cost` on every
+  call, prompt-cache hits with pinned hosts, screenshot reading by all catalog models under `data_collection: deny`,
+  Claude Haiku 5.5 and DeepSeek V4.1 Flash as coach, OpenAI TTS/STT round trip, OpenRouter image generation
+  (about $0.012 per image), PWA push enrollment, the Docker image with isolated sandboxes.
+- **Verified in production use:** a week of daily coaching by DeepSeek V4.1 Flash: intake, a 12-week plan, view
+  building and publishing, helpers, heartbeats, consolidation, held outreach and input recovery across restarts.
 - **Not verified:**
   - Coaching quality: no real-model eval cohort and no human calibration.
-  - Full provider conformance [MOD-2]; vision and screenshot extraction with a real model.
-  - Live voice and calls, Web Push delivery, Telegram, web search backends, and MCP against real servers.
-  - The native Android build and Health Connect on a device; iOS.
-  - Scheduled proactive delivery over real time.
-- **A known model weakness to keep an eye on:** in the VO₂max eval, DeepSeek computed the estimate correctly but invented an RPE value. The eval keeps that as a failure (see `evals/vo2max.md`). Fix this kind of problem through seed instructions, not harness code.
-
-**Coach identity and images:** identity changes retain separate opt-in/requested turns. Image generation now reuses scoped OpenRouter keys, with an independent requested/automatic/off control and monthly image allowance. Default Flare medium at 816 square costs about $0.012 in live synthetic samples; output is safe 512 PNG with private blob and readable workspace path for gallery assets. Pricing preflight, bounded server-selected parameters, reservations, no fallback/retry and durable replay remain enforced. Direct Google/OpenAI-compatible alternatives remain. See [setup](self-hosting.md#optional-coach-name-avatar-and-generated-images), [research and expected spend](image-generation-research.md) and [ADR 0011](adr/0011-small-openrouter-images.md).
-
-**Image integration verification (2026-10-08):** typecheck, full unit/renderer suite (794 tests), build, all 14 browser end-to-end cases, offline eval self-test and the 28-scenario reference fast subset passed. The generated medal was published through the real view gates and inspected on light/dark phone and tablet previews, with no serious/critical accessibility violations. Ten live synthetic image samples across four models cost about $0.09 total. Reference evals validate the harness; they do not establish real-model restraint or achievement quality.
-
-**Production deployment (2026-10-08):** release 0.3.5 (`aa5f1cb`) is running in `~/opencoach-prod`, with a pre-deploy backup. DeepSeek V4.1 Flash is now the default for both chat and deep work (high effort for deep work); the production Haiku override was replaced. OpenRouter images use Flare medium. Verified the active systemd service, loaded production tier/image configuration, installed image capability skill, public app and gateway (HTTP 200), view kit (HTTP 200), and authentication boundary (unauthenticated `/v1/me` returns 401). The default-change config tests and typecheck/reference fast subset also pass.
-
-**PWA notifications (2026-10-08):** the production account allowed push but had zero registered device subscriptions. Settings now separates that account preference from actual phone permission/enrollment, with explicit enable/reconnect and an authenticated device-specific test. Existing subscriptions re-register on open/foreground/reconnect without prompting; VAPID key changes can be repaired and disabling/signing out unregisters the device. Open desktop/background WebSockets no longer suppress phone notifications. Every received push displays a notification (required by WebKit), quiet while the local app is focused; held/call/disabled/`notify:none` exclusions still apply. Provider acceptance is not proof of display on a physical phone; the owner must enable notifications and check the test on Android/Chrome.
-
-Notification changes pass typecheck, all 796 harness/renderer tests, 163 web unit tests (12 existing skips) and all 14 browser end-to-end cases, including the misleading account-enabled/device-disconnected state. Provider delivery with connected clients, owned/rate-limited tests, expiration cleanup, permission states, VAPID repair and actual worker event handlers have focused regression coverage.
-
-Deployed notification fixes (`4baffbe`) to production with a pre-deploy backup. Verified the active service, newly served notification controls and service worker, and 401 responses for unauthenticated device-status/test requests. Physical Android/Chrome receipt remains pending the owner's on-device permission and test.
-
-**Mid-turn identity requests (2026-10-08):** an owner's explicit name/avatar
-request arrived during an upgrade follow-up. The coach attempted both tools;
-both returned `NOT_ALLOWED` because permissions used the turn's original
-`followup` class even after chat input was injected. The header correctly kept
-the unsaved name. Release 0.3.6 switches the tool context to reactive at the
-steering boundary and supplies a trusted context update, preserving original
-trace classification and all opt-in/ownership/cost checks. Skills clarify that
-no open app or extra message is needed, and a name in prose does not save it.
-The owner's agreed display name was repaired to Miles through the normal
-settings API with an audited, immediately revoked maintenance session. Physical
-avatar generation was not retried as part of that name repair.
-
-Validation: all 798 harness/renderer tests, typecheck, all 14 browser cases and
-the 28-scenario reference fast subset pass. The new runtime regression injects
-name/avatar requests during a follow-up and checks both successful completion
-and continued refusal when permissions are off. The existing browser test
-checks the header/avatar after `settings.changed` and reload.
-Deployed 0.3.6 (`72f0ad3`) with backup; verified the active service, new system
-skills/runtime code, public app/gateway/view kit and the owner's saved Miles name.
-
-**Scannable views and Settings (0.3.7, 2026-10-08):** starter views use compact
-secondary sections, light dividers and optional responsive pairs; no layout
-rule is enforced on coach-authored views. Settings groups controls under three
-sections, balances notifications beside model/voice/image settings, and pairs
-quiet-hour inputs. Quick check-in was removed from Today, including its form,
-queries and manifest grants; existing check-in records remain. Calendar details
-now omit null optional children before native DOM insertion. Calendar buttons
-also keep their session names accessible in compact month cells. Shared kit
-URLs revalidate instead of caching a mutable major version for a year, and
-updated starter URLs bypass old caches. Owner-account updates preserve the
-coach's VO₂max widget and date formatting and use the normal preview/publish
-and workspace history paths. Current/empty sample and owner previews pass
-all gates with zero serious/critical accessibility findings.
-Deployed 0.3.7 (`643d902`) after backups and published the owner's views through
-the normal gates/history: Today v3, Calendar v2, Plan v3, Progress v4. Verified
-those versions through the authenticated app API, preserved VO₂max markup,
-removed Quick check-in, fresh kit URLs and live cache headers. All 798
-harness/renderer tests, 15 browser cases, build/typecheck and deterministic
-reference fast eval checks pass; visual review covered phone/tablet, both
-themes and empty states.
-
-**Supporting detail on demand (0.3.8, 2026-10-08):** optional native disclosures
-and tap/keyboard help popovers are styled/documented by the kit, with a small
-opt-in help control in Settings. Starter Plan folds phases, weekly breakdowns,
-key sessions and rationale; Progress keeps current metrics visible with
-optional distance charts, lift details and results; Calendar folds its legend.
-The owner's VO₂max adaptation retains the latest value and an honest short
-caveat, with its original explanation, trend and tests available on demand.
-No runtime policy requires these patterns and opening them calls no model.
-Session instructions, status and consequential settings warnings stay visible.
-Phone/tablet, dark/light and empty-state previews pass with zero serious or
-critical accessibility findings. Browser coverage exercises expanding rationale,
-help inside a sandboxed view, keyboard opening, Escape/focus return, Close and
-outside dismissal, plus viewport fit and unchanged settings behavior.
-Deployed 0.3.8 (`7988669`) after backups and published the owner's Calendar v3,
-Plan v4 and Progress v5 through normal preview/history; Today remains focused
-on its existing session instructions. Authenticated production checks confirm
-the release, current bundles and preserved metric method/history. All 798
-harness/renderer tests, 163 web unit tests (12 existing skips), 16 browser cases,
-build/typecheck and deterministic reference fast eval checks pass.
-
-**Presentation fixes (0.3.9, 2026-10-08):** Plan opts into `rc-markdown`
-`omit-title` to avoid repeating “Why this plan”; only a matching first heading
-is omitted from the display, preserving the source document and subsections.
-Settings places the avatar/reset beside the coach name. View updates now use
-a compact personal notice with bounded summary, dismissal and a history link;
-expiry pauses while hovered or keyboard-focused. Chat uses a concise linked
-update entry. Full summaries and existing undo stay in screen history. Regression
-coverage checks title composition/source preservation, inline avatar placement
-and reset, history navigation, long summaries and focus-aware dismissal.
-Deployed 0.3.9 (`f9fda1d`) after backups and published the owner's Plan fix
-through normal history. Authenticated readback confirms all current view
-bundles load, Plan retains `omit-title`, and the original Markdown title is
-unchanged. The coach subsequently republished its views (Plan v7 at verification).
-All 801 harness/renderer tests, 164 web unit checks, 17 browser cases,
-build/typecheck and deterministic reference fast eval checks pass. Phone and
-desktop visual checks cover the inline identity control and both update notices.
-
-**Stale held outreach and restart input recovery (2026-10-08, [RT-3], [RT-4],
-[MSG-4], [ADR 0012](adr/0012-outreach-freshness-and-durable-inputs.md)):** owner
-logs confirmed a 19:40 local draft was delivered at 21:39 after intervening
-answers: minimum-gap release never checked freshness. A town message at 19:30
-was also persisted but absent from resumed coach context until the coach
-searched history after the complaint. Held outreach now cancels atomically on
-new reply-requiring input, with an append-order freshness check at release and
-no delivery/counting of cancelled drafts. A durable inbox recovers unanswered
-messages and undrained steering after restarts; reply/acknowledgement commits
-atomically, and retry wakes reuse the original pending input. Quiet hours,
-budgets and minimum gaps remain. Focused regressions cover both input paths,
-unchanged release, equal timestamps, migration, terminal-state races, debounce
-and active-turn shutdown, explicit no-reply and reactive retries.
-Verification: full unit/renderer suite, all 13 focused inbox/freshness checks,
-typecheck/build and the 28-scenario deterministic reference fast gates pass.
-The three existing optional achievement judge checks remain unrun; this is
-harness verification, not a claim about live-model coaching quality.
-All 17 browser end-to-end cases also pass. Deployed 0.3.10 (`1f9f75d`) after a
-pre-deploy backup; verified the active service, schema 4 with no foreign-key
-violations, empty pending/held queues, authenticated app and all four current
-views, public HTTP 200 and unauthenticated API HTTP 401.
-
-**Quieter screen updates (0.3.11, 2026-10-09, [UI-1]):** chat now folds adjacent
-screen publications from one turn into one compact disclosure, including older
-conversation history. Identical summaries appear once on expansion, with all
-screen links and history/undo still available; conversation and quick-reply
-boundaries preserve distinct changes. Duplicate delivery of the same update
-marker does not restart its dismissal timer. Publish comparison now includes
-inherited `ui/lib/` (respecting screen-local overrides); the old comparison
-treated every inherited library as a change and unnecessarily republished
-unmodified screens. Explicit unchanged selections also skip version/alert
-creation. Shared-library changes and deletions still update affected bundles.
-All 816 harness/renderer tests, 171 web unit tests, 18 browser cases,
-typecheck/build and the 28-scenario reference fast gates pass (three optional
-achievement judge checks remain unrun). Browser coverage checks the five-screen
-batch after reload, collapsed size, keyboard expansion, deduplicated Markdown
-and history navigation. Phone/desktop visual checks cover the compact row and
-expanded detail.
-Deployed 0.3.11 (`97aa65c`) after backup. Verified the live release, new client
-styles, authenticated app/all five current views, public HTTP 200 and API auth
-boundary. Read-only owner-history verification folds 32 publication events into
-15 compact entries, including the five-screen batch; source events are retained.
-
-**Expanded update polish (2026-10-09, [UI-1]):** the expanded chat update is
-one contained panel, with a connected header, readable inset summary, compact
-neutral screen buttons and a separate history footer. The collapsed row stays
-quiet. Buttons retain 44px touch targets and keyboard focus; grouping, full
-summaries, screen navigation and history/undo behavior are unchanged. This is
-a shell-only presentation patch on 0.3.11; no coach upgrade or workspace edits.
-Verified 171 web unit tests, web typecheck/build and all 18 browser cases on a
-clean repeat. Visual review covers light/dark 390px phones, 320px fit and desktop;
-the browser checks screen/history navigation, keyboard expansion and 44px
-targets within the expanded panel.
-Deployed `460ffab` after backup; verified the active service, newly served
-panel styles, authenticated app/all five views and unchanged auth boundary.
-
-**Production review → rolling plan detail, lean memory, ordered side effects (0.3.12, 2026-10-14, [RT-10], [SK-1], [CTX-1], [COST-3], [ADR 0013](adr/0013-lean-memory-and-ordered-side-effects.md)):**
-a review of the owner's first production week found sound coaching but:
-- a fully materialized 12-week plan that drifted from its prose, including a
-  wrong peak quoted to the athlete;
-- facts copied across five pinned or briefing files;
-- tool workarounds kept in pinned `AGENTS.md`;
-- verbose day-one chat;
-- over-built and untested view requests;
-- daily re-verification of unchanged state.
-
-Harness:
-- State-changing tool calls in one step run in written order. Two same-file
-  edits previously raced and lost one.
-- Plain `skills/<name>.md` files are indexed.
-- The situation report has a `since your last turn` line.
-- SPEC §5.2 effort now matches the code (high for all non-call turns).
-
-Seed: rolling plan-detail horizon, numbers quoted from data, one home per
-fact, tool lessons in skills, briefing without restating pinned files, short
-chat, smallest exercised app builds without crowding out coaching, and
-proportional checks. Thinking time, output volume and in-context app work are
-acceptable by the owner's choice.
-
-Validation:
-- Typecheck passes.
-- All 814 harness/renderer tests pass. New tests cover same-step edit
-  ordering (fails on the old code), flat skill indexing and the digest.
-- The 28-scenario reference fast gates pass; the three optional achievement
-  judge checks remain unrun.
-
-Real-model effect is unmeasured: compare the next production week to the
-ADR 0013 baseline.
+  - Full provider conformance [MOD-2].
+  - Live calls end to end, Telegram, web search backends (none configured in production), MCP against real servers.
+  - Physical receipt of Web Push on Android/Chrome (provider acceptance only).
+  - The native Android build and Health Connect; iOS.
+- **A model weakness to watch:** in the VO₂max eval, DeepSeek computed the estimate correctly but invented an RPE
+  value (kept as a failure, `evals/vo2max.md`). Fix this kind of problem in the seed, not in harness code.
 
 ## Open work (roughly by value)
 
-1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed (constitution and skills) based on the failures.
-2. Validate vision: configure a vision-capable route and test screenshot extraction (`evals/suites/extraction.yaml`).
-3. Native shell: build `apps/native` with an Android SDK, test Health Connect on a device, then do native FCM push and a share-sheet target.
-4. Validate the external services live: Web Push, voice notes and calls, and Telegram.
+1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed from the failures.
+   Missing scenarios: post-call recaps and "don't message after an empty call", the weather tool, small-model
+   arithmetic and consistency slips in long planning conversations.
+2. Compare the next production week against ADR 0014: repeated questions, corrections that survive a context
+   change, view saves that work the first time, helper briefs that carry the athlete's own request.
+3. Calls: `call.ended` can't tell a call that never connected from a hang-up (two of six owner calls were empty);
+   the call front-end has `lookup`, `consult_coach` and `note` but no weather or web.
+4. Native shell: build `apps/native`, test Health Connect on a device, then native push and a share target.
+5. Validate external services live: Web Push receipt, voice notes and calls, Telegram.
 
-## Known issues and cleanup backlog
+## Known issues
 
-- **Intermittent browser-test database contention (2026-10-09):** one full browser
-  run recorded `database is locked`, causing three later shared-error-list
-  assertions to fail. The update-panel case passed; a clean repeat passed all
-  18 cases. The source of the sporadic DB contention has not been isolated.
-
-- **Leaked tool syntax (fixed 2026-10-07):** DeepSeek V4.1 Flash through OpenRouter once wrote `</text><parameter name="ui">…` inside a `send_message` text, and the athlete saw it raw. The adapter now splits such tails back into arguments (`repairLeakedParameters`), and `send_message` rejects any remaining tool markup so the model resends. Watch for other shapes of the same failure.
-
-- **Live dictation never worked in prod (fixed 2026-10-07):** dictation sent a transcription `prompt`, which `gpt-realtime-whisper` rejects with HTTP 400. Athletes saw "The upstream provider failed (invalid_request)". Dictation no longer sends a prompt (session minting verified against the live API), and provider errors now reach athletes as plain-language messages; the provider's detail stays in the server log.
-- **Coach narrating app mechanics:** after a call, DeepSeek told the athlete "voices are coming through now, that was the shimmer run", because it had seen their voice-setting changes. The constitution (§4) now says not to narrate settings, voice or model choices, connection problems or housekeeping. An eval scenario for post-call recaps is still missing.
-- **Stale installed apps (fixed 2026-10-07):** an installed PWA left open in the background kept running old code after a deploy. It now checks for an update when brought to the foreground and reloads into it at a quiet moment (not during a call or while typing).
-
-- **Coach steering redesign (2026-10-08, [ADR 0008](adr/0008-proportion-and-effort-by-stakes.md)):** instructions rewritten for proportion, athlete-first precedence and effort by stakes; deep tier defaults to DeepSeek V4.1 Flash. Still open: small models make arithmetic and consistency slips in long planning conversations (half-written weeks, overlapping dates); Haiku sometimes writes a week's plan itself instead of using the planner; no automated grading for the conversation benchmark yet; no eval scenario for "don't message after an empty call".
-
-- **Coach-owned UI components (2026-10-08):** `ui/lib/` in the workspace is copied into each published view as `lib/` (checked by the same static gates), with starter tabs, sheet, workout timer and table; the kit source is readable at `/system/docs/ui-kit-source/` and kit elements can be overridden by defining them first. Default views deliberately don't use them; the coach decides.
-- **Optional achievements (2026-10-08, [ADR 0009](adr/0009-coach-owned-achievements.md)):** a progressive skill and editable ledger/gallery example; no default tab, automatic migration, award engine or new notification behavior. Recognition needs an actual accomplishment and sources; repeated requests don't earn medals, routine sessions don't need trophies, and opt-out/challenge revisions are respected. Local artwork needs no service. Generated PNGs can now be copied into gallery assets from their returned workspace path; images have a separate permission/allowance (ADR 0011). Seven focused eval cases (three also in `fast`), structured saved-file checks and a separate uncalibrated judge rubric. Offline controls and browser publish gates pass; **real-model restraint and pressure resistance are not yet verified** (no dedicated eval key available).
-- **Weather tool (2026-10-08):** `weather` (Open-Meteo, no key, town-level, cached). Not yet covered by an eval scenario.
-
-- **Skills describe the app (2026-10-08, [ADR 0010](adr/0010-skills-describe-the-app.md)):** the nine sports-science skills were removed; their scripts live in `calculators`. Not yet measured: whether coaching quality on small models changes without them (run the conversation benchmark and the planning and safety suites).
-
-- **Bring-your-own OpenAI key for voice** is not implemented. Voice uses the server key. The credential store already supports `openai`; the voice services need per-athlete scoping.
-- **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting, "Small home instance"). Store them relative to the data directory.
-
-- **Coach-reported harness gaps not yet addressed (from the owner's `feedback-to-harness.md`, 2026-10-08→12):**
-  - A view `db.write` update that matches no row resolves successfully.
-  - A view's error-level report of an offline read appears to trigger fallback to the previous version, including from kit components.
-  - `call.ended` can't distinguish a call that never connected from a hang-up (2 of 6 calls were empty).
-  - The call front-end has no tools, such as weather.
-  - A stalled helper's partial work isn't surfaced in `task.failed`.
-
-These are smaller findings from the code review on 2026-10-07 that haven't been fixed yet:
-- **Harness wording that coaches the model:** some harness strings tell the model how to behave and could move to `seed/` (the deletion test). Examples: the delegation advice in `runtime/src/capabilities.ts`, the helper LIMIT message in `helpers.ts`, and the `spawn_agent` and `set_preferences` tool descriptions.
-- **Repeated research guidance:** it appears in the constitution, `skills/research`, `agents/deep-researcher.md` and `docs/tools.md`. Keep it in the skill and the profile, and leave only a pointer in the constitution.
-- **Dead field:** `ModelRequest.metadata.epochId` is never set. As a result, the compatible provider's session header sends `cacheKey` (the raw athlete id) to the provider.
-- **Duplicated lock:** the per-athlete lock helper exists twice (`messaging.ts` `withMessageLock` and `UiService.withLock`).
-- **Server leftovers:**
-  - `GET /v1/settings/calendar-url` writes state on its first call.
-  - `POST /v1/ui-writes` duplicates `POST /v1/views/:id/write`.
-  - The `validatePushEndpoint` and `onAthleteDeleted` gateway hooks are never wired.
-- **Two `playwright-core` versions:** ui-kit pins 1.56.1, while evals-sim and web use ^1.63.
-- **Eval schedule:** `evals.yml` only runs manually. Appendix E §E.7 also wants a fast subset on PRs plus nightly runs.
+- **Intermittent browser-test database contention:** one full browser run recorded `database is locked` and three
+  later assertions failed; a clean repeat passed. Not isolated.
+- **Voice spend is not metered:** realtime and cascaded calls, voice-note transcription and TTS use the server's
+  OpenAI key and record no usage, so they don't count toward an athlete's budget (dictation does). A call no longer
+  starts once the budget is used up, but its own cost is capped only by its maximum duration.
+- **Bring-your-own OpenAI key for voice** is not implemented; the credential store already supports `openai`.
+- **Helper transcripts aren't stored:** helper turns keep metadata and the final note, not their context or tool
+  calls, so a failed helper can't be audited after the fact.
+- **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting). Store them relative.
+- **Provider session header:** the OpenAI-compatible adapter sends the raw athlete id as its session id
+  (`ModelRequest.metadata.epochId` is never set).
+- **Harness wording that still coaches the model:** the helper LIMIT message in `runtime/src/helpers.ts`. Research
+  guidance is repeated across the constitution, `skills/research`, `agents/deep-researcher.md` and `docs/tools.md`.
+- **Two `playwright-core` versions:** ui-kit pins 1.56.1; evals-sim and web use ^1.63.
+- **Eval schedule:** `evals.yml` runs only manually; Appendix E §E.7 also wants a fast subset on PRs and nightly runs.
 - **Plan view:** the race line ("N weeks to go") is only partly translated.
+- **Leaked tool syntax** (fixed 2026-10-07 for one shape): DeepSeek once wrote parameter markup inside a
+  `send_message` text. The adapter repairs that shape and `send_message` rejects remaining markup; watch for others.

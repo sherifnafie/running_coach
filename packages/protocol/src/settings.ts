@@ -68,8 +68,8 @@ export const AthleteSettings = z.object({
       monthlyUsd: z.number().min(0).default(30),
     })
     .prefault({}),
-  /** Per-athlete tier overrides (self-host admin). Empty = deployment defaults. */
-  models: z.object({ coach: TierOverride.optional(), deep: TierOverride.optional(), fast: TierOverride.optional() }).prefault({}),
+  /** Per-athlete tier overrides (self-host admin). Empty or null = deployment defaults; a patch with null clears one. */
+  models: z.object({ coach: TierOverride.nullish(), deep: TierOverride.nullish(), fast: TierOverride.nullish() }).prefault({}),
   voice: z
     .object({
       callMode: z.enum(['realtime', 'cascaded']).default('realtime'),

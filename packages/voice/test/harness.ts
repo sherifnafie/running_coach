@@ -21,7 +21,7 @@ import {
   type Transcriber,
   type AthleteSettingsInput,
 } from '@opencoach/protocol';
-import { createCallService, type CallService } from '../src';
+import { createCallService, type CallService, type CallServiceDeps } from '../src';
 
 export const START = '2026-10-06T10:00:00.000Z';
 export const ATHLETE = 'ath_alex';
@@ -175,6 +175,7 @@ export interface HarnessOptions {
   settings?: AthleteSettingsInput;
   /** A provider, or a factory that receives the harness clock. */
   realtimeProvider?: RealtimeVoiceProvider | ((clock: VirtualClock) => RealtimeVoiceProvider);
+  budget?: CallServiceDeps['budget'];
 }
 
 export async function makeHarness(opts: HarnessOptions = {}) {
@@ -199,6 +200,7 @@ export async function makeHarness(opts: HarnessOptions = {}) {
     realtime: typeof opts.realtimeProvider === 'function' ? opts.realtimeProvider(clock) : (opts.realtimeProvider ?? (opts.realtime === false ? undefined : fakeRt)),
     transcriber: opts.transcriber ? transcriber : undefined,
     synthesizer: opts.synthesizer ? synthesizer : undefined,
+    ...(opts.budget ? { budget: opts.budget } : {}),
   });
   return {
     service,

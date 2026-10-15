@@ -28,7 +28,7 @@ import {
 } from '@opencoach/protocol';
 import { kitDistDir } from './assets';
 import { createEmptyDb, readDbSchema, SqlExecutor } from './sql';
-import { PreviewServer, type ViewContext } from './server';
+import { PreviewServer, type PreviewWriteFn, type ViewContext } from './server';
 import { checkApp, checkViewStatic, type ViewStatic } from './static-checks';
 
 export interface PlaywrightRendererOptions {
@@ -48,6 +48,8 @@ export interface PlaywrightRendererOptions {
   previewTimeoutMs?: number;
   /** View environment used for the render. */
   env?: { locale?: string; units?: 'metric' | 'imperial'; tz?: string };
+  /** Runs bridge db writes with the live rules against a throwaway copy of the data; without it writes are only validated. */
+  applyWrite?: PreviewWriteFn;
 }
 
 interface VariantDef {
@@ -132,6 +134,7 @@ interface VariantResult {
   variant: PreviewVariant;
   runtime: Issues;
   csp: Issues;
+  notes?: Issues;
   firstRenderMs: number;
   screenshot?: string;
 }
@@ -236,7 +239,10 @@ export class PlaywrightRenderer implements UiRenderer {
         createEmptyDb(emptyDb, schema);
         const ctxs = new Map<string, ViewContext>();
         for (const s of renderable) ctxs.set(s.viewId, { id: s.viewId, manifest: s.manifest as NonNullable<ViewStatic['manifest']>, dir: s.dir });
-        server = new PreviewServer({ workspaceDir: input.workspaceDir, kitDir, realDb: existsSync(dbPath) ? dbPath : emptyDb, emptyDb, views: ctxs, existingViews: app.existingViews, exec });
+        server = new PreviewServer({
+          workspaceDir: input.workspaceDir, kitDir, realDb: existsSync(dbPath) ? dbPath : emptyDb, emptyDb, views: ctxs, existingViews: app.existingViews, exec,
+          scratchDir: tmp, ...(this.opts.applyWrite ? { applyWrite: this.opts.applyWrite } : {}),
+        });
         await server.start();
       }
 
@@ -266,7 +272,7 @@ export class PlaywrightRenderer implements UiRenderer {
     return { ok: views.every((v) => v.ok) && globalErrors.length === 0, views, globalErrors };
   }
 
-  private finish(st: ViewStatic, runtime: Issues, csp: Issues, firstRenderMs: number, screenshots: ViewPreview['screenshots'], a11y: ViewPreview['a11y'], extraRuntime: string[] = []): ViewPreview {
+  private finish(st: ViewStatic, runtime: Issues, csp: Issues, firstRenderMs: number, screenshots: ViewPreview['screenshots'], a11y: ViewPreview['a11y'], extraRuntime: string[] = [], notes?: Issues): ViewPreview {
     const staticErrors = [...st.errors];
     if (st.bundleKb > PUBLISH_GATES.maxBundleKb) staticErrors.push(`bundle is ${st.bundleKb} KB, over the ${PUBLISH_GATES.maxBundleKb} KB limit (excluding the kit): shrink or remove large assets`);
     const runtimeErrors = [...runtime.list(PREVIEW_VARIANTS.length), ...extraRuntime];
@@ -281,6 +287,7 @@ export class PlaywrightRenderer implements UiRenderer {
       cspViolations,
       a11y,
       perf: { firstRenderMs: Math.round(firstRenderMs), bundleKb: st.bundleKb },
+      ...(notes?.size ? { notes: notes.list(PREVIEW_VARIANTS.length) } : {}),
       screenshots,
     };
   }
@@ -290,6 +297,7 @@ export class PlaywrightRenderer implements UiRenderer {
     const view = { id: st.viewId, manifest: st.manifest as NonNullable<ViewStatic['manifest']>, dir: st.dir };
     const runtime = new Issues();
     const csp = new Issues();
+    const notes = new Issues();
     const screenshots: ViewPreview['screenshots'] = [];
     let firstRender = 0;
 
@@ -303,6 +311,7 @@ export class PlaywrightRenderer implements UiRenderer {
       }
       runtime.merge(r.runtime);
       csp.merge(r.csp);
+      if (r.notes) notes.merge(r.notes);
       firstRender = Math.max(firstRender, r.firstRenderMs);
       if (r.screenshot) screenshots.push({ variant, path: r.screenshot });
     }
@@ -334,7 +343,7 @@ export class PlaywrightRenderer implements UiRenderer {
       .sort((a, b) => (a.impact === b.impact ? 0 : a.impact === 'critical' ? -1 : 1))
       .slice(0, 12)
       .map((v) => `${v.impact} ${v.id}: ${v.help} (${v.count} element${v.count === 1 ? '' : 's'}, e.g. ${v.target}) [${[...(a11yVariants.get(`${v.impact}|${v.id}`) ?? [])].join(', ')}]`);
-    return this.finish(st, runtime, csp, firstRender, screenshots, { critical, serious, details });
+    return this.finish(st, runtime, csp, firstRender, screenshots, { critical, serious, details }, [], notes);
   }
 
   private hostUrl(server: PreviewServer, view: ViewContext, variant: PreviewVariant, accent: string | undefined): string {
@@ -439,6 +448,7 @@ export class PlaywrightRenderer implements UiRenderer {
     const def = VARIANT_DEFS[variant];
     const runtime = new Issues();
     const csp = new Issues();
+    server.resetVariant(view.id, variant);
     const ctx = await this.newContext(browser, variant, server, a11y, runtime);
     try {
       const page = await ctx.newPage();
@@ -464,8 +474,10 @@ export class PlaywrightRenderer implements UiRenderer {
       const col = server.collector(view.id, variant);
       for (const m of col.runtime) runtime.add(m, variant);
       for (const m of col.csp) csp.add(m, variant);
+      const notes = new Issues();
+      for (const m of col.notes) notes.add(m, variant);
       this.log.debug('preview variant', { view: view.id, variant, firstRenderMs: Math.round(renderedAt), contentHeight: height });
-      return { variant, runtime, csp, firstRenderMs: renderedAt, screenshot: shot };
+      return { variant, runtime, csp, notes, firstRenderMs: renderedAt, screenshot: shot };
     } finally {
       await ctx.close().catch(() => {});
     }
@@ -473,6 +485,7 @@ export class PlaywrightRenderer implements UiRenderer {
 
   private async a11yPass(browser: Browser, server: PreviewServer, view: ViewContext, variant: PreviewVariant, accent: string | undefined): Promise<A11yViolation[]> {
     const blocked = new Issues();
+    server.resetVariant(view.id, variant);
     const ctx = await this.newContext(browser, variant, server, true, blocked);
     try {
       const page = await ctx.newPage();

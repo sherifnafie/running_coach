@@ -10,6 +10,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { randomBytes } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import { extname, join, resolve, sep } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { BridgeParams, BridgeRequest, UI_KIT_MAJOR, type ViewManifest } from '@opencoach/protocol';
@@ -69,7 +70,19 @@ export interface ViewContext {
 export interface VariantCollector {
   runtime: string[];
   csp: string[];
+  /** Non-failing observations: warn/info reports from the view and the outcome of each bridge write. */
+  notes: string[];
 }
+
+/**
+ * Applies a view's bridge write with the live gateway's rules (`applyViewWrite` in @opencoach/workspace) to the given
+ * database. Injected by the composition root; ui-kit can't depend on the workspace package.
+ */
+export type PreviewWriteFn = (input: {
+  dbPath: string;
+  manifest: ViewManifest;
+  write: { target: string; op: 'insert' | 'update' | 'delete'; row: Record<string, unknown>; key?: Record<string, unknown> };
+}) => Promise<string>;
 
 export interface PreviewServerOptions {
   workspaceDir: string;
@@ -82,6 +95,10 @@ export interface PreviewServerOptions {
   /** ids of all views in the workspace (for navigate checks). */
   existingViews: string[];
   exec: SqlExecutor;
+  /** Where per-variant database copies go. */
+  scratchDir?: string;
+  /** Applies db writes for real, to a per-variant copy of the database. Without it writes are validated and simulated. */
+  applyWrite?: PreviewWriteFn;
 }
 
 const MAX_FILE_READ = 512 * 1024;
@@ -91,6 +108,8 @@ export class PreviewServer {
   private server?: Server;
   private port = 0;
   private readonly collectors = new Map<string, VariantCollector>();
+  /** Per view/variant database copies, made on the first write so every render starts from the same data. */
+  private readonly copies = new Map<string, string>();
   private subSeq = 0;
 
   constructor(private readonly o: PreviewServerOptions) {}
@@ -102,8 +121,33 @@ export class PreviewServer {
   collector(view: string, variant: string): VariantCollector {
     const k = `${view}|${variant}`;
     let c = this.collectors.get(k);
-    if (!c) this.collectors.set(k, (c = { runtime: [], csp: [] }));
+    if (!c) this.collectors.set(k, (c = { runtime: [], csp: [], notes: [] }));
     return c;
+  }
+
+  /** Start a fresh render of a view variant: drop its database copy and collected findings. */
+  resetVariant(view: string, variant: string): void {
+    this.copies.delete(`${view}|${variant}`);
+    this.collectors.delete(`${view}|${variant}`);
+  }
+
+  /** The database a view variant reads and writes: its own copy once it has written, otherwise the shared source. */
+  private dbFor(view: string, variant: string, empty: boolean, forWrite: boolean): string | undefined {
+    const k = `${view}|${variant}`;
+    const existing = this.copies.get(k);
+    if (existing) return existing;
+    const base = empty ? this.o.emptyDb : this.o.realDb;
+    if (!forWrite) return base;
+    if (!this.o.scratchDir) return undefined;
+    const copy = join(this.o.scratchDir, `write-${this.copies.size}.db`);
+    const src = new DatabaseSync(base, { readOnly: true });
+    try {
+      src.exec(`VACUUM INTO '${copy.replace(/'/g, "''")}'`);
+    } finally {
+      src.close();
+    }
+    this.copies.set(k, copy);
+    return copy;
   }
 
   async start(): Promise<void> {
@@ -244,7 +288,7 @@ export class PreviewServer {
     switch (method) {
       case 'db.query': {
         const sql = String(params.sql);
-        const dbPath = b.empty ? this.o.emptyDb : this.o.realDb;
+        const dbPath = this.dbFor(ctx.id, b.variant, !!b.empty, false)!;
         try {
           const declared = new Set(m.reads.filter((x) => x.startsWith('db:')).map((x) => x.slice(3).toLowerCase()));
           const r = await this.o.exec.query(dbPath, sql, (params.params as unknown[] | undefined) ?? [], undefined, [...declared]);
@@ -277,7 +321,24 @@ export class PreviewServer {
           runtime(msg);
           return fail(msg);
         }
-        return { result: null };
+        const note = (m: string) => {
+          if (col.notes.length < 20 && !col.notes.includes(m)) col.notes.push(m);
+        };
+        const dbPath = this.o.applyWrite ? this.dbFor(ctx.id, b.variant, !!b.empty, true) : undefined;
+        if (!this.o.applyWrite || !dbPath) {
+          note(`db.write ${op} on "${target}": permitted by view.json, but not applied (this preview can't run writes; check the live rows after publishing)`);
+          return { result: null };
+        }
+        try {
+          const key = params.key as Record<string, unknown> | undefined;
+          const desc = await this.o.applyWrite({ dbPath, manifest: m, write: { target, op, row, ...(key ? { key } : {}) } });
+          note(`db.write ok on a throwaway copy of the data: ${desc}`);
+          return { result: null };
+        } catch (e) {
+          const msg = `db.write ${op} on "${target}" rejected, as it would be live: ${(e as Error).message}`;
+          note(msg);
+          return fail((e as Error).message);
+        }
       }
       case 'act': {
         const name = String(params.name);
@@ -323,6 +384,9 @@ export class PreviewServer {
           if (message.startsWith('CSP violation:')) {
             if (!col.csp.includes(message)) col.csp.push(message);
           } else runtime(`view reported error: ${message}`);
+        } else if (col.notes.length < 20 && !(level === 'info' && message === 'rendered')) { // the kit's own first-render signal
+          const m = `view reported ${level}: ${message.slice(0, 300)}`;
+          if (!col.notes.includes(m)) col.notes.push(m);
         }
         return { result: null };
       }

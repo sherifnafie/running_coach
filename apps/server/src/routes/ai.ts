@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { pairingCode, type ModelCatalogEntry } from '@opencoach/protocol';
+import { AthleteSettings, pairingCode, type ModelCatalogEntry } from '@opencoach/protocol';
 import { localDayStartIso, localMonthStartIso } from '@opencoach/runtime';
 import type { GatewayContext } from '../http/context';
 import { pkcePair, verifyOpenRouterKey } from '../credentials';
@@ -18,6 +18,7 @@ import { authenticated, enforceCsrf, params } from './shared';
  * Keys are never returned to clients; responses carry a masked hint only.
  */
 const OAUTH_TTL_MS = 10 * 60_000;
+const managedKey = (athleteId: string) => `managed-settings:${athleteId}`;
 const RECOVERY_TTL_MS = 30 * 60_000;
 const Budgets = z.object({ dailyUsd: z.number().min(0).max(1000), monthlyUsd: z.number().min(0).max(10_000) }).strict();
 const KeyBody = z.object({ key: z.string().trim().min(1).max(512) }).strict();
@@ -77,7 +78,33 @@ export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     } catch (error) {
       throw badRequest((error as Error).message);
     }
+    // Leaving managed billing: keep the administrator's allowance and model so removing the key brings them back
+    // instead of leaving the athlete's own (byok) budget and model in force on the deployment's key [COST-1].
+    if (owner === 'athlete' && credentials.billing(athleteId) === 'managed') {
+      const { budgets, models: chosen } = await store.getSettings(athleteId);
+      await store.setKv(managedKey(athleteId), JSON.stringify({ budgets, models: chosen }));
+    }
     return credentials.set(athleteId, 'openrouter', key, owner);
+  }
+
+  /** Back to managed billing: restore the administrator's allowance and model choice (or the defaults). */
+  async function restoreManaged(athleteId: string) {
+    const raw = await store.getKv(managedKey(athleteId));
+    const saved = raw ? (JSON.parse(raw) as { budgets?: unknown; models?: Record<string, unknown> }) : {};
+    const defaults = AthleteSettings.parse({});
+    const models = saved.models ?? {};
+    await runtime.updateSettings(athleteId, {
+      budgets: saved.budgets ?? defaults.budgets,
+      models: { coach: models.coach ?? null, deep: models.deep ?? null, fast: models.fast ?? null },
+    });
+  }
+
+  /** An administrator's change to an own-key athlete's allowance or model applies when they return to managed billing. */
+  async function updateManagedSnapshot(athleteId: string, patch: { budgets?: unknown; models?: Record<string, unknown> }) {
+    if (credentials?.billing(athleteId) !== 'byok') return;
+    const raw = await store.getKv(managedKey(athleteId));
+    const saved = raw ? (JSON.parse(raw) as { budgets?: unknown; models?: Record<string, unknown> }) : {};
+    await store.setKv(managedKey(athleteId), JSON.stringify({ ...saved, ...(patch.budgets ? { budgets: patch.budgets } : {}), ...(patch.models ? { models: { ...saved.models, ...patch.models } } : {}) }));
   }
 
   async function target(request: FastifyRequest): Promise<string> {
@@ -103,6 +130,7 @@ export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     const { credentials } = requireModels();
     if (credentials.summary(athleteId, 'openrouter')?.owner !== 'athlete') throw forbidden('Only a key you connected yourself can be removed here.');
     await credentials.clear(athleteId, 'openrouter');
+    await restoreManaged(athleteId);
     return summary(athleteId);
   });
 
@@ -159,13 +187,17 @@ export function aiRoutes(app: FastifyInstance, ctx: GatewayContext): void {
 
   app.put('/admin/athletes/:id/budgets', { preHandler: admin }, async (request) => {
     const athleteId = await target(request);
-    await runtime.updateSettings(athleteId, { budgets: Budgets.parse(request.body) });
+    const budgets = Budgets.parse(request.body);
+    await runtime.updateSettings(athleteId, { budgets });
+    await updateManagedSnapshot(athleteId, { budgets });
     return summary(athleteId);
   });
 
   app.put('/admin/athletes/:id/model', { preHandler: admin }, async (request) => {
     const athleteId = await target(request);
-    await setModel(athleteId, ModelBody.parse(request.body));
+    const body = ModelBody.parse(request.body);
+    await setModel(athleteId, body);
+    await updateManagedSnapshot(athleteId, { models: { [body.tier]: (await store.getSettings(athleteId)).models[body.tier] } });
     return summary(athleteId);
   });
 

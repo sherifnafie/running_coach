@@ -37,7 +37,8 @@ export function classifyHttpError(info: HttpErrorInfo): { kind: ProviderErrorKin
   if (status !== undefined && status >= 500) return { kind: 'unknown', retryable: true };
   if (t === 'api_error' || c === 'server_error') return { kind: 'unknown', retryable: true };
   if (status === 409) return { kind: 'unknown', retryable: true };
-  if (status === 401 || status === 403 || t === 'authentication_error' || t === 'permission_error' || t === 'billing_error') {
+  // 402 is OpenRouter's "insufficient credits"; a key over its spending limit is a 403. Neither heals on a quick retry.
+  if (status === 401 || status === 402 || status === 403 || t === 'authentication_error' || t === 'permission_error' || t === 'billing_error') {
     return { kind: 'auth', retryable: false };
   }
   if (status !== undefined && status >= 400) return { kind: 'invalid_request', retryable: false };

@@ -9,9 +9,9 @@ import {
 import { createCoachRuntime, createSafetyScreen, createWebSearchBackend, localDayStartIso, localMonthStartIso } from '@opencoach/runtime';
 import { createSandboxProvider } from '@opencoach/sandbox';
 import { openSqliteStore } from '@opencoach/store';
-import { createPlaywrightRenderer, chromiumAvailable, kitDistDir, kitDocsDir, kitSourceDir } from '@opencoach/ui-kit';
+import { createPlaywrightRenderer, chromiumAvailable, kitDistDir, kitDocsDir, kitSourceDir, type PreviewWriteFn } from '@opencoach/ui-kit';
 import { createCallService, createDictationService, createOpenAIRealtimeProvider, createSynthesizer, createTranscriber } from '@opencoach/voice';
-import { createFsBlobStore, exportAthlete, stripImageLocation } from '@opencoach/workspace';
+import { applyViewWrite, createFsBlobStore, exportAthlete, stripImageLocation } from '@opencoach/workspace';
 import { isDemoConfig, loadConfigDetailed, type LoadConfigOptions } from './config';
 import { createGateway } from './gateway';
 import { DEFAULT_SEED_ROOT, DEFAULT_WEB_DIST } from './paths';
@@ -20,6 +20,9 @@ import { SetupCodeManager } from './setup-code';
 import { CredentialService, CredentialVault, keyFingerprint } from './credentials';
 import { LabelPacks } from './label-packs';
 import { createTelegramAdapter } from './telegram';
+
+/** Preview runs a view's bridge writes with the live gateway's rules, against the renderer's throwaway copy of coach.db. */
+const previewWrite: PreviewWriteFn = async ({ dbPath, manifest, write }) => (await applyViewWrite({ workspaceDir: '', dbPath, manifest, write })).description;
 import { scopedImageProviders } from './image-providers';
 
 export interface ComposeOptions {
@@ -92,7 +95,7 @@ export async function composeServer(opts: ComposeOptions = {}) {
     // The kit's own source, read-only, so the coach can start from any component when it wants its own version.
     if (existsSync(kitSourceDir())) extraSystemDocs['ui-kit-source'] = kitSourceDir();
     const browserPath = process.env.OPENCOACH_CHROMIUM_PATH ?? (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
-    const renderer = opts.renderer === false ? undefined : opts.renderer ?? (chromiumAvailable(browserPath) ? createPlaywrightRenderer({ executablePath: browserPath }) : undefined);
+    const renderer = opts.renderer === false ? undefined : opts.renderer ?? (chromiumAvailable(browserPath) ? createPlaywrightRenderer({ executablePath: browserPath, applyWrite: previewWrite }) : undefined);
     if (renderer) cleanup.unshift(() => renderer.dispose());
     else logger.warn('Chromium unavailable: UI previews and publication are disabled. Install Chromium or set OPENCOACH_CHROMIUM_PATH.');
     const apiKey = config.providers.openai?.apiKey;
@@ -121,18 +124,18 @@ export async function composeServer(opts: ComposeOptions = {}) {
       }, manualScheduler: opts.manualScheduler,
     });
     cleanup.unshift(() => runtime.stop());
-    const calls = createCallService({ runtime, store, blobs, clock, logger, dataDir: config.dataDir, config: config.voice, realtime, transcriber, synthesizer });
+    const budget = async (athleteId: string) => {
+      const settings = await store.getSettings(athleteId);
+      const now = clock.now();
+      const [day, month] = await Promise.all([
+        store.sumUsage(athleteId, localDayStartIso(now, settings.profile.tz)),
+        store.sumUsage(athleteId, localMonthStartIso(now, settings.profile.tz)),
+      ]);
+      return { dayUsd: day.costUsd, monthUsd: month.costUsd, dailyUsd: settings.budgets.dailyUsd, monthlyUsd: settings.budgets.monthlyUsd };
+    };
+    const calls = createCallService({ runtime, store, blobs, clock, logger, dataDir: config.dataDir, config: config.voice, realtime, transcriber, synthesizer, budget });
     cleanup.unshift(() => calls.dispose());
-    const dictation = createDictationService({ store, clock, logger, config: config.voice.dictation, realtime,
-      budget: async (athleteId) => {
-        const settings = await store.getSettings(athleteId);
-        const now = clock.now();
-        const [day, month] = await Promise.all([
-          store.sumUsage(athleteId, localDayStartIso(now, settings.profile.tz)),
-          store.sumUsage(athleteId, localMonthStartIso(now, settings.profile.tz)),
-        ]);
-        return { dayUsd: day.costUsd, monthUsd: month.costUsd, dailyUsd: settings.budgets.dailyUsd, monthlyUsd: settings.budgets.monthlyUsd };
-      } });
+    const dictation = createDictationService({ store, clock, logger, config: config.voice.dictation, realtime, budget });
     cleanup.unshift(() => dictation.dispose());
     if (config.telegram?.botToken) {
       telegram = createTelegramAdapter({ token: config.telegram.botToken, store, clock, runtime, logger });
@@ -143,7 +146,16 @@ export async function composeServer(opts: ComposeOptions = {}) {
       setupCodes, kitDir, webDist: opts.webDist ?? DEFAULT_WEB_DIST, features: { demoMode: isDemoConfig(config), webSearch: !!webSearch, imageGeneration: !!imageProvider || !!imageProviderFor },
       vapidPublicKey: push.publicKey?.(), pushProvider: push, exportAthlete, stripImageLocation,
       telegram, onAthleteDeleting: async (athleteId) => { await telegram?.unlink(athleteId); credentials.forget(athleteId); imageProviderFor?.forget(athleteId); },
-      labelPacks: new LabelPacks({ dataDir: config.dataDir, router: isDemoConfig(config) ? undefined : router, logger }),
+      labelPacks: new LabelPacks({
+        dataDir: config.dataDir, router: isDemoConfig(config) ? undefined : router, logger,
+        meter: {
+          allowed: async (athleteId) => {
+            const b = await budget(athleteId);
+            return b.dayUsd < b.dailyUsd && b.monthUsd < b.monthlyUsd;
+          },
+          record: (athleteId, call) => store.recordUsage({ athleteId, at: clock.now().toISOString(), kind: 'translation', ...call }),
+        },
+      }),
       credentials, models: openrouter && !isDemoConfig(config) ? { catalog, defaultModel: openrouter.defaultModel ?? DEFAULT_OPENROUTER_MODEL, defaultDeepModel: openrouter.deepModel ?? DEFAULT_OPENROUTER_DEEP_MODEL, openrouterBaseUrl: openrouter.baseUrl } : undefined,
     });
     cleanup.unshift(() => gateway.views.close(), () => gateway.app.close());

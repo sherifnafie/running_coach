@@ -9,6 +9,7 @@ import {
   type ConvItem,
   type Effort,
   type HarnessItem,
+  type ProviderErrorKind,
   type ResolvedModel,
   type RunTurnResult,
   type SafetyScreenResult,
@@ -22,12 +23,13 @@ import {
   addUsage,
   estimateTokens,
 } from '@opencoach/protocol';
-import { dumpDb, openWorkspaceGit, readPinnedList, renderHistory, snapshotDb } from '@opencoach/workspace';
+import { dumpDb, openWorkspaceGit, renderHistory, snapshotDb } from '@opencoach/workspace';
 import { closeOpenEpoch, ensureEpoch, type EpochState } from './context';
 import type { Core } from './core';
 import { createExecutor } from './executor';
 import { createMessagingPort, isProactiveTurn, type TurnMessagingState } from './messaging';
 import { buildTriggerItem, isImage, rawPath } from './render';
+import { unavailableTools } from './capabilities';
 import { buildSituation } from './situation';
 import { epochDate, localDayStartIso, localMonthStartIso } from './time';
 
@@ -90,7 +92,6 @@ const PROGRESS_LABELS: Record<string, string> = {
 };
 
 const MAX_IMAGES_PER_TURN = 6;
-const NUDGE_AFTER_TURNS = 8;
 
 export function partialText(json: string): string | undefined {
   try {
@@ -151,7 +152,7 @@ export class TurnRunner {
     if (overBudget) tier = 'fast';
     let route: ResolvedModel[];
     try {
-      route = core.deps.router.route(tier, settings.models[tier], { athleteId });
+      route = core.deps.router.route(tier, settings.models[tier] ?? undefined, { athleteId });
     } catch (e) {
       core.log.error('no model route', { athleteId, tier, error: (e as Error).message });
       if (replyRequired) await this.replyFallback(athleteId, triggers, 'No AI model is configured or reachable.');
@@ -184,10 +185,10 @@ export class TurnRunner {
       maxWallMs: cls === 'reactive' || cls === 'call' ? core.config.limits.reactiveMaxWallMs : core.config.limits.otherMaxWallMs,
       ...opts.limits,
     };
-    const nudge = await this.nudge(athleteId, triggers);
     const firstContactText = firstContact && cls !== 'consolidation' ? await core.addendum('first-contact', { coach_name: settings.profile.coachName, athlete_name: settings.profile.name }) : '';
     const allowMessaging = opts.allowMessaging ?? cls !== 'consolidation';
-    let tools: ToolName[] = opts.tools ?? [...COACH_TOOLS];
+    const unavailable = unavailableTools(core, athleteId);
+    let tools: ToolName[] = (opts.tools ?? [...COACH_TOOLS]).filter((t) => !unavailable.has(t));
     if (!allowMessaging) tools = tools.filter((t) => t !== 'send_message' && t !== 'no_reply');
     const situation = await buildSituation(core, {
       athleteId,
@@ -203,7 +204,6 @@ export class TurnRunner {
       limits,
       safety: opts.safety,
       firstContact,
-      nudge,
       extra: opts.situationExtra,
     });
     const harnessItem: HarnessItem = { kind: 'harness', text: firstContactText ? `${situation}\n\n${firstContactText}` : situation };
@@ -424,7 +424,7 @@ export class TurnRunner {
     for (const id of msgState.streamed) core.bus.publish(athleteId, { t: 'message.cancel', streamId: id, reason: 'not sent' });
 
     if (replyRequired && !msgState.replied && msgState.allowMessaging && result.stopReason !== 'aborted') {
-      await this.replyFallback(athleteId, msgState.triggers, result.error ?? `turn ended (${result.stopReason}) without a reply`);
+      await this.replyFallback(athleteId, msgState.triggers, result.error ?? `turn ended (${result.stopReason}) without a reply`, result.errorKind);
     } else if (msgState.replied && !msgState.proactive && ((await store.getKv(`reply-retries:${athleteId}`)) ?? '0') !== '0') {
       await store.setKv(`reply-retries:${athleteId}`, '0');
     }
@@ -447,7 +447,6 @@ export class TurnRunner {
     } catch (e) {
       core.log.warn('commit failed', { athleteId, turnId, error: (e as Error).message });
     }
-    await this.trackPinnedWrites(athleteId, changedFiles);
 
     const durationMs = core.clock.now().getTime() - startedAt.getTime();
     await store.updateTurn(turnId, {
@@ -506,7 +505,7 @@ export class TurnRunner {
         .commitAll('nightly: database dump', { Kind: 'turn', 'Turn-Id': turnId })
         .catch(() => null);
       await closeOpenEpoch(core, athleteId, 'day_boundary');
-    } else if (lastPromptTokens > core.config.limits.compactionTriggerTokens) {
+    } else if (lastPromptTokens > Math.min(core.config.limits.compactionTriggerTokens, Math.floor(0.6 * model.capabilities.maxContextTokens))) {
       await this.compact(athleteId, ep, route, [...ep.items, ...newItems, ...result.newItems], executor.specs()).catch((e) =>
         core.log.warn('compaction failed', { athleteId, error: (e as Error).message }),
       );
@@ -543,26 +542,6 @@ export class TurnRunner {
     }
   }
 
-  private async nudge(athleteId: string, triggers: AnyEvent[]): Promise<string | undefined> {
-    if (triggers.some((t) => t.type === 'call.ended')) return 'You just had a call. Record anything that matters for later in your notes (pinned files, journal).';
-    const n = Number((await this.core.store.getKv(`turns-since-pinned-write:${athleteId}`)) ?? '0');
-    if (n >= NUDGE_AFTER_TURNS) return `${n} turns since you last updated your pinned files. Consider whether anything you learned recently belongs in them.`;
-    return undefined;
-  }
-
-  private async trackPinnedWrites(athleteId: string, files: string[]): Promise<void> {
-    const key = `turns-since-pinned-write:${athleteId}`;
-    let pinned: string[] = [];
-    try {
-      pinned = await readPinnedList(this.core.paths(athleteId).workspace);
-    } catch {
-      pinned = [];
-    }
-    const touched = files.some((f) => pinned.includes(f) || f === 'AGENTS.md');
-    const n = Number((await this.core.store.getKv(key)) ?? '0');
-    await this.core.store.setKv(key, String(touched ? 0 : n + 1));
-  }
-
   private async noticeOnce(athleteId: string, kind: 'budget_exhausted' | 'allowance_exhausted', text: string): Promise<void> {
     const settings = await this.core.store.getSettings(athleteId);
     const day = epochDate(this.core.clock.now(), settings.profile.tz, '00:00');
@@ -579,14 +558,18 @@ export class TurnRunner {
    * the athlete is told once per outage, and retries back off (10, 20, 40 min) and stop after MAX_REPLY_RETRIES.
    * The counter resets when the coach next replies.
    */
-  private async replyFallback(athleteId: string, triggers: AnyEvent[], reason: string): Promise<void> {
+  private async replyFallback(athleteId: string, triggers: AnyEvent[], reason: string, kind?: ProviderErrorKind): Promise<void> {
     const core = this.core;
     core.log.warn('reply fallback', { athleteId, reason });
     const key = `reply-retries:${athleteId}`;
     const attempt = Number((await core.store.getKv(key)) ?? '0');
     await core.store.setKv(key, String(attempt + 1));
     if (attempt === 0) {
-      const text = "Your coach couldn't respond just now and will follow up shortly.";
+      // A refused key (spending limit, revoked or missing credit) won't heal by itself: say so instead of promising a reply.
+      const text =
+        kind === 'auth'
+          ? "Your coach can't reach its AI model: the provider refused the key, usually because a spending limit was reached. Your message is saved and will be answered once the key works again."
+          : "Your coach couldn't respond just now and will follow up shortly.";
       const e = await core.store.appendEvent({ athleteId, type: 'harness.notice', actor: 'harness', payload: { kind: 'reply_fallback', athleteVisible: true, text, detail: { reason } } });
       core.bus.publish(athleteId, { t: 'event', event: e });
       core.bus.publish(athleteId, { t: 'notice', kind: 'reply_fallback', text });
@@ -607,8 +590,9 @@ export class TurnRunner {
     const ask: HarnessItem = {
       kind: 'harness',
       text:
-        'Your context for today is getting long. Write a concise summary (at most ~600 words) of this context so far: what happened, what you decided and why, ' +
-        "open threads and commitments, anything you must not forget. It replaces the detailed transcript for the rest of today. Reply with the summary text only; don't call tools.",
+        'Your context for today is getting long and will be replaced by a summary you write now, plus the latest messages verbatim. ' +
+        'Write the handoff: what happened, what you decided and why, what the athlete asked for, corrected or disagreed with (with event ids), ' +
+        "open threads and commitments. Mark what is still uncertain. Reply with the summary text only; don't call tools.",
     };
     let summary = '';
     for await (const ev of model.provider.stream({ model: model.model, system: ep.system, items: [...items, ask], tools, effort: 'low', maxOutputTokens: 2500, cacheKey: athleteId })) {

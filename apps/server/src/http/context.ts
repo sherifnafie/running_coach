@@ -28,8 +28,6 @@ export interface GatewayDeps {
   /** VAPID public key; undefined disables push features. */
   vapidPublicKey?: string;
   pushProvider?: PushProvider;
-  /** SSRF guard for client-supplied push endpoints (default: https + public host). */
-  validatePushEndpoint?: (endpoint: string) => Promise<void>;
   features?: { webSearch: boolean; demoMode: boolean; imageGeneration?: boolean };
   /** Directory of the built PWA (apps/web/dist). */
   webDist?: string;
@@ -46,8 +44,6 @@ export interface GatewayDeps {
   credentials?: import('../credentials').CredentialService;
   /** Models offered through OpenRouter and where to verify keys. Absent when OpenRouter is not configured. */
   models?: { catalog: import('@opencoach/protocol').ModelCatalogEntry[]; defaultModel: string; defaultDeepModel: string; openrouterBaseUrl: string };
-  /** Called after an account is deleted (adapters drop their mappings). */
-  onAthleteDeleted?: (athleteId: string) => Promise<void>;
   /** Stop adapter producers and remove mappings before deleting the athlete's Store state. */
   onAthleteDeleting?: (athleteId: string) => Promise<void>;
 }

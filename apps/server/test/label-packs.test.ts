@@ -10,7 +10,9 @@ const logger: Logger = { debug() {}, info() {}, warn() {}, error() {}, child() {
 const dirs: string[] = [];
 afterEach(async () => { for (const d of dirs.splice(0)) await rm(d, { recursive: true, force: true }); });
 
-function packs(handler: (sources: string[]) => Record<string, string>) {
+const ME = { athleteId: 'ath_1' };
+
+function packs(handler: (sources: string[]) => Record<string, string>, meter?: ConstructorParameters<typeof LabelPacks>[0]['meter']) {
   const requests: ModelRequest[] = [];
   const scripted = createScriptedProvider({ id: 'scripted', handler: (req) => {
     requests.push(req);
@@ -19,7 +21,7 @@ function packs(handler: (sources: string[]) => Record<string, string>) {
     return { text: `Here you go:\n${JSON.stringify(handler(sources))}` };
   } });
   const router = createModelRouter({ tiers: { coach: { provider: 'scripted', model: 'm' } }, fallbacks: {}, pricing: {} }, { scripted });
-  return { requests, make: async () => { const dir = await mkdtemp(join(tmpdir(), 'oc-i18n-')); dirs.push(dir); return { dir, packs: new LabelPacks({ dataDir: dir, router, logger }) }; } };
+  return { requests, make: async () => { const dir = await mkdtemp(join(tmpdir(), 'oc-i18n-')); dirs.push(dir); return { dir, packs: new LabelPacks({ dataDir: dir, router, logger, meter }) }; } };
 }
 
 describe('interface labels in any language', () => {
@@ -46,16 +48,16 @@ describe('interface labels in any language', () => {
     const t = packs((sources) => Object.fromEntries(sources.map((s) => [s, `DE:${s}`])));
     const { dir, packs: p } = await t.make();
     expect(await p.get('nl')).toEqual({ language: 'nl', ready: true, labels: {} });
-    expect(await p.get('de', { generate: false })).toMatchObject({ ready: false, labels: {} });
+    expect(await p.get('de')).toMatchObject({ ready: false, labels: {} });
     expect(t.requests).toHaveLength(0);
-    expect(await p.get('de')).toMatchObject({ language: 'de', ready: false });
+    expect(await p.get('de', ME)).toMatchObject({ language: 'de', ready: false });
     await p.settled();
     const ready = await p.get('de-AT');
     expect(ready.ready).toBe(true);
     expect(Object.keys(ready.labels)).toHaveLength(labelSources().length);
     expect(ready.labels['Nothing planned']).toBe('DE:Nothing planned');
     const calls = t.requests.length;
-    await p.get('de');
+    await p.get('de', ME);
     await p.settled();
     expect(t.requests.length).toBe(calls);
     expect(JSON.parse(await readFile(join(dir, 'i18n', 'de.json'), 'utf8')).labels['Move here']).toBe('DE:Move here');
@@ -65,16 +67,35 @@ describe('interface labels in any language', () => {
     let fail = true;
     const t = packs((sources) => (fail && sources.includes('Nothing planned') ? {} : Object.fromEntries(sources.map((s) => [s, `FR:${s}`]))));
     const { packs: p } = await t.make();
-    await p.get('fr');
+    await p.get('fr', ME);
     await p.settled();
-    const partial = await p.get('fr', { generate: false });
+    const partial = await p.get('fr');
     expect(partial.ready).toBe(true);
     expect(partial.labels['Nothing planned']).toBeUndefined();
     fail = false;
     const before = t.requests.length;
-    await p.get('fr');
+    await p.get('fr', ME);
     await p.settled();
     expect(t.requests.length - before).toBe(1);
     expect((await p.get('fr')).labels['Nothing planned']).toBe('FR:Nothing planned');
+  });
+
+  it('bills a translation to the athlete who started it, and starts none past their budget [COST-1]', async () => {
+    const recorded: Array<{ athleteId: string; costUsd: number }> = [];
+    let allowed = false;
+    const t = packs((sources) => Object.fromEntries(sources.map((s) => [s, `IT:${s}`])), {
+      allowed: async () => allowed,
+      record: async (athleteId, call) => void recorded.push({ athleteId, costUsd: call.costUsd }),
+    });
+    const { packs: p } = await t.make();
+    await p.get('it', ME);
+    await p.settled();
+    expect(t.requests).toHaveLength(0);
+    allowed = true;
+    await p.get('it', ME);
+    await p.settled();
+    expect(t.requests.length).toBeGreaterThan(0);
+    expect(recorded).toHaveLength(t.requests.length);
+    expect(recorded.every((r) => r.athleteId === 'ath_1')).toBe(true);
   });
 });

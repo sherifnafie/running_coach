@@ -81,7 +81,7 @@ function sqliteToToolError(e: unknown): never {
   throw e;
 }
 
-async function applyDbWrite(workspaceDir: string, manifest: ViewManifest, op: 'insert' | 'update' | 'delete', table: string, row: Record<string, unknown>, key: Record<string, unknown> | undefined): Promise<string> {
+async function applyDbWrite(dbPath: string, manifest: ViewManifest, op: 'insert' | 'update' | 'delete', table: string, row: Record<string, unknown>, key: Record<string, unknown> | undefined): Promise<string> {
   const lower = table.toLowerCase();
   if (lower.startsWith('sqlite_') || lower === '_migrations') throw new ToolError('NOT_ALLOWED', `table "${table}" is internal and cannot be written`);
   const entries = manifest.writes.filter((w): w is Extract<typeof w, { db: string }> => 'db' in w && w.db.toLowerCase() === lower);
@@ -97,7 +97,6 @@ async function applyDbWrite(workspaceDir: string, manifest: ViewManifest, op: 'i
     }
   }
 
-  const dbPath = coachDbPath(workspaceDir);
   try {
     await fsp.access(dbPath);
   } catch {
@@ -228,6 +227,8 @@ async function applyFileWrite(workspaceDir: string, manifest: ViewManifest, op: 
 export async function applyViewWrite(opts: {
   workspaceDir: string;
   manifest: ViewManifest;
+  /** Database to write instead of the workspace's coach.db (the preview renderer passes a throwaway copy). */
+  dbPath?: string;
   write: { target: string; op: 'insert' | 'update' | 'delete'; row: Record<string, unknown>; key?: Record<string, unknown> };
 }): Promise<{ description: string }> {
   const { workspaceDir, manifest, write } = opts;
@@ -239,5 +240,5 @@ export async function applyViewWrite(opts: {
   const target = parseTarget(write.target);
   if (target.kind === 'file') return { description: await applyFileWrite(workspaceDir, manifest, op, target.path, row) };
   if (op === 'write') throw new ToolError('INVALID_INPUT', 'db writes use op insert, update or delete');
-  return { description: await applyDbWrite(workspaceDir, manifest, op as 'insert' | 'update' | 'delete', target.table, row, write.key) };
+  return { description: await applyDbWrite(opts.dbPath ?? coachDbPath(workspaceDir), manifest, op as 'insert' | 'update' | 'delete', target.table, row, write.key) };
 }

@@ -302,7 +302,7 @@ The server MUST check `Origin` against the app origin and require the auth token
 | `POST /v1/uploads` | Multipart or resumable (tus) upload → `BlobRef`; images are EXIF-GPS-stripped in the coach-visible copy unless the setting is off |
 | `POST /v1/voice-notes` | Audio upload → transcription → `user.voice_note` |
 | `GET /v1/events?before=&after=&limit=` | Paginated history (athlete-visible event types only) |
-| `POST /v1/ui-actions` · `POST /v1/ui-writes` | From micro-UI, the bridge, or notification actions |
+| `POST /v1/ui-actions` · `POST /v1/views/:id/write` | From micro-UI, the bridge, or notification actions |
 | `GET /v1/app` | `app.json` plus view manifests with published versions |
 | `POST /v1/views/:id/revert` | Athlete revert (emits an event to the coach) |
 | `GET /v1/changes?before=` | Coach's changes feed (commit summaries) |

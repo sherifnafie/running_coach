@@ -110,6 +110,20 @@ it('[SUB-1] reports a capped helper as incomplete and keeps its in-scope partial
   expect(tasks[0]).toMatchObject({ state: 'failed', error: expect.stringContaining('Incomplete helper') });
 });
 
+it('[SUB-1] keeps a failed helper\'s in-scope partial draft and says what survived', async () => {
+  h = await makeHarness();
+  const { id } = await h.runtime.createAthlete({ displayName: 'Sam', tz: 'UTC', locale: 'en', isAdmin: false });
+  h.setHandler((req) =>
+    lastItemKind(req) === 'tool_results'
+      ? { fail: { kind: 'invalid_request', message: 'model stream stalled (nothing for 180 s)' } }
+      : { toolCalls: [{ name: 'write', input: { path: 'research/report.md', content: 'Half a report' } }] },
+  );
+  const result = await h.runtime.core.helpers.spawn({ athleteId: id, turnId: 'failed-parent', depth: 0 }, { task: 'Research', tools: ['write'], write_scope: ['research/**'] });
+  expect(result).toMatchObject({ ok: false, code: 'LIMIT', message: expect.stringContaining('stalled') });
+  expect(result).toMatchObject({ message: expect.stringContaining('/workspace/research/report.md') });
+  expect(await readFile(join(h.runtime.core.paths(id).workspace, 'research/report.md'), 'utf8')).toBe('Half a report');
+});
+
 it.each([false, true])('[RT-3] [SUB-1] parent cancellation stops foreground work but preserves background work (background=%s)', async (background) => {
   const id = await athlete();
   let started!: () => void;

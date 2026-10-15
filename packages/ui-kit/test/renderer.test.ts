@@ -69,6 +69,50 @@ describe.skipIf(!chromiumAvailable())('[UI-1] [UI-3] Chromium seed view publish 
     } finally { await renderer.dispose(); }
   }, 180_000);
 
+  it('runs bridge writes against a per-variant copy and reports their outcome and non-error reports', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'kit-write-render-'));
+    dirs.push(dir);
+    makeWorkspace(dir, { data: 'sample' });
+    await writeFile(join(dir, 'ui/views/today/view.js'), [
+      "import { coach } from '/kit/1/kit.js';",
+      'await coach.ready;',
+      "const [row] = await coach.db.query('SELECT id, status FROM planned_workouts WHERE status = ? ORDER BY id LIMIT 1', ['planned']);",
+      "if (row) {",
+      "  await coach.db.write('planned_workouts', 'update', { status: 'done' }, { id: row.id });",
+      "  const [after] = await coach.db.query('SELECT status FROM planned_workouts WHERE id = ?', [row.id]);",
+      "  coach.report('info', `probe: was ${row.status}, now ${after.status}`);",
+      "}",
+      "await coach.db.write('planned_workouts', 'update', { status: 'done' }, { id: 'nope' }).catch((e) => coach.report('warn', `probe: missing row rejected: ${e.message}`));",
+      "document.body.textContent = 'ok';",
+    ].join('\n'));
+    const seen: string[] = [];
+    const renderer = createPlaywrightRenderer({
+      clock: new VirtualClock(NOW),
+      applyWrite: async ({ dbPath, write }) => {
+        const { DatabaseSync } = await import('node:sqlite');
+        const db = new DatabaseSync(dbPath);
+        try {
+          const r = db.prepare('UPDATE planned_workouts SET status = ? WHERE id = ?').run(String(write.row.status), String(write.key?.id));
+          if (Number(r.changes) === 0) throw new Error('no row matches the key');
+          seen.push(dbPath);
+          return `update planned_workouts where id=${String(write.key?.id)}`;
+        } finally { db.close(); }
+      },
+    });
+    try {
+      const report = await renderer.preview({ athleteId: 'test-athlete', workspaceDir: dir, views: ['today'], kitDir: await kitDistDir(), outDir: join(dir, 'screenshots') });
+      const notes = (report.views[0]?.notes ?? []).join('\n');
+      // every variant starts from the original data, so each one sees the change exactly once
+      expect(notes).toMatch(/probe: was planned, now done/);
+      expect(notes).toContain('db.write ok on a throwaway copy');
+      expect(notes).toMatch(/probe: missing row rejected: no row matches the key/);
+      expect(report.views[0]?.runtimeErrors).toEqual([]);
+      // the workspace database itself is never written
+      expect(seen.length).toBeGreaterThan(0);
+      expect(seen.every((p) => !p.startsWith(dir))).toBe(true);
+    } finally { await renderer.dispose(); }
+  }, 120_000);
+
   it('refuses publication when view JS throws and when Chromium is unavailable', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'kit-bad-render-'));
     dirs.push(dir);

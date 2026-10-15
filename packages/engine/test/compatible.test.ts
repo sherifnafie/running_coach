@@ -327,6 +327,7 @@ describe('compatible: errors and provider', () => {
     expect(mapCompatibleError(gen(429, 'slow', { 'retry-after': '4' }))).toMatchObject({ kind: 'rate_limit', retryable: true, retryAfterMs: 4000 });
     expect(mapCompatibleError(gen(500, 'oops'))).toMatchObject({ retryable: true });
     expect(mapCompatibleError(gen(401, 'bad key'))).toMatchObject({ kind: 'auth', retryable: false });
+    expect(mapCompatibleError(gen(402, 'Insufficient credits'))).toMatchObject({ kind: 'auth', retryable: false });
     expect(mapCompatibleError(gen(400, "This model's maximum context length is 131072 tokens"))).toMatchObject({ kind: 'context_length' });
     expect(mapCompatibleError(new OpenAI.APIConnectionError({ message: 'ECONNREFUSED' }))).toMatchObject({ kind: 'network', retryable: true });
     // An error sent inside an open stream (OpenRouter) has no HTTP status, only a code in the body.

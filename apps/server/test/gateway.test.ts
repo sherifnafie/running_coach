@@ -580,6 +580,11 @@ describe('model access: managed allowance, own keys, model choice and recovery [
     const start = (await f.app.inject({ method: 'POST', url: '/v1/ai/openrouter/oauth/start', headers })).json().url as string;
     expect(new URL(start).origin).toBe('https://openrouter.test');
     expect(new URL(start).searchParams.get('code_challenge_method')).toBe('S256');
-    expect((await f.app.inject({ method: 'DELETE', url: '/v1/ai/openrouter-key', headers })).json()).toMatchObject({ billing: 'managed', openrouterKey: null });
+    // An administrator's change while the athlete pays applies once they return to managed billing.
+    expect((await f.app.inject({ method: 'PUT', url: `/admin/athletes/${sis.athleteId}/budgets`, headers: f.bearer(admin.token), payload: { dailyUsd: 1, monthlyUsd: 12 } })).statusCode).toBe(200);
+    // Removing the key restores the managed allowance and model: the athlete's own budget and model don't carry over [COST-1].
+    expect((await f.app.inject({ method: 'DELETE', url: '/v1/ai/openrouter-key', headers })).json()).toMatchObject({ billing: 'managed', openrouterKey: null, budgets: { dailyUsd: 1, monthlyUsd: 12 }, model: DEFAULT_OPENROUTER_MODEL, deepModel: DEFAULT_OPENROUTER_DEEP_MODEL });
+    expect((await f.store.getSettings(sis.athleteId)).models.coach ?? undefined).toBeUndefined();
+    expect((await f.app.inject({ method: 'PUT', url: '/v1/settings', headers, payload: { budgets: { monthlyUsd: 500 } } })).statusCode).toBe(403);
   });
 });

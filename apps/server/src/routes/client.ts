@@ -88,10 +88,6 @@ export function clientRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     if (body.source.messageId) await ownedMessage(ctx, id(request), body.source.messageId);
     return { event: await runtime.ingest(id(request), { type: 'user.ui_action', payload: body }) };
   });
-  app.post('/v1/ui-writes', { preHandler: auth }, async (request) => {
-    const body = ViewWriteRequest.extend({ viewId: z.string().min(1) }).parse(request.body);
-    return { event: await runtime.views.write(id(request), body.viewId, body) };
-  });
   app.post('/v1/reactions', { preHandler: auth }, async (request) => {
     const body = ReactionRequest.parse(request.body);
     await ownedMessage(ctx, id(request), body.messageId);
@@ -164,12 +160,9 @@ export function clientRoutes(app: FastifyInstance, ctx: GatewayContext): void {
   });
   app.post('/v1/push/subscriptions', { preHandler: auth }, async (request) => {
     const body = PushSubscriptionRequest.parse(request.body);
-    if (ctx.deps.validatePushEndpoint) await ctx.deps.validatePushEndpoint(body.endpoint);
-    else {
-      const u = new URL(body.endpoint);
-      // Explicitly allow known browser push services: arbitrary endpoints are server-side request targets.
-      if (u.protocol !== 'https:' || u.username || u.password || u.port || !/^(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|[^.]+\.notify\.windows\.com|web\.push\.apple\.com)$/.test(u.hostname)) throw badRequest('Unsupported push endpoint.');
-    }
+    const u = new URL(body.endpoint);
+    // Explicitly allow known browser push services: arbitrary endpoints are server-side request targets.
+    if (u.protocol !== 'https:' || u.username || u.password || u.port || !/^(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|[^.]+\.notify\.windows\.com|web\.push\.apple\.com)$/.test(u.hostname)) throw badRequest('Unsupported push endpoint.');
     const athleteId = id(request);
     const existing = (await store.listPushSubscriptions(athleteId)).find((s) => s.endpoint === body.endpoint);
     const subscriptionId = existing?.id ?? newId('up', clock);

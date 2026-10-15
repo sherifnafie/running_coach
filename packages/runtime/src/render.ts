@@ -121,7 +121,7 @@ export function renderTriggerBody(e: AnyEvent, opts: RenderOptions): string {
     }
     case 'ui.error': {
       const p = e.payload;
-      return `View "${p.viewId}" v${p.version} reported an error on the athlete's device (${p.device.viewport}): ${p.message}${p.stack ? `\n${p.stack.split('\n').slice(0, 6).join('\n')}` : ''}\nThe app fell back to the previous version if one exists. Fix it when you can.`;
+      return `View "${p.viewId}" v${p.version} reported an error on the athlete's device (${p.device.viewport}): ${p.message}${p.stack ? `\n${p.stack.split('\n').slice(0, 6).join('\n')}` : ''}\n${p.message.startsWith('View failed to start') ? 'It never started, so the app showed the previous version if there is one.' : 'The view had already started, so it stayed on screen; only a view that fails to start is swapped for the previous version.'} Fix it when you can.`;
     }
     case 'user.view_reverted': {
       const p = e.payload;

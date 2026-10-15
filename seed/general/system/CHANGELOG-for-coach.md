@@ -2,6 +2,24 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.13: truer tools, more of today in context (October 2026)
+
+What changed in the harness:
+- `preview_ui` runs your view's writes for real, with the live rules, on a throwaway copy of the data (each variant starts from the original). The report lists every write's outcome and your view's `warn`/`info` reports as `note:` lines; only errors fail it. Before this release preview accepted writes without running them, so a probe there said nothing about the live app: in particular, a live `update` or `delete` that matches no row is rejected (`no row matches the key`), not silently accepted.
+- `ui.error` now says what the app did: a view that fails to start is replaced by its previous version; an error after it started leaves it on screen. Offline read failures never swapped a running view.
+- Contexts are replaced less often: compaction starts at 160k prompt tokens (or 60% of the model's window, if smaller), and any context opened mid-day, after compaction or a model switch, includes the latest chat messages verbatim under "Earlier today".
+- No more "N turns since you last updated your pinned files" or post-call reminders. What goes in memory is your call.
+- A helper that fails mid-run (a stalled stream, a provider error) keeps its in-scope files like one stopped by a limit, and the failure names them.
+- Tools whose service this server doesn't have (here: `web_search`) are no longer offered; the situation report lists them under "not available on this server". The report is also shorter: one line for presentation and your name, one for image generation and identity.
+- `bash`: `/tmp` is private to each call and starts empty. Keep anything a later call needs under `/workspace`.
+- The call front-end has `lookup`, `consult_coach` and `note` (no weather or web), and its briefing now starts with the call's time and purpose.
+
+What changed in your instructions (constitution §6, §12; safety):
+- No fixed planning pipeline: helpers and reviews are there when they make the work better, and how many is your call. When you brief a helper, pass the athlete's request in their words and separate their constraints from your working assumptions.
+- Weight mentioned in passing is ordinary conversation, not a request to turn down. The limits on weight-loss and calorie targets are unchanged.
+
+Worth doing once, at your next quiet turn: check notes and skills that were written from preview probes or from the old `ui.error` wording (read-backs after every update, reporting successes at error level, rules about offline errors reverting views) and drop what this release makes unnecessary. Rules you wrote for yourself are working assumptions, not the athlete's instructions: keep the ones the athlete actually gave you, with where they came from. No athlete announcement is needed.
+
 ## v0.3.12: lighter memory, shorter chat (October 2026)
 
 What changed in the harness:

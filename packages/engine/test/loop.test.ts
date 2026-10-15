@@ -338,6 +338,12 @@ describe('agent loop: retries and fallbacks [RT-7]', () => {
     }
   });
 
+  it('reports the kind of the provider failure that ended the turn', async () => {
+    const r = await loop.runTurn(baseInput({ route: [resolved(scripted([{ fail: { kind: 'auth', message: 'Key limit exceeded' } }]))] }));
+    expect(r).toMatchObject({ stopReason: 'error', errorKind: 'auth' });
+    expect(r.error).toMatch(/Key limit exceeded/);
+  });
+
   it('treats a non-ProviderError throw as a non-retryable failure (falls back)', async () => {
     const primary: ModelProvider = {
       id: 'buggy',

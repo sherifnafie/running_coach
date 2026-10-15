@@ -24,16 +24,18 @@ describe('coach context delivered to the model [CTX-1, SUB-3, UI-1]', () => {
     expect(system).toContain('/workspace/athlete/profile.md');
     expect(system).toContain('/system/skills/research/SKILL.md');
     expect(system).toContain('/system/skills/ui-kit/SKILL.md');
-    expect(req.tools.map(t => t.name)).toEqual(expect.arrayContaining(['read', 'write', 'bash', 'spawn_agent', 'web_search', 'web_fetch', 'preview_ui', 'publish_ui']));
+    expect(req.tools.map(t => t.name)).toEqual(expect.arrayContaining(['read', 'write', 'bash', 'spawn_agent', 'web_fetch', 'preview_ui', 'publish_ui']));
+    // a tool whose service isn't wired is not offered at all, and the report says why
+    expect(req.tools.map(t => t.name)).not.toContain('web_search');
+    expect(req.tools.map(t => t.name)).not.toContain('generate_image');
     expect(situationText(req)).toContain('app views published:');
-    expect(situationText(req)).toContain('research: web_search NOT CONFIGURED');
+    expect(situationText(req)).toMatch(/not available on this server: [^\n]*web_search/);
     expect(situationText(req)).toContain('configured model tiers:');
     expect(system).toContain('/system/skills/coach-identity/SKILL.md');
     expect(system).toContain('minor, optional personalization');
     expect(system).toContain('/system/skills/image-generation/SKILL.md');
-    expect(situationText(req)).toContain('image generation: NOT CONFIGURED');
-    expect(situationText(req)).toContain('coach identity changes NOT ENABLED');
-    expect(req.tools.map(t => t.name)).toContain('generate_image');
+    expect(situationText(req)).toContain('image generation: not configured');
+    expect(situationText(req)).toContain('name/avatar changes NOT ENABLED');
     const context = await h.runtime.core.store.getTurnContext(req.metadata!.turnId!);
     expect(JSON.stringify(context)).toContain('OpenCoach');
   });
@@ -49,11 +51,13 @@ describe('coach context delivered to the model [CTX-1, SUB-3, UI-1]', () => {
     await h.settle(a.id);
     const req = h.requests[0]!;
     const situation = situationText(req);
-    expect(situation).toContain('web_search NOT CONFIGURED'); // config alone is not a wired backend
-    expect(situation).toContain('web_fetch DISABLED');
+    // config alone is not a wired backend
+    expect(situation).toMatch(/not available on this server: [^\n]*web_search/);
+    expect(situation).toMatch(/not available on this server: [^\n]*web_fetch/);
+    expect(situation).toMatch(/not available on this server: [^\n]*preview_ui/);
+    expect(req.tools.map(t => t.name).filter(n => ['web_search', 'web_fetch', 'preview_ui', 'publish_ui'].includes(n))).toEqual([]);
     expect(situation).toContain('current model TEXT ONLY');
     expect(situation).toContain('image-capable helper tier(s): NONE');
-    expect(situation).toContain('renderer NOT CONFIGURED');
     expect(JSON.stringify(req)).not.toContain('SERVER_ONLY_TEST_SECRET');
   });
 
@@ -94,8 +98,8 @@ describe('coach context delivered to the model [CTX-1, SUB-3, UI-1]', () => {
     expect(system).toContain('OpenCoach');
     expect(system).toContain('now: 2026-10-07T08:00:00.000Z');
     expect(system).toContain('Europe/Amsterdam');
-    expect(system).toContain('web_search configured');
-    expect(system).toContain('publish_ui not granted');
+    expect(helper.tools.map(t => t.name)).toContain('web_search');
+    expect(system).not.toContain('publish_ui');
     expect(JSON.stringify(helper)).not.toContain('PRIVATE_REQUEST_TEXT');
     expect(helper.tools.map(t => t.name)).toContain('write');
     expect(helper.tools.map(t => t.name).filter(name => ['send_message', 'schedule', 'publish_ui'].includes(name))).toEqual([]);

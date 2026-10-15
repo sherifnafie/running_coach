@@ -19,6 +19,7 @@ import {
 } from '@opencoach/protocol';
 import { applyViewWrite, copyPublishedView, openWorkspaceGit, readUiManifests, runViewQuery } from '@opencoach/workspace';
 import type { Core } from './core';
+import { KeyedLock } from './lock';
 
 const APP_KEY = (a: string) => `app-manifest:${a}`;
 const TOKEN_KEY = (a: string) => `view-token:${a}`;
@@ -68,15 +69,11 @@ async function dirHash(dir: string, sharedLib?: string): Promise<string | null> 
 }
 
 export class UiService {
-  private locks = new Map<string, Promise<unknown>>();
+  private lock = new KeyedLock();
   constructor(private core: Core) {}
 
   private withLock<T>(athleteId: string, job: () => Promise<T>): Promise<T> {
-    const running = (this.locks.get(athleteId) ?? Promise.resolve()).then(job, job);
-    const settled = running.catch(() => undefined);
-    this.locks.set(athleteId, settled);
-    void settled.then(() => { if (this.locks.get(athleteId) === settled) this.locks.delete(athleteId); });
-    return running;
+    return this.lock.run(athleteId, job);
   }
 
   currentViews(athleteId: string): Promise<UiVersionRecord[]> {

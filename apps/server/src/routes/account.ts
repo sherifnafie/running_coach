@@ -79,7 +79,6 @@ export function accountRoutes(app: FastifyInstance, ctx: GatewayContext): void {
       }
       await ctx.deps.onAthleteDeleting?.(athleteId);
       await runtime.deleteAthlete(athleteId);
-      await ctx.deps.onAthleteDeleted?.(athleteId);
     } catch (error) {
       // A provider/drain/filesystem failure should leave an existing account able to retry deletion.
       if (await store.getAthlete(athleteId)) await store.updateAthlete(athleteId, { status: 'active' });

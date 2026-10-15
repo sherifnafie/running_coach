@@ -13,6 +13,7 @@ import {
   type TriggerClass,
 } from '@opencoach/protocol';
 import type { Core } from './core';
+import { KeyedLock } from './lock';
 import { localDayStartIso, nextDailyAt, quietHoursEnd } from './time';
 
 /**
@@ -40,7 +41,7 @@ export interface TurnMessagingState {
 }
 
 // Parallel send_message calls and scheduler releases must share policy reservations [MSG-4].
-const messageLocks = new WeakMap<Core, Map<string, Promise<unknown>>>();
+const messageLocks = new WeakMap<Core, KeyedLock>();
 const OUTREACH_CONTEXT_TYPES: readonly EventType[] = [
   'user.message', 'user.upload', 'user.voice_note', 'user.ui_action', 'user.ui_write',
   'user.view_reverted', 'call.ended', 'user.message_deleted', 'data.synced',
@@ -60,17 +61,9 @@ export async function noteSupersededOutreach(core: Core, athleteId: string, mess
   core.minds.get(athleteId).addPassive(notice);
 }
 function withMessageLock<T>(core: Core, athleteId: string, job: () => Promise<T>): Promise<T> {
-  let locks = messageLocks.get(core);
-  if (!locks) {
-    locks = new Map();
-    messageLocks.set(core, locks);
-  }
-  const previous = locks.get(athleteId) ?? Promise.resolve();
-  const running = previous.then(job, job);
-  const settled = running.catch(() => undefined);
-  locks.set(athleteId, settled);
-  void settled.then(() => { if (locks!.get(athleteId) === settled) locks!.delete(athleteId); });
-  return running;
+  let lock = messageLocks.get(core);
+  if (!lock) messageLocks.set(core, (lock = new KeyedLock()));
+  return lock.run(athleteId, job);
 }
 
 /** Follow-up triggers whose resulting messages count as replies, not proactive outreach. */

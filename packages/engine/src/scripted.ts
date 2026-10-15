@@ -14,7 +14,7 @@ import { abortError } from './errors';
 import { chunkFixed, chunkText, stringifyInput } from './util';
 
 /** Failure kinds a scripted step can inject. */
-export type ScriptedFailKind = 'rate_limit' | 'overloaded' | 'network' | 'invalid_request';
+export type ScriptedFailKind = 'rate_limit' | 'overloaded' | 'network' | 'invalid_request' | 'auth';
 
 export interface ScriptedStep {
   /** Visible assistant text (becomes the private turn note unless tool calls follow). */
@@ -58,14 +58,14 @@ const DEFAULT_CAPABILITIES: ModelCapabilities = {
   batch: false,
 };
 
-const FAIL_STATUS: Record<ScriptedFailKind, number> = { rate_limit: 429, overloaded: 529, network: 0, invalid_request: 400 };
+const FAIL_STATUS: Record<ScriptedFailKind, number> = { rate_limit: 429, overloaded: 529, network: 0, invalid_request: 400, auth: 403 };
 
 function failureFor(fail: NonNullable<ScriptedStep['fail']>, retryAfterMs?: number): ProviderError {
   const message = fail.message ?? `scripted ${fail.kind} failure`;
   const status = FAIL_STATUS[fail.kind] || undefined;
   return new ProviderError(message, {
     kind: fail.kind,
-    retryable: fail.kind !== 'invalid_request',
+    retryable: fail.kind !== 'invalid_request' && fail.kind !== 'auth',
     status,
     retryAfterMs: fail.kind === 'rate_limit' ? retryAfterMs : undefined,
   });

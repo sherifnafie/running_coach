@@ -8,6 +8,7 @@ import {
   type ConvItem,
   type ModelRequest,
   type ModelStreamEvent,
+  type ProviderErrorKind,
   type ResolvedModel,
   type RunTurnInput,
   type RunTurnResult,
@@ -56,7 +57,7 @@ interface StepData {
   started: Set<string>;
 }
 
-type CallOutcome = ({ type: 'ok' } & StepData) | { type: 'stop'; reason: TurnStopReason; error?: string };
+type CallOutcome = ({ type: 'ok' } & StepData) | { type: 'stop'; reason: TurnStopReason; error?: string; errorKind?: ProviderErrorKind };
 
 /**
  * The default AgentLoop (SPEC §5.2, §5.8): repeated model calls with parallel tool execution between
@@ -168,7 +169,7 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
   };
   const abortReason = (): TurnStopReason => (abortedBy === 'wall' ? 'max_wall' : 'aborted');
 
-  const finish = (stopReason: TurnStopReason, error?: string): RunTurnResult => {
+  const finish = (stopReason: TurnStopReason, error?: string, errorKind?: ProviderErrorKind): RunTurnResult => {
     let last: ConvItem | undefined;
     for (let i = newItems.length - 1; i >= 0; i--) {
       const it = newItems[i];
@@ -188,6 +189,7 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
       model: current?.model ?? '',
       fallbacks,
       ...(error !== undefined ? { error } : {}),
+      ...(errorKind !== undefined ? { errorKind } : {}),
     };
   };
 
@@ -321,7 +323,7 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
       const reason = failure?.message ?? 'unknown failure';
       if (!nextEntry) {
         if (failure?.kind === 'refusal') return { type: 'stop', reason: 'refusal', error: lastRefusal };
-        return { type: 'stop', reason: 'error', error: `${label(entry)}: ${reason}` };
+        return { type: 'stop', reason: 'error', error: `${label(entry)}: ${reason}`, ...(failure ? { errorKind: failure.kind } : {}) };
       }
       emit({ type: 'fallback', from: label(entry), to: label(nextEntry), reason });
       fallbacks.push(label(nextEntry));
@@ -397,7 +399,7 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
 
       const step = steps + 1;
       const outcome = await callModel(step, specs);
-      if (outcome.type === 'stop') return finish(outcome.reason, outcome.error);
+      if (outcome.type === 'stop') return finish(outcome.reason, outcome.error, outcome.errorKind);
 
       steps = step;
       const { entry, end, ended, started } = outcome;

@@ -151,7 +151,7 @@ export interface TaskRecord {
   originEventId?: string;
 }
 
-export type UsageKind = 'turn' | 'helper' | 'voice' | 'stt' | 'tts' | 'safety' | 'consolidation' | 'image';
+export type UsageKind = 'turn' | 'helper' | 'voice' | 'stt' | 'tts' | 'safety' | 'consolidation' | 'image' | 'translation';
 
 export interface UsageRecord {
   athleteId: string;

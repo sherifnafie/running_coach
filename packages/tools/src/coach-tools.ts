@@ -10,7 +10,6 @@ export const sendMessageTool: ToolDef<'send_message'> = {
   name: 'send_message',
   description:
     'Send a message to the athlete. This is the ONLY way the athlete sees anything you write; your other text is private. ' +
-    'Write like a coach texting: short, warm, specific. You may call it several times for several short messages. ' +
     'Optional: attachments (raw blobs, workspace files such as charts you rendered, or a view card), micro-UI (quick_replies ' +
     'chips or a small form, e.g. RPE 1–10 as a scale), notification_actions for the push notification, voice_note:true to also ' +
     'send it as audio in your voice, reply_to = the athlete event id you answer. Proactive messages (in wakes/heartbeats) are ' +
@@ -109,7 +108,7 @@ export const setHeartbeatTool: ToolDef<'set_heartbeat'> = {
 
 export const setPreferencesTool: ToolDef<'set_preferences'> = {
   name: 'set_preferences',
-  description: 'Change requested presentation preferences: locale (BCP-47), theme (system/light/dark), accent (#RRGGBB or null). Optional coach_name and coach_avatar_sha256 (owned PNG/JPEG/WebP blob or null for initials) require the athlete’s Settings opt-in and a requested chat turn. Read /system/skills/coach-identity/SKILL.md when relevant. Does not change your AI disclosure, privacy, permissions, spending or notifications. Identity is optional; never turn routine coaching into branding.',
+  description: 'Change requested presentation preferences: locale (BCP-47), theme (system/light/dark), accent (#RRGGBB or null). Optional coach_name and coach_avatar_sha256 (owned PNG/JPEG/WebP blob or null for initials) require the athlete’s Settings opt-in and a requested chat turn. Read /system/skills/coach-identity/SKILL.md when relevant. Does not change your AI disclosure, privacy, permissions, spending or notifications.',
   input: ToolInputs.set_preferences,
   availableTo: ['coach'],
   execute: (input, ctx) => guard(async () => {
@@ -142,8 +141,8 @@ export const spawnAgentTool: ToolDef<'spawn_agent'> = {
     'Delegate focused work to a helper agent (profiles live in /workspace/agents/<profile>.md: extractor, analyst, planner, reviewer, ' +
     'researcher (quick lookups), deep-researcher (evidence reviews), ui-builder, or ones you wrote). Helpers cannot message the athlete or schedule. Give a clear task and the input paths. ' +
     'write_scope = globs under /workspace the helper may change (default read-only). background:true returns a task id immediately; ' +
-    'you will be woken with task.completed or task.failed — tell the athlete if they are waiting. ' +
-    'Foreground work shares your current turn wall-clock limit. Use background:true for substantial design, research or review so it can finish across turns.',
+    'you will be woken with task.completed or task.failed, and the helper can keep working after this turn ends. ' +
+    'Foreground work shares your current turn wall-clock limit.',
   input: ToolInputs.spawn_agent,
   availableTo: ['coach', 'helper'],
   execute: (input, ctx) =>
@@ -200,6 +199,7 @@ async function reportContent(ctx: Parameters<ToolDef['execute']>[1], report: imp
     ] as const) {
       for (const e of list.slice(0, 8)) lines.push(`  - ${label}: ${e}`);
     }
+    for (const n of (v.notes ?? []).slice(0, 8)) lines.push(`  - note: ${n}`);
   }
   if (ctx.vision && ctx.media) {
     const order = ['phone-light', 'phone-dark', 'empty-state', 'tablet-light'];
@@ -225,7 +225,7 @@ export const previewUiTool: ToolDef<'preview_ui'> = {
   name: 'preview_ui',
   description:
     'Render views headlessly (phone light/dark, tablet, empty data) and get a report with errors, performance, accessibility and ' +
-    'screenshots. Default: views changed since they were last published. LOOK at the screenshots before publishing.',
+    'screenshots. Default: views changed since they were last published.',
   input: ToolInputs.preview_ui,
   availableTo: ['coach', 'helper'],
   execute: (input, ctx) =>

@@ -37,7 +37,12 @@ keeps chat accessible even when the coach reorganizes navigation.
 3. Run `preview_ui({views:['today']})`. Static checks validate manifests,
    references, kit version, reads/writes and bundle size. Chromium runs the view
    at phone light/dark, tablet light, and empty-state sizes using the real
-   bridge permissions and an empty database with the same schema.
+   bridge permissions, your data, and an empty database with the same schema.
+   Writes a view makes while it renders (`coach.env.mode === 'preview'` tells
+   it it's being previewed) run with the live rules on a throwaway copy of the
+   data, so a view can exercise its own save path and read the result back.
+   Each variant starts from the original data. The report lists each write's
+   outcome and the view's `warn`/`info` reports as notes; only errors fail it.
 4. Resolve every runtime/CSP/static error and critical accessibility violation.
    The first render must stay below 1.5 s at 4× CPU throttling; the view bundle
    must stay at or below 500 KB excluding the kit. Serious accessibility issues
@@ -50,8 +55,10 @@ keeps chat accessible even when the coach reorganizes navigation.
    change in the summary. Helpers may build and preview; the coach publishes.
 
 After a database migration, update `data/schema.md`, fix dependent views and
-revalidate them. On errors the client can return to the previous version and
-reports `ui.error` to the coach. The athlete can also revert from view history;
+revalidate them. A view that fails to start (it throws or reports an error
+before it is ready, or doesn't start in time) is replaced by its previous
+version; errors after it started are only reported. Either way the coach gets
+`ui.error`. The athlete can also revert from view history;
 respect that choice and fix the underlying issue before proposing another
 version.
 

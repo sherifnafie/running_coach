@@ -172,6 +172,8 @@ export interface ViewPreview {
   cspViolations: string[];
   a11y: { critical: number; serious: number; details: string[] };
   perf: { firstRenderMs: number; bundleKb: number };
+  /** Observations that don't fail the gates: the view's own warn/info reports and the outcome of each bridge write. */
+  notes?: string[];
   /** PNG screenshots on the host filesystem. */
   screenshots: Array<{ variant: PreviewVariant; path: string }>;
 }

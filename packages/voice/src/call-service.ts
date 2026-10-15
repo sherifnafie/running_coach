@@ -80,6 +80,10 @@ class CallServiceImpl implements CallService {
   async start(athleteId: string, opts: { mode?: CallMode; purpose?: string }): Promise<CallSessionInfo> {
     if (this.disposed) throw new VoiceError('calls_unavailable', 'The voice service is shutting down');
     const { deps } = this;
+    const budget = await deps.budget?.(athleteId);
+    if (budget && (budget.dayUsd >= budget.dailyUsd || budget.monthUsd >= budget.monthlyUsd)) {
+      throw new VoiceError('budget_exhausted', 'Your AI budget for today or this month is used up. You can still type to your coach.');
+    }
     const settings = await deps.store.getSettings(athleteId);
     const mode = this.resolveMode(opts.mode, settings);
     const callId = newId('call', deps.clock);

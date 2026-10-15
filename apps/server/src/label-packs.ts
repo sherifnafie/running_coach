@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { hasCuratedLabels, kitLabelSources, labelLanguage, type Logger, type ModelRouter } from '@opencoach/protocol';
+import { hasCuratedLabels, kitLabelSources, labelLanguage, type Logger, type ModelRouter, type Usage } from '@opencoach/protocol';
 import { shellLabels } from '@opencoach/protocol/presentation-shell';
 
 /**
@@ -9,6 +9,9 @@ import { shellLabels } from '@opencoach/protocol/presentation-shell';
  * other language the fast tier translates the label list once, the result is cached in `<dataDir>/i18n/<lang>.json`
  * and served to the PWA and, through the view env, to the kit. Only these built-in strings are ever translated
  * here; athlete and coach content is not. Until a pack exists the interface stays English.
+ *
+ * Generating a pack is model spend: it is started only for a signed-in athlete within their AI budget, and its cost
+ * is recorded against that athlete like any other usage [COST-1].
  */
 export interface LabelPack {
   language: string;
@@ -17,6 +20,12 @@ export interface LabelPack {
 }
 
 const BATCH = 80;
+
+/** Budget check and usage recording for the athlete whose request starts a translation. */
+export interface LabelPackMeter {
+  allowed(athleteId: string): Promise<boolean>;
+  record(athleteId: string, call: { provider: string; model: string; usage: Usage; costUsd: number }): Promise<void>;
+}
 
 export function labelSources(): string[] {
   return [...new Set([...kitLabelSources, ...Object.keys(shellLabels)])];
@@ -27,7 +36,7 @@ export class LabelPacks {
   private readonly sources = labelSources();
   private readonly sourceHash = createHash('sha256').update(this.sources.join('\u0000')).digest('hex').slice(0, 16);
 
-  constructor(private readonly deps: { dataDir: string; router?: ModelRouter; logger: Logger }) {}
+  constructor(private readonly deps: { dataDir: string; router?: ModelRouter; logger: Logger; meter?: LabelPackMeter }) {}
 
   private file(language: string): string {
     return join(this.deps.dataDir, 'i18n', `${language}.json`);
@@ -42,22 +51,24 @@ export class LabelPacks {
   }
 
   /**
-   * The pack for a locale. With `generate` (signed-in callers) a missing or outdated pack is generated in the
-   * background; anonymous callers (the sign-in screen) only get packs that already exist.
+   * The pack for a locale. For a signed-in athlete (`athleteId`) a missing or outdated pack is generated in the
+   * background, billed to them; anonymous callers (the sign-in screen) only get packs that already exist.
    */
-  async get(locale: string, opts: { generate?: boolean } = { generate: true }): Promise<LabelPack> {
+  async get(locale: string, opts: { athleteId?: string } = {}): Promise<LabelPack> {
     const language = labelLanguage(locale);
     if (hasCuratedLabels(language)) return { language, ready: true, labels: {} };
     const stored = await this.read(language);
     if (stored?.sourceHash === this.sourceHash) return { language, ready: true, labels: stored.labels };
-    if (opts.generate !== false) this.generate(language, stored?.labels ?? {});
+    if (opts.athleteId && !this.inflight.has(language) && (!this.deps.meter || (await this.deps.meter.allowed(opts.athleteId)))) {
+      this.generate(language, stored?.labels ?? {}, opts.athleteId);
+    }
     // A stale pack is still far better than English while the missing strings are filled in.
     return { language, ready: !!stored, labels: stored?.labels ?? {} };
   }
 
-  private generate(language: string, existing: Record<string, string>): void {
+  private generate(language: string, existing: Record<string, string>, athleteId: string): void {
     if (this.inflight.has(language) || !this.deps.router) return;
-    const run = this.translateMissing(language, existing)
+    const run = this.translateMissing(language, existing, athleteId)
       .catch((error) => this.deps.logger.warn('label pack generation failed', { language, error: (error as Error).message }))
       .finally(() => this.inflight.delete(language));
     this.inflight.set(language, run);
@@ -68,11 +79,11 @@ export class LabelPacks {
     await Promise.all(this.inflight.values());
   }
 
-  private async translateMissing(language: string, existing: Record<string, string>): Promise<void> {
+  private async translateMissing(language: string, existing: Record<string, string>, athleteId: string): Promise<void> {
     const missing = this.sources.filter((s) => !existing[s]);
     const batches: string[][] = [];
     for (let i = 0; i < missing.length; i += BATCH) batches.push(missing.slice(i, i + BATCH));
-    const results = await Promise.all(batches.map((batch) => this.translateBatch(language, batch).catch(() => ({}))));
+    const results = await Promise.all(batches.map((batch) => this.translateBatch(language, batch, athleteId).catch(() => ({}))));
     const labels: Record<string, string> = {};
     for (const source of this.sources) {
       const value = existing[source] ?? results.reduce<string | undefined>((found, r) => found ?? (r as Record<string, string>)[source], undefined);
@@ -87,8 +98,9 @@ export class LabelPacks {
     this.deps.logger.info('label pack ready', { language, translated: Object.keys(labels).length, of: this.sources.length });
   }
 
-  private async translateBatch(language: string, batch: string[]): Promise<Record<string, string>> {
-    const route = this.deps.router!.route('fast')[0];
+  private async translateBatch(language: string, batch: string[], athleteId: string): Promise<Record<string, string>> {
+    const router = this.deps.router!;
+    const route = router.route('fast')[0];
     if (!route) throw new Error('no model for label translation');
     let name = language;
     try {
@@ -115,6 +127,11 @@ export class LabelPacks {
       maxOutputTokens: 16_000,
     })) {
       if (ev.type === 'text_delta') out += ev.text;
+      if (ev.type === 'message_end') {
+        await this.deps.meter
+          ?.record(athleteId, { provider: route.provider.id, model: route.model, usage: ev.usage, costUsd: router.cost(route.model, ev.usage) })
+          .catch((error) => this.deps.logger.warn('label pack usage not recorded', { error: (error as Error).message }));
+      }
     }
     const m = /\{[\s\S]*\}/.exec(out);
     if (!m) throw new Error('no JSON in translation');

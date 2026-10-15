@@ -23,6 +23,8 @@ export interface CallServiceDeps {
   realtime?: RealtimeVoiceProvider;
   transcriber?: Transcriber;
   synthesizer?: Synthesizer;
+  /** Current spend and limits; a call doesn't start once the athlete's daily or monthly AI budget is used up [COST-1]. */
+  budget?(athleteId: string): Promise<import('./dictation').DictationBudget>;
 }
 
 /**

@@ -18,7 +18,7 @@ export function i18nRoutes(app: FastifyInstance, ctx: GatewayContext): void {
     const locale = params(request).locale ?? '';
     if (!/^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8}){0,3}$/.test(locale)) throw badRequest('Unknown language tag.');
     const language = labelLanguage(locale);
-    const pack = ctx.deps.labelPacks ? await ctx.deps.labelPacks.get(locale, { generate: !!request.auth }) : { language, ready: true, labels: {} };
+    const pack = ctx.deps.labelPacks ? await ctx.deps.labelPacks.get(locale, request.auth ? { athleteId: ctx.athleteId(request) } : {}) : { language, ready: true, labels: {} };
     reply.header('Cache-Control', 'no-store');
     return { ...pack, dir: languageDirection(locale) };
   });

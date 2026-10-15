@@ -1,7 +1,7 @@
 import { estimateTokens, newId, type ConvItem, type EpochRecord, type ResolvedModel, type SystemBlock } from '@opencoach/protocol';
 import { listSkills, readPinnedList } from '@opencoach/workspace';
 import type { Core } from './core';
-import { epochDate } from './time';
+import { epochDate, formatLocal } from './time';
 
 /**
  * Context layers (SPEC §5.3): L0 constitution, L2 skills index, L3 pinned memory, L4 briefing
@@ -46,7 +46,7 @@ export function fill(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k: string) => (k in vars ? vars[k]! : m));
 }
 
-async function buildSystem(core: Core, athleteId: string, carryover?: string): Promise<StoredSystem> {
+async function buildSystem(core: Core, athleteId: string, carryover?: string, recent?: string): Promise<StoredSystem> {
   const paths = core.paths(athleteId);
   const fs = core.fsFor(athleteId);
   const cfg = core.config.limits;
@@ -121,6 +121,7 @@ async function buildSystem(core: Core, athleteId: string, carryover?: string): P
     '## Your briefing for today (briefing.md)',
     briefing || '(empty — no consolidation has run yet)',
     ...(carryover ? ['', '## Earlier today (summary carried over from the previous context)', carryover] : []),
+    ...(recent ? ['', '## Earlier today: the latest messages, verbatim (search_history has the rest)', recent] : []),
   ].join('\n');
 
   return {
@@ -165,8 +166,10 @@ export async function ensureEpoch(core: Core, athleteId: string, model: Resolved
   const sameDay = prev && prev.localDate === date;
   const carryover = sameDay && prev.closeReason === 'compaction' ? prev.carryover : undefined;
   const seq = sameDay ? prev.seq + 1 : 1;
+  // A context replaced mid-day (compaction, a model switch) keeps the athlete's own recent words, not only a summary.
+  const latest = sameDay ? await recentMessages(core, athleteId, new Date(now.getTime() - 12 * 3_600_000).toISOString()) : undefined;
 
-  const built = await buildSystem(core, athleteId, carryover);
+  const built = await buildSystem(core, athleteId, carryover, latest);
   const epoch: EpochRecord = {
     id: newId('ep', core.clock),
     athleteId,
@@ -179,6 +182,24 @@ export async function ensureEpoch(core: Core, athleteId: string, model: Resolved
   await core.store.createEpoch(epoch);
   await core.store.setKv(SYSTEM_KEY(epoch.id), JSON.stringify(built));
   return { epoch, system: built.system, pinned: built.pinned, items: [], opened: true };
+}
+
+const RECENT_MESSAGES = 12;
+const RECENT_MESSAGE_CHARS = 1500;
+
+/** The last few chat messages since `sinceIso`, oldest first, in the athlete's local time. */
+async function recentMessages(core: Core, athleteId: string, sinceIso: string): Promise<string | undefined> {
+  const events = await core.store.listEvents({ athleteId, types: ['user.message', 'coach.message'], since: sinceIso, order: 'desc', limit: RECENT_MESSAGES });
+  if (events.length === 0) return undefined;
+  const tz = (await core.store.getSettings(athleteId)).profile.tz;
+  return events
+    .reverse()
+    .map((e) => {
+      const text = String((e.payload as { text?: unknown }).text ?? '');
+      const clipped = text.length > RECENT_MESSAGE_CHARS ? `${text.slice(0, RECENT_MESSAGE_CHARS)}…` : text;
+      return `[${formatLocal(e.ts, tz)} · ${e.type === 'user.message' ? 'athlete' : 'you'} · ${e.id}]\n${clipped}`;
+    })
+    .join('\n\n');
 }
 
 async function loadSystem(core: Core, epochId: string): Promise<StoredSystem | undefined> {

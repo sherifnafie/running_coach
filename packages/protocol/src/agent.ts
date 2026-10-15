@@ -1,6 +1,6 @@
 import type { ContentPart, ConvItem, HarnessItem, SystemBlock, ToolCallPart, ToolResult, UserItem } from './conversation';
 import type { Effort } from './common';
-import type { ResolvedModel, ToolSpec, Usage } from './model';
+import type { ProviderErrorKind, ResolvedModel, ToolSpec, Usage } from './model';
 
 /**
  * AgentLoop contract (SPEC §5.2, §5.8, Appendix C §C.6). The engine runs one TURN: repeated model
@@ -81,6 +81,8 @@ export interface RunTurnResult {
   /** "provider:model" entries that were used as fallbacks. */
   fallbacks: string[];
   error?: string;
+  /** Kind of the provider failure that ended the turn, when one did (e.g. `auth` for a refused key or spending limit). */
+  errorKind?: ProviderErrorKind;
 }
 
 export interface AgentLoop {

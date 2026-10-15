@@ -157,6 +157,23 @@ describe('runtime: onboarding & reactive turns', () => {
     expect(await h.runtime.core.store.getKv(`reply-retries:${id}`)).toBe('0');
   });
 
+  it('says plainly when the provider refuses the key, instead of promising a reply [RT-4]', async () => {
+    h = await makeHarness();
+    const id = await newAthlete(h);
+    await greet(h, id);
+    h.setHandler(() => ({ fail: { kind: 'auth', message: '403 Key limit exceeded (total limit)' } }));
+    await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'still there?', clientId: 'c5' } });
+    await h.settle(id);
+    const notices = (await h.events(id, ['harness.notice'])) as Array<Extract<AnyEvent, { type: 'harness.notice' }>>;
+    const fallback = notices.filter((n) => n.payload.kind === 'reply_fallback');
+    expect(fallback).toHaveLength(1);
+    expect(fallback[0]!.payload.text).toMatch(/refused the key/);
+    expect(fallback[0]!.payload.text).not.toMatch(/follow up shortly/);
+    // the input stays queued for a retry once the key works again
+    const schedules = await h.runtime.core.store.listSchedules(id);
+    expect(schedules.some((s) => s.purpose.includes('without replying'))).toBe(true);
+  });
+
   it('accepts no_reply as a valid outcome', async () => {
     h = await makeHarness();
     const id = await newAthlete(h);
@@ -540,5 +557,46 @@ describe('[MSG-3] tool-call markup never reaches the athlete', () => {
     } finally {
       await h.close();
     }
+  });
+});
+
+describe('runtime: context across compaction [CTX-2] [CTX-1]', () => {
+  const isCompactionAsk = (req: Parameters<Parameters<Harness['setHandler']>[0]>[0]) => {
+    const last = req.items.at(-1);
+    return last?.kind === 'harness' && last.text.includes('will be replaced by a summary');
+  };
+
+  it('compacts at a model-aware trigger and carries the latest messages verbatim into the next context', async () => {
+    h = await makeHarness({ capabilities: { maxContextTokens: 4000 } }); // 60% of 4000 = 2400 < the 160k default cap
+    const id = await newAthlete(h);
+    await greet(h, id);
+    h.setHandler((req) => {
+      if (isCompactionAsk(req)) return { text: 'SUMMARY-OF-THE-DAY' };
+      return lastItemKind(req) === 'tool_results' ? { text: '', usage: { inputTokens: 3000 } } : send('Noted.');
+    });
+    await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'I live in Delft, by the way.', clientId: 'c1' } });
+    await h.settle(id);
+    const epochs = await h.runtime.core.store.listEpochs(id, 5);
+    expect(epochs.some((e) => e.closeReason === 'compaction' && e.carryover === 'SUMMARY-OF-THE-DAY')).toBe(true);
+
+    h.setHandler((req) => (lastItemKind(req) === 'tool_results' ? { text: '' } : send('Sure.')));
+    await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'next question', clientId: 'c2' } });
+    await h.settle(id);
+    const system = h.requests.at(-1)!.system.map((b) => b.text).join('\n');
+    expect(system).toContain('SUMMARY-OF-THE-DAY');
+    expect(system).toContain('the latest messages, verbatim');
+    expect(system).toContain('I live in Delft, by the way.');
+  });
+
+  it('does not nag the coach about pinned files, however many turns pass', async () => {
+    h = await makeHarness();
+    const id = await newAthlete(h);
+    await greet(h, id);
+    h.setHandler((req) => (lastItemKind(req) === 'tool_results' ? { text: '' } : send('ok')));
+    for (let i = 0; i < 10; i++) {
+      await h.runtime.ingest(id, { type: 'user.message', payload: { text: `message ${i}`, clientId: `n${i}` } });
+      await h.settle(id);
+    }
+    expect(h.requests.map(situationText).some((s) => s.includes('reminder:'))).toBe(false);
   });
 });

@@ -21,7 +21,7 @@ import {
 } from '@opencoach/protocol';
 import { openWorkspaceGit } from '@opencoach/workspace';
 import type { Core } from './core';
-import { capabilityLines } from './capabilities';
+import { capabilityLines, unavailableTools } from './capabilities';
 import { createExecutor } from './executor';
 import { formatLocal } from './time';
 
@@ -106,8 +106,10 @@ export class HelperManager {
     const tier: Tier = input.tier ?? profile?.tier ?? 'coach';
     const requested = (input.tools ?? profile?.tools ?? ['read', 'glob', 'grep']) as string[];
     const allowNested = parent.depth + 2 <= SpawnLimits.maxDepth;
+    const unavailable = unavailableTools(core, parent.athleteId);
     const tools = requested.filter(
-      (t): t is ToolName => (HELPER_GRANTABLE_TOOLS as string[]).includes(t) || (allowNested && ['spawn_agent', 'task_status', 'cancel_task'].includes(t)),
+      (t): t is ToolName =>
+        ((HELPER_GRANTABLE_TOOLS as string[]).includes(t) || (allowNested && ['spawn_agent', 'task_status', 'cancel_task'].includes(t))) && !unavailable.has(t as ToolName),
     );
     const writeScope = (input.write_scope ?? profile?.write_scope ?? []).map((g) => g.replace(/^\/workspace\//, ''));
     const inputs = input.inputs ?? [];
@@ -115,7 +117,7 @@ export class HelperManager {
     const settings = await core.store.getSettings(parent.athleteId);
     let route: ResolvedModel[];
     try {
-      route = core.deps.router.route(tier, settings.models[tier], { athleteId: parent.athleteId });
+      route = core.deps.router.route(tier, settings.models[tier] ?? undefined, { athleteId: parent.athleteId });
     } catch (e) {
       return { ok: false, code: 'NOT_CONFIGURED', message: (e as Error).message };
     }
@@ -123,7 +125,7 @@ export class HelperManager {
     if (needsVision && !route[0]?.capabilities.vision) {
       for (const t of ['fast', 'coach', 'deep'] as Tier[]) {
         try {
-          const r = core.deps.router.route(t, settings.models[t], { athleteId: parent.athleteId });
+          const r = core.deps.router.route(t, settings.models[t] ?? undefined, { athleteId: parent.athleteId });
           if (r[0]?.capabilities.vision) {
             route = r;
             break;
@@ -397,11 +399,12 @@ export class HelperManager {
         costUsd,
       });
       await core.store.updateTask(taskId, { costUsd });
-      if (result.stopReason === 'error') throw new Error(result.error ?? 'helper model error');
       if (result.stopReason === 'aborted') throw new Error('cancelled');
-      // A helper stopped by a limit (time, steps, output, budget) still hands back the in-scope files it wrote, such as a
-      // half-finished draft, so its work isn't lost; the caller reports the task as incomplete.
-      const incomplete = result.stopReason !== 'end_turn' ? result.stopReason : undefined;
+      // A helper stopped by a limit (time, steps, output, budget) or a model failure (a stalled stream, a provider error)
+      // still hands back the in-scope files it wrote, such as a half-finished draft, so its work isn't lost; the caller
+      // reports the task as incomplete and names what was kept.
+      const incomplete =
+        result.stopReason === 'error' ? `a model error: ${(result.error ?? 'unknown').slice(0, 300)}` : result.stopReason !== 'end_turn' ? result.stopReason : undefined;
 
       // A nested background helper must finish copying into this worktree before it is merged/removed.
       await Promise.all([...this.running.values()].filter((r) => r.parentTaskId === taskId).map((r) => r.done));

@@ -23,7 +23,8 @@ export async function callBriefing(core: Core, athleteId: string, purpose?: stri
   };
   const vars = { coach_name: settings.profile.coachName, athlete_name: settings.profile.name };
   const addendum = (await core.addendum('voice', vars)) || `You are the voice of ${settings.profile.coachName}, ${settings.profile.name}'s coach, on a phone call. Speak naturally and briefly.`;
-  const sections: string[] = [addendum];
+  // The call's own facts go first: when the briefing outgrows its cap, older memory is cut, never these.
+  const sections: string[] = [addendum, `## This call\nAthlete local time: ${formatLocal(core.clock.now(), tz)}.${purpose ? ` The athlete said the call is about: ${purpose}` : ''}`];
   const persona = await read('/workspace/coach/persona.md');
   if (persona) sections.push(`## Your persona\n${persona}`);
   let pinned: string[] = [];
@@ -56,7 +57,6 @@ export async function callBriefing(core: Core, athleteId: string, purpose?: stri
   }
   const wakes = (await core.scheduler.list(athleteId)).filter((s) => s.kind === 'coach').slice(0, 5);
   if (wakes.length) sections.push(`## Your upcoming check-ins\n${wakes.map((w) => `- ${w.nextFireAt ? formatLocal(w.nextFireAt, tz) : '?'}: ${w.purpose}`).join('\n')}`);
-  sections.push(`## This call\nAthlete local time: ${formatLocal(core.clock.now(), tz)}.${purpose ? ` The athlete said the call is about: ${purpose}` : ''}`);
   let text = sections.join('\n\n');
   if (text.length > MAX_BRIEFING_CHARS) text = `${text.slice(0, MAX_BRIEFING_CHARS)}\n[briefing truncated]`;
   return text;

@@ -28,7 +28,7 @@ Runs in your sandbox: Python 3 (pandas, numpy, scipy, matplotlib; `fitdecode` an
   ```
   Use `?` placeholders for anything that came from a message. Wrap multi-statement changes in a transaction (`with con:`). `executescript` is fine for migrations.
 - **Scripts you have:** `/system/skills/*/scripts/` (VDOT and paces, estimated 1RM and lifting summaries, training load, ICS export, file parsers, data checks, plan checks). Each has `--help`. Run them rather than re-deriving formulas from memory.
-- Don't leave stray files in the workspace. Scratch goes in `/tmp`.
+- Don't leave stray files in the workspace. Scratch for a single `bash` call goes in `/tmp`, which starts empty on every call; something a later call needs belongs under `/workspace` (delete it when you're done).
 
 ### Recording data with provenance
 Every derived row says where it came from. The pattern for an extracted workout:

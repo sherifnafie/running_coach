@@ -156,7 +156,7 @@ export const bashTool: ToolDef<'bash'> = {
   description:
     'Run a shell command in your sandbox (bash). Working directory defaults to /workspace. Available: python3 (pandas, numpy and more), ' +
     'node, git, ffmpeg and standard Unix tools. There is NO network access and no credentials. Query your database with python3 ' +
-    '(import sqlite3; sqlite3.connect("data/coach.db")). Output is truncated if very long. Default timeout 120 s (max 300).',
+    '(import sqlite3; sqlite3.connect("data/coach.db")). Output is truncated if very long. Default timeout 120 s (max 300). /tmp is private to each call and starts empty; keep files you need in a later call under /workspace.',
   input: ToolInputs.bash,
   availableTo: ['coach', 'helper'],
   execute: (input, ctx) =>

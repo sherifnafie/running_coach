@@ -1,4 +1,5 @@
 import type { AnyEvent, AthleteSettings, ResolvedModel, SafetyScreenResult, ToolName, TriggerClass } from '@opencoach/protocol';
+import { readUiManifests } from '@opencoach/workspace';
 import { capabilityLines } from './capabilities';
 import type { PinnedReport } from './context';
 import type { Core } from './core';
@@ -18,7 +19,6 @@ export interface SituationInput {
   limits: { maxSteps: number; maxWallMs: number };
   safety?: SafetyScreenResult;
   firstContact: boolean;
-  nudge?: string;
   extra?: string[];
 }
 
@@ -44,14 +44,13 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   lines.push(`trigger: ${s.cls}${types ? ` (${types})` : ''} · reply required: ${s.replyRequired ? 'yes' : 'no'}${s.proactive ? ' · anything you send now is PROACTIVE' : ''}`);
   lines.push(`athlete: ${s.settings.profile.name} · units: ${s.settings.profile.units} · locale: ${s.settings.profile.locale}${s.firstContact ? ' · FIRST CONTACT (new athlete; no intake yet)' : ''}`);
 
-  lines.push(`presentation: theme ${s.settings.appearance.theme} · accent ${s.settings.appearance.accent ?? 'default'} · reply language ${s.settings.profile.locale}; use set_preferences for requested changes`);
-  lines.push(`current coach identity: name ${s.settings.profile.coachName} · avatar ${s.settings.coachIdentity.avatarSha256 ?? 'initials'}; current settings take precedence over a name in older memory`);
-  const imageSpend = await store.sumUsage(s.athleteId, localMonthStartIso(now, tz), 'image');
-  lines.push(`image reservations accounted this month: $${imageSpend.costUsd.toFixed(3)} of $${s.settings.images.monthlyUsd.toFixed(2)}; permission ${s.settings.images.mode}; reservations can exceed the final provider charge`);
+  lines.push(
+    `presentation: theme ${s.settings.appearance.theme} · accent ${s.settings.appearance.accent ?? 'default'} · reply language ${s.settings.profile.locale} · your name ${s.settings.profile.coachName}, avatar ${s.settings.coachIdentity.avatarSha256 ?? 'initials'} (current settings; older notes may differ)`,
+  );
 
   const [lastAthlete] = await store.listEvents({ athleteId: s.athleteId, types: ['user.message', 'user.upload', 'user.voice_note'], order: 'desc', limit: 1 });
   const unread = await store.countUnreadCoachMessages(s.athleteId);
-  lines.push(`last athlete message: ${ago(lastAthlete?.ts, now)} · your unread messages: ${unread}`);
+  lines.push(`last athlete message: ${ago(lastAthlete?.ts, now)} · your messages the athlete hasn't opened yet: ${unread}`);
 
   const n = s.settings.notifications;
   const held = (await store.listHeldMessages(s.athleteId)).length;
@@ -79,7 +78,8 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   lines.push(
     `context: epoch ${s.epoch.localDate} #${s.epoch.seq} · pinned ${(s.pinned.tokens / 1000).toFixed(1)}k/${(s.pinned.cap / 1000).toFixed(0)}k tokens${pinnedNote ? ` (${pinnedNote})` : ''} · model ${s.model.model} (${s.model.provider.id}, ${s.model.tier} tier, vision ${s.model.capabilities.vision ? 'yes' : 'NO'})`,
   );
-  lines.push(...capabilityLines(core, s.athleteId, s.settings, s.model, s.tools));
+  const imageSpend = await store.sumUsage(s.athleteId, localMonthStartIso(now, tz), 'image');
+  lines.push(...capabilityLines(core, s.athleteId, s.settings, s.model, s.tools, imageSpend.costUsd));
 
   const dayCost = (await store.sumUsage(s.athleteId, localDayStartIso(now, tz))).costUsd;
   const monthCost = (await store.sumUsage(s.athleteId, localMonthStartIso(now, tz))).costUsd;
@@ -90,14 +90,16 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   lines.push(await sinceLastTurn(core, s, now));
 
   const views = await store.getCurrentUiVersions(s.athleteId);
-  lines.push(`app views published: ${views.length ? views.map((v) => `${v.viewId} v${v.version}`).join(', ') : 'none'}`);
+  const sources = await readUiManifests(core.paths(s.athleteId).workspace).catch(() => undefined);
+  // A published view whose source is gone from ui/views/ stays published until rolled back or replaced: say so.
+  const label = (id: string) => (sources && !sources.views[id] ? ' (no longer in ui/views/)' : '');
+  lines.push(`app views published: ${views.length ? views.map((v) => `${v.viewId} v${v.version}${label(v.viewId)}`).join(', ') : 'none'}`);
 
   if (s.safety?.flagged) {
     lines.push(
       `SAFETY: the harness flagged a possible ${s.safety.categories.join(', ')} signal${s.safety.acute ? ' (possibly happening now)' : ''} in the athlete's message. Apply the safety protocol in your constitution. The athlete is also being shown an emergency-guidance banner.`,
     );
   }
-  if (s.nudge) lines.push(`reminder: ${s.nudge}`);
   for (const x of s.extra ?? []) lines.push(x);
   return `<situation>\n${lines.join('\n')}\n</situation>`;
 }
