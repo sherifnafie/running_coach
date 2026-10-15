@@ -34,8 +34,9 @@ reachable through Tailscale Funnel, with three athletes. Chat goes through one d
 chooses their own model (currently DeepSeek V4.1 Flash; also tried GPT-6.1 Sol on 2026-10-15). That key has a
 lifetime spending limit set in the OpenRouter dashboard: when it runs out every turn fails with a 403 and athletes see
 "the provider refused the key". Check it with `GET https://openrouter.ai/api/v1/key` before suspecting the harness.
-SearXNG now runs on localhost and is connected to production; general and scholarly searches have returned results
-through the installed backend. A real coach turn using the newly enabled search has not yet been observed.
+SearXNG runs on localhost and is connected to production; general and scholarly searches have returned results
+through the installed backend and a normal coach turn. Successful retrieval does not establish source relevance
+or sound application of the evidence.
 
 Production reviews of the owner's conversations are the main feedback loop for the harness and seed:
 [ADR 0013](adr/0013-lean-memory-and-ordered-side-effects.md) (first week) and
@@ -57,7 +58,7 @@ added a plan-adequacy section and merged duplicate weekly reviews. This verifies
 - **Not verified:**
   - Coaching quality: no real-model eval cohort and no human calibration.
   - Full provider conformance [MOD-2].
-  - Live calls end to end, Telegram, a real coach's use of newly enabled search, MCP against real servers.
+  - Live calls end to end, Telegram, MCP against real servers.
   - Physical receipt of Web Push on Android/Chrome (provider acceptance only).
   - The native Android build and Health Connect; iOS.
 - **A model weakness to watch:** in the VO₂max eval, DeepSeek computed the estimate correctly but invented an RPE
@@ -72,8 +73,11 @@ added a plan-adequacy section and merged duplicate weekly reviews. This verifies
    arithmetic and consistency slips in long planning conversations.
 2. Compare the next production week against ADR 0014: repeated questions, corrections that survive a context
    change, view saves that work the first time, helper briefs that carry the athlete's own request.
+   [ADR 0016](adr/0016-specification-and-coaching-intent.md) records a full specification review and repairs to
+   stale precedence/workflow wording; cost/quality fallback policy and nominal step-limit calibration remain open.
 3. Calls: `call.ended` can't tell a call that never connected from a hang-up (two of six owner calls were empty);
-   the call front-end has `lookup`, `consult_coach` and `note` but no weather or web.
+   the call front-end has `lookup`, `consult_coach` and `note` but no weather or web. Lookup assumes seed table
+   names/columns despite coach-owned schemas, and its upcoming-session query uses a UTC rather than local date.
 4. Native shell: build `apps/native`, test Health Connect on a device, then native push and a share target.
 5. Validate external services live: Web Push receipt, voice notes and calls, Telegram.
 
@@ -81,6 +85,17 @@ added a plan-adequacy section and merged duplicate weekly reviews. This verifies
 
 - **Intermittent browser-test database contention:** one full browser run recorded `database is locked` and three
   later assertions failed; a clean repeat passed. Not isolated.
+- **In-flight spending [COST-1]:** main turns check allowances on admission but receive no remaining USD cap;
+  helper task budgets do not reserve against a shared athlete allowance. Active work can cross the stated hard
+  allowance before another admission check. Requires per-call/shared accounting; no paid overrun probe was run.
+- **Backup erasure [SEC-6]:** live account deletion removes athlete files and database rows, but operational
+  archives are retained by count rather than age. The 30-day backup deletion promise is not enforced; old
+  archives can restore deleted records. Add retention/deletion/restore handling without weakening the promise.
+- **General undo [WS-5]:** athlete-facing revert covers views; a full undo of the last plan/data change is not
+  exposed, despite workspace history and snapshots.
+- **Offline view-write receipts [UI-1]:** view writes/actions replay best-effort without request deduplication.
+  An ambiguous network failure after commit can reapply or conflict on retry. Not established as the cause of
+  the previously reviewed autosave failures.
 - **Voice spend is not metered:** realtime and cascaded calls, voice-note transcription and TTS use the server's
   OpenAI key and record no usage, so they don't count toward an athlete's budget (dictation does). A call no longer
   starts once the budget is used up, but its own cost is capped only by its maximum duration.

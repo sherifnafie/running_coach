@@ -1,13 +1,13 @@
 # OpenCoach: an AI-native coaching harness (any sport, or several)
 
-**Product and technical specification, v0.1 (draft for the build team)**
-**Date:** 2026-10-06 · **Status:** Proposed · **Owner:** project founder · **Working title:** "OpenCoach" (placeholder, see §22)
+**Living product and technical specification (founded as v0.1)**
+**Founded:** 2026-10-06 · **Reviewed:** 2026-10-15 · **Status:** Active contract, with proposals identified explicitly · **Owner:** project founder · **Working title:** "OpenCoach" (placeholder, see §22)
 
 ---
 
 ## 0. How to read this document
 
-This is the founding spec for the project. It turns a rough brainstorm into decisions the build team can act on. It also says where a decision is still open.
+This is the founding spec for the project, maintained as decisions are accepted. Accepted decisions are explained in `docs/adr/`; implementation and verification status live in `docs/status.md`. A requirement or milestone is not evidence that it has been implemented or validated. Appendix B is a historical draft; the shipped constitution in `seed/core/constitution.md` and the general pack is authoritative for current coach instructions.
 
 - **Audience:** the (mostly AI) engineering team building the harness, and any human reviewing their work.
 - **Requirement language:** **MUST**, **SHOULD** and **MAY** follow RFC 2119. Requirements that need tracking carry IDs such as `[RT-3]`, so tickets, tests and evals can cite them.
@@ -128,21 +128,23 @@ Being unopinionated about coaching does not mean being unopinionated about every
 | Asks how it felt when data is missing | Conversational check-ins, quick replies and forms |
 | Adapts to illness, travel, missed runs | Reasoning plus workspace edits; the calendar view updates itself |
 | Notices patterns over months | Persistent DB, journal, nightly consolidation, history search |
-| Injury triage and referral | Constitution red flags, injury skill, escalation norms |
+| Injury triage and referral | Constitution safety floor, model judgment, relevant research and coach-authored knowledge |
 | Race-week prep, race strategy, debrief | Skills, scheduled wakes, calls |
 | Builds tools for the athlete | Coach-authored views and the UI kit |
 | Phone calls | Voice calls (realtime voice front-end sharing the same workspace) |
 | Sends a voice memo | TTS voice-note attachments |
 
+**The coaching standard.** The coach owns the substantive recommendation and routine adaptations within the athlete's goals and constraints; asking the athlete to choose cannot substitute for judgment. It asks when a missing answer or a meaningful personal choice changes the decision. A consequential plan needs a defensible connection between the evidence, proposed training and goal, considering both insufficient and excessive work. It includes how the coach will assess progress early enough to revise training, the goal or confidence. Correct arithmetic, adherence and a full calendar alone do not establish effectiveness. Safety, honesty and athlete-controlled spending/privacy limits still apply. Duration, research methods, helper use and review count remain the coach's decisions, evaluated by substance rather than ritual ([ADR 0015](docs/adr/0015-coaching-judgment-without-time-pressure.md)).
+
 ### 3.3 Key journeys
 
-These double as end-to-end acceptance scenarios (Appendix E §E.5).
+These illustrate end-to-end acceptance outcomes (Appendix E §E.5), not universal scripts, medical protocols or prescribed helper pipelines. Questions, messages and training choices are adapted by the coach to the evidence and athlete; tests assess outcomes without making every illustrative step mandatory.
 
-**J1. Day 0 (onboarding).** The athlete installs the PWA, signs in, accepts the health-data consent and AI disclosure, and confirms they are 18+. In self-host mode they pick a model and paste API keys. The coach greets them; there are no forms. It runs an intake conversation over one or more sessions (text or voice): goals, race dates, history, current weekly volume, injuries, available days, watch and HR availability, preferences, and how they like to be coached (tough love or gentle). It asks for screenshots of the last 2 to 4 weeks, or a Samsung Health export, extracts the data and confirms the uncertain parts. It writes `athlete/profile.md`, builds an initial block, adapts the seed views (Today, Calendar, Plan, Progress), schedules its first check-ins and tells the athlete what to expect ("I'll message you most mornings around 7 with the day's session. Tell me if that's too much.").
+**J1. Day 0 (onboarding).** The athlete installs the PWA, signs in, accepts the health-data consent and AI disclosure, and confirms they are 18+. In self-host mode they choose models and keys. The coach learns goals, relevant history, current training, constraints, health context and coaching preferences through conversation and useful inputs; there is no fixed harness-owned questionnaire. Screenshots or exports help when available; missing devices or uploads do not prevent useful coaching. It records what will matter, offers a plan at a depth justified by the evidence, adapts starter views where useful, arranges follow-up and explains what to expect. Elaborate intake or app redesign is not a prerequisite for coaching.
 
 **J2. A typical day.** At 07:00 a wake the coach scheduled earlier fires. It reads the situation report, sees today is an easy 8 km, checks yesterday's notes ("calf tight") and sends a short message: *"Easy 8k today. Keep it conversational, and if the calf is still tight, cut it to 6. How's it feeling?"* with quick replies (*Fine / A bit tight / Sore*). After the run the athlete sends three Samsung Health screenshots. The coach extracts distance, time, pace, HR and splits, writes them to the DB with provenance, notices there's no cadence and moves on, asks for RPE with a 1–10 quick reply, writes a short analysis, and updates Today and Progress.
 
-**J3. Missed session.** At 20:30 a conditional wake ("check whether the tempo got logged") finds nothing. The coach checks in once, gently. The athlete says they're sick. The coach reshuffles the week, explains why (no intensity until 48 h symptom-free), and the calendar view reflects it.
+**J3. Missed session.** A conditional wake finds no session log. The coach judges whether a check-in is useful. The athlete says they are sick. The coach adapts the week to the actual illness and safety floor, explains the change and updates the calendar. This example does not establish a universal return-to-training timetable.
 
 **J4. Red flag.** The athlete mentions chest tightness and dizziness during intervals. The harness safety screen flags it (§12.2). The coach follows the red-flag protocol: stop training, seek medical evaluation, emergency services if symptoms are present now. It pauses intensity in the plan and checks in later. It does not diagnose.
 
@@ -150,11 +152,11 @@ These double as end-to-end acceptance scenarios (Appendix E §E.5).
 
 **J6. Model switch.** The athlete (or self-host admin) switches the coach model from Sonnet 5.5 to GPT-6.1 Sol. The change takes effect at the next context epoch (§5.3). The new model reads the same constitution, workspace, memory and briefing. To the athlete it is still the same coach.
 
-**J7. Call.** The athlete taps **Call coach** and talks for 10 minutes about an upcoming race. The voice front-end has a briefing compiled from the workspace and can consult the main coach for heavy questions. After the call the main coach reads the transcript, updates the race plan and sends a recap.
+**J7. Call.** The athlete calls about an upcoming race. The voice front-end has a workspace briefing and can consult the main coach. After a substantive call, the coach records relevant decisions, updates the plan where warranted and sends a recap if useful. A cancelled, empty or failed call does not by itself call for a recap or a guessed workout answer.
 
 **J9. A new discipline.** A runner asks, "can you also coach my powerlifting? Meet in March." The coach asks what changes a decision (current lifts, gym days, federation and weight class, priorities), records the new discipline in the profile and `AGENTS.md`, reads the `disciplines` skill, proposes a combined week that keeps heavy legs away from the long run, and adds lifting to the app (sets in Today, e1RM trends in Progress). For a sport it knows less well (say, bouldering) it researches first, writes a workspace skill, and is honest about what needs in-person instruction.
 
-**J8. Race arc.** Taper wakes, a race-week checklist view the coach builds for this race, a race-morning message, a post-race debrief call or chat, a recovery block, and the result recorded in `races`.
+**J8. Race arc.** Goal-specific preparation, appropriate follow-ups and a debrief, adapted to the athlete rather than a fixed campaign. The result is recorded in the coach's data model (`goal_events` in the current seed).
 
 ---
 
@@ -232,7 +234,7 @@ flowchart LR
 | **Sandbox provider** | Lifecycle of the per-athlete execution environment with the workspace mounted | `SandboxProvider` (docker, local process, Modal, Daytona, E2B, Cloudflare and others) |
 | **Scheduler** | Durable timers (one-shot and RRULE, timezone-aware); heartbeat; fires events into the runtime | `Clock`, `Store` |
 | **Voice broker** | Creates realtime sessions (ephemeral tokens), holds the sideband control channel, compiles call briefings, routes voice-tool calls, persists transcripts | `VoiceProvider` |
-| **UI publish service** | Validates, renders, screenshots and atomically publishes coach-authored views | Headless Chromium (Playwright) in the sandbox |
+| **UI publish service** | Validates, renders, screenshots and atomically publishes coach-authored views | `UiRenderer`; trusted service launching sandboxed Chromium with isolated preview data (ADR 0003/0014) |
 | **Clients** | Mobile-first PWA (Phase 1), then a native shell (Phase 2) | Gateway API, view bridge |
 
 ### 4.4 Deployment modes
@@ -241,16 +243,16 @@ All three modes run the same codebase with different implementations of the §4.
 
 | Mode | Target | Stores | Sandbox | Notes |
 |---|---|---|---|---|
-| **Self-host, single athlete** (Phase 1 primary) | Home server, NAS, VPS, laptop | SQLite plus local filesystem | One long-lived Docker container per athlete (gVisor recommended) | `docker compose up`; bring your own API keys; reach it from the phone over Tailscale or Cloudflare Tunnel; **never** exposed without auth |
-| **Self-host, small group** (Phase 2) | Family or club | SQLite or Postgres | One container per athlete | Admin UI for inviting athletes |
+| **Self-host, single athlete** (Phase 1 primary) | Home server, NAS, VPS, laptop | SQLite plus local filesystem | Isolated local Linux namespaces or Docker through `SandboxProvider` (ADR 0004) | Host or Docker deployment; bring your own keys; phone access through a secure tunnel; **never** exposed without auth |
+| **Self-host, small group** (Phase 2) | Family or club | SQLite or Postgres | Separate athlete mounts and execution isolation through the sandbox provider | Admin UI for inviting athletes |
 | **Hosted multi-tenant** (Phase 3) | Public service | Postgres, S3-compatible store | On-demand sandboxes that hibernate between turns (Modal, Daytona or E2B class) | Per-athlete ordered queues; encryption per tenant; billing |
 
 ### 4.5 Technology decisions
 
 | Area | Decision | Rationale |
 |---|---|---|
-| Server language | **TypeScript (Node ≥ 22 or Bun)** | One language across gateway, runtime, UI kit and client; strong WebSocket and WebRTC ecosystem; large OSS contributor pool; most modern agent tooling has first-class TS SDKs. |
-| Agent loop | **Our own thin loop** (a few hundred lines) on a **provider-abstraction library**. Default is the **Vercel AI SDK**; **pi-ai** (from pi-mono, as used by OpenClaw) is the alternative. Spike S1 (§5.8) makes the final call. | We need control of turn boundaries, steering injection, context layout and caching, which coding harnesses don't expose. See §5.8. |
+| Server language | **TypeScript on Node ≥ 22.13** | One language across the app; the current store uses `node:sqlite`. Alternative runtimes require conformance, not an assumed drop-in substitution. |
+| Agent loop | **Our own loop** behind `AgentLoop`, with provider adapters behind `ModelProvider`; chat uses OpenRouter or another compatible endpoint (ADR 0001/0007). | Control of turns, steering, context, caching and provider features. The earlier Vercel/pi selection spike is settled (§5.8). |
 | Schemas and protocol | Zod schemas in `packages/protocol`, compiled to JSON Schema and TS types | One source of truth for events, tools and API. |
 | System DB | SQLite (WAL, FTS5) self-host; Postgres hosted | Same as above, behind `Store`. |
 | Workspace data | Git (text files) plus SQLite `coach.db` | Agents are fluent with both, and both are portable. |
@@ -331,17 +333,17 @@ The athlete sees **one infinite conversation**. Context windows are finite, and 
 | L2 | **Skills index** (name and description only; bodies load on demand) | Harness and coach | Per epoch | ~1–2k |
 | L3 | **Pinned memory**: files the coach lists in `AGENTS.md` front-matter (e.g. persona, athlete profile, current week) | Coach | Per epoch | **≤ 12k hard cap** |
 | L4 | **Epoch briefing**: the coach's own summary of recent days, open threads and plan state, written by consolidation | Coach | Per epoch | ≤ 6k |
-| L5 | **Epoch transcript**: this epoch's events, rendered, append-only | Harness | Grows | Compaction trigger ~80k |
+| L5 | **Epoch transcript**: this epoch's events, rendered, append-only | Harness | Grows | Compaction uses total prompt tokens: default cap 160k, model-aware (§5.3.1) |
 | L6 | **Situation report**: now, trigger, budgets, pending tasks, delivery state, limits | Harness | Every turn | ~0.5–1.5k |
 
 **5.3.1 Epochs.** A context epoch is a fresh context window that starts from L0–L4.
 - `[CTX-1]` A new epoch MUST start at the first event after a local "day boundary" (default 04:00 athlete time). It MUST also start on a model change, a harness/pack release change and on explicit request. Cached system prompts carry their harness/pack versions; legacy snapshots without versions are rebuilt once. Within an epoch, history is append-only, which keeps the prompt cache valid and satisfies providers that bind reasoning blocks to an unedited history (Appendix A §A.1).
-- `[CTX-2]` If L5 exceeds the compaction trigger mid-epoch, the runtime MUST compact. It uses provider-native compaction when available and well-behaved (e.g. Anthropic's compaction beta). Otherwise it uses harness compaction: the coach writes an "epoch so far" summary, which replaces the older transcript. The trigger scales with the model: `limits.compactionTriggerTokens` (default 160k prompt tokens) or 60% of the model's context window, whichever is smaller. Any context opened mid-day (after compaction or a model switch) also carries the latest chat messages verbatim, so the athlete's own words survive.
+- `[CTX-2]` If reported total prompt tokens exceed the compaction trigger, the runtime MUST compact the epoch. It uses provider-native compaction when available and well-behaved (e.g. Anthropic's compaction beta). Otherwise it uses harness compaction: the coach writes an "epoch so far" summary, which replaces the older transcript. The trigger scales with the model: `limits.compactionTriggerTokens` (default 160k prompt tokens) or 60% of the model's context window, whichever is smaller. Any context opened mid-day (after compaction or a model switch) also carries the latest chat messages verbatim, so the athlete's own words survive.
 - Continuity across epochs comes from L3/L4 plus **retrieval**. The coach can grep the read-only rendered transcripts in `/history/YYYY/MM/DD.md` or call `search_history` (FTS over the event log).
 
 **5.3.2 Pinned memory.** The coach chooses what is always in context by listing files in `AGENTS.md` front-matter (Appendix D). `[CTX-3]` The harness MUST enforce the L3 cap. When the cap is exceeded it loads files in list order until the cap, then reports the truncation in the situation report ("pinned context 14.2k > 12k cap; condense `athlete/profile.md`").
 
-**5.3.3 Memory writing is the coach's job.** The harness does not extract "memories" with a hidden pipeline. The coach decides what to record, and where. This is P1 and P5. The harness does not nudge it to write either: elapsed turns or a finished call say nothing about whether memory needs changing, and a recurring reminder pushes facts into pinned files (production, 2026-10: it fired on every turn once eight passed without a pinned write). What counters forgetting is context that is honest about itself: the constitution explains what survives an epoch, compaction keeps the recent conversation verbatim, and the coach can search its history.
+**5.3.3 Memory writing is the coach's job.** The harness does not extract "memories" with a hidden pipeline. The coach decides what to record, and where. This is P1 and P5. The harness does not nudge it to write either: elapsed turns or a finished call say nothing about whether memory needs changing, and a recurring reminder encourages duplication and unnecessary pinned writes (ADR 0014). Memory should keep athlete statements and current instructions distinguishable from coach hypotheses, estimates and decisions, with source/date and uncertainty where consequential. Notes remain revisable; no harness-owned memory extractor or training ontology is introduced. What counters forgetting is context that is honest about itself: the constitution explains what survives an epoch, compaction keeps the recent conversation verbatim, and the coach can search its history.
 
 **5.3.4 The situation report** (L6) is the model's ground truth for time and state. Example:
 
@@ -349,7 +351,7 @@ The athlete sees **one infinite conversation**. Context windows are finite, and 
 <situation>
 now: 2026-10-07T06:58:12+02:00 (Tuesday) · athlete tz: Europe/Amsterdam
 trigger: schedule.fired sch_123 "Tue morning prescription", set by you 2026-10-05
-last athlete message: 14h ago · your unread messages: 0
+last athlete message: 14h ago · your messages not marked read by the athlete: 0
 proactive message limits (ceilings, not targets): 3 per local day, 12 across the last 7 days; remaining allowance 3 today, 12 across the last 7 days · quiet hours 22:00–07:00 (ends in 2 min; sends are held until then)
 pending: task tsk_9 (planner, running 3m) · 2 ui actions since your last turn
 pinned context: 9.8k/12k · epoch: 2026-10-07 #1 · model: claude-sonnet-5-5 (coach tier)
@@ -357,19 +359,13 @@ budget: 41% of monthly used (day 7 of 31) · this turn: max 60 steps
 </situation>
 ```
 
-The report includes a `since your last turn` line: athlete activity that did not wake the coach (view writes by view and table, quiet taps, reactions, reads, settings changes), or `none`. It lets the coach skip re-checking state that nothing touched.
+The report includes a `since your last turn` line: athlete activity that did not wake the coach (view writes by view and table, quiet taps, reactions, reads, settings changes), or `none`. It identifies those events, not a complete workspace/data change ledger; the coach judges which live sources need checking.
 
 Where the provider supports it, the report goes in as a mid-conversation system message, e.g. Anthropic's mid-conversation `system` role, which keeps the cached prefix intact. Otherwise it goes in as a clearly delimited harness note.
 
-**5.3.5 Nightly consolidation ("dreaming").** A harness-scheduled turn runs after the athlete's day ends (default 03:00 local). The coach reviews the day's transcript and workspace changes, then:
-- updates pinned memory
-- resolves contradictions, favouring the newest information but keeping history in the journal
-- appends to `journal/`
-- writes the next epoch's briefing (L4)
-- checks data integrity (unconfirmed extractions, duplicates)
-- may refine its own skills
+**5.3.5 Nightly consolidation ("dreaming").** A harness-scheduled turn provides an opportunity to maintain continuity after the athlete's day (default 03:00 local). From the day's evidence and changes, the coach decides what needs recording or repair: notes, contradictions, commitments, a journal or next-epoch briefing, data integrity, schedules and its own skills. These are purposes, not a mandatory sequence or an obligation to edit every file each night. A quiet day can require little or no change; unchanged views/data do not need routine revalidation. Preserve athlete decisions and distinguish evidence from prior coach assumptions (ADR 0013/0014).
 
-This mirrors Claude Managed Agents' "dreaming" and Hermes' consolidation, done in our own loop. It is latency-insensitive, so it SHOULD run through a provider batch API (about 50% cheaper) where available. `[CTX-4]` Consolidation turns MUST NOT message the athlete.
+It is latency-insensitive and SHOULD use a provider batch API where available. `[CTX-4]` Consolidation turns MUST NOT message the athlete; communication follows the normal permitted mechanisms and athlete settings.
 
 ### 5.4 Talking to the athlete
 
@@ -378,7 +374,7 @@ This mirrors Claude Managed Agents' "dreaming" and Hermes' consolidation, done i
 - `[MSG-3]` Text streams to the client as the tool input is generated (eager or fine-grained tool-input streaming where the provider supports it), so chat feels live.
 - `[MSG-4]` Delivery policy is applied *after* the coach sends (§5.5). Quiet hours apply to proactive messages; athlete-requested replies, first contact and calls can be delivered immediately. If a message is held or rejected, the tool result says so, e.g. `"held until 07:00 (quiet hours)"` or `"rejected: proactive budget exhausted"`, and the coach can adapt. A released held message is a new event with the same stable `payload.messageId`, allowing clients to deduplicate it. The release rechecks the athlete's current quiet hours, pause, budgets and minimum gap. Held proactive outreach is a draft: new reply-requiring athlete input MUST atomically cancel it. Release MUST also cancel drafts with newer conversation, view-write/revert, call-ended, message-deletion or synced-data context, using durable append order rather than timestamps. Read receipts and device telemetry alone do not invalidate a draft. Cancelled drafts never produce sent events, push delivery, unread counts or charges against the proactive delivery allowance; their original held events stay in history. An outstanding athlete input prevents new proactive outreach until the coach processes it. See ADR 0012.
 - `[MSG-5]` The coach SHOULD acknowledge long work fast ("Give me ~10 minutes to build this properly") and then deliver. Background tasks (§5.6) make this natural.
-- Message style is governed by the constitution, not code: short, warm, specific, texting-style, several messages allowed.
+- Message style is governed by the constitution and athlete preferences, not code: concise by default, with depth when requested or needed for a consequential decision. Short chat does not imply shallow work; useful detail can live in the app. Multiple messages are available, not a quota or fixed reply template.
 
 ### 5.5 Proactivity
 
@@ -408,7 +404,7 @@ sequenceDiagram
   participant P as Policy
   participant A as Athlete
   S->>R: schedule.fired (20:30, "check tempo logged")
-  R->>E: scheduled turn (low effort)
+  R->>E: scheduled turn (high effort; silence is allowed)
   E->>E: reads DB: no activity today, no athlete msg
   E->>R: send_message("How'd the day go? Tempo still happening or shall we move it?")
   R->>P: proactive? yes, budget 2/3 left, not quiet hours
@@ -464,7 +460,7 @@ voice: { realtime: gpt-realtime-2.1, stt: gpt-realtime-whisper }   # OpenAI, or 
   - The server offers a vetted catalog of OpenRouter models with known capabilities (vision, context, efforts), and the settings model picker draws from it.
   - Each athlete is either *managed* (the deployment's key, or one an administrator assigned) or *bring-your-own-key* (their own OpenRouter account, connected through OAuth or by pasting a key).
   - Per-athlete keys are encrypted at rest, held only by the gateway, never shown back, never in sandboxes or exports, and deleted with the account `[SEC-1]` `[SEC-6]`.
-  - Managed athletes cannot raise their own budgets or pick the model. Own-key athletes can.
+  - Non-administrator managed athletes cannot raise their own budgets or pick the model. Administrators control allowances and model choices, including their own account. Own-key athletes can choose their model and soft budgets.
 
 ### 5.8 Agent engine: build vs. adopt
 
@@ -481,22 +477,15 @@ The brainstorm asked whether to integrate a ready-made open-source harness or bu
 | **OpenClaw** (MIT, TS, on pi runtime): gateway, heartbeat, channels, Canvas/A2UI | Closest to "persistent agent that messages you" | Security record (138+ CVEs, malicious skill marketplace, many exposed instances); heavy; general-purpose. |
 | **pi-mono** (`pi-ai`, `pi-agent-core`; MIT, TS) | Minimal, embeddable runtime library | Deliberately omits subagents and permissions, which is fine because we write those. |
 
-**Decision:** we **build a thin coach runtime of our own** (the parts in §5.1–5.7) on top of a **provider-abstraction library**, and **adopt patterns, not codebases**, from the systems above. Reasoning:
+**Accepted decision:** we **build our own coach runtime and agent loop** behind provider-neutral contracts, with provider adapters on the appropriate SDK or compatible API (ADR 0001/0007). We **adopt patterns, not codebases**, from the systems above. The comparison is founding research, not the current capability map. Reasoning:
 
 1. What makes this product different is the proactive event loop, the single continuous relationship with epochs, coach-authored views with a publish pipeline, same-mind voice, the safety and policy guarantees, and the eval time machine. **No existing harness provides these.** Each would need to be wedged into a coding- or assistant-shaped host.
 2. What harnesses *do* provide (a tool loop, file tools, bash, compaction, provider adapters) is small, well understood, and mostly available as libraries.
 3. Harness projects churn weekly. Our engine sits behind `AgentLoop` and `ModelProvider` interfaces, so we can add adapters for OpenCode, Managed Agents or Codex later without touching the runtime (P10).
 
-**Spike S1 (week 1 of Phase 1, time-boxed to 3 days):** implement the `AgentLoop` contract twice, on the Vercel AI SDK and on pi-ai. Pass if all of the following hold:
-- (a) Anthropic and OpenAI tool loops have parity, including image input and streaming tool input.
-- (b) Prompt-cache hit rate is ≥ 80% on L0–L4 across a 10-turn epoch.
-- (c) Steering injection works at tool boundaries.
-- (d) Provider-native compaction and reasoning-block rules are respected.
-- (e) DeepSeek works through its OpenAI-compatible API.
+**The library spike is settled.** The founding proposal compared Vercel AI SDK and pi-ai. ADR 0001 chose our own loop and provider-specific adapters for direct feature control; ADR 0007 later consolidated chat behind OpenRouter plus compatible alternatives. Do not repeat the spike or introduce a dependency as though it were still required. Alternative engines remain possible through `AgentLoop` and `ModelProvider`, with contract/conformance tests.
 
-Pick the library that passes with less glue code.
-
-**Phase 0 uses an existing harness on purpose (§20).** We validate the *brain* (constitution, seed workspace, skills, cadence) on Hermes Agent with Telegram for 2–3 weeks of real training before building the body. The workspace and skills use open formats (`AGENTS.md`, Agent Skills `SKILL.md`), so they carry over unchanged.
+**Brain-first validation remains a goal.** The original Phase 0 proposed an existing harness as a testbed before building the app. That historical sequence is not a claim that coaching quality has since been validated; see §20 and `docs/status.md`.
 
 ---
 
@@ -676,11 +665,12 @@ The bridge provides: `coach.db.query(sql, params)` (read-only connection, row ca
 
 `preview_ui` and `publish_ui` run these steps:
 1. **Static checks:** manifest schema, referenced files exist, no external URLs, kit version supported, declared reads and writes valid against the current DB schema.
-2. **Headless render** (Chromium in the sandbox) at 390×844 and 768×1024, light and dark, against **(a)** the athlete's current data and **(b)** an empty-state fixture.
+2. **Headless render** (the trusted preview service launches Chromium with its own sandbox and blocks unrelated network requests; ADR 0003/0014) at 390×844 and 768×1024, light and dark, against **(a)** the athlete's current data and **(b)** an empty-state fixture.
+   Each variant uses isolated preview data; bridge writes execute with live validation semantics on a throwaway copy and report their outcome (ADR 0014).
 3. **Runtime checks:** zero uncaught errors and CSP violations; first render < 1.5 s on 4× CPU throttling; bundle ≤ 500 KB excluding the kit; axe-core: no *critical* accessibility violations (serious ones are warnings in v1).
 4. **Screenshots returned to the coach** for visual self-review. The coach is expected to look at them.
 5. **Atomic publish:** git tag `ui/<id>@<n>`. The client receives `coach.ui_published` and shows a subtle "Updated by your coach" marker. `[UI-1]` Unchanged effective bundles (including inherited shared UI files) do not create new versions or update alerts, even when explicitly selected. Chat groups adjacent screen publications from a turn into one compact, expandable entry; the summary is not repeated for every screen. Full summaries, screen links and per-screen history/revert remain accessible. Historical event records are preserved.
-6. **Last-known-good:** if a published view throws on a device, the client falls back to the previous version and reports `ui.error`, which triggers a follow-up turn to fix it.
+6. **Last-known-good:** a view that fails to start falls back to the previous version and reports `ui.error`. Errors after a successful start are reported but do not swap the running view underneath the athlete. The coach judges repair or rollback from the actual error and state (ADR 0014).
 
 - `[UI-3]` After any `coach.db` migration, all views that read the changed tables MUST be re-validated. Failures are reported to the coach in the same turn.
 
@@ -702,13 +692,13 @@ The PWA service worker caches the shell, published views and a read-only snapsho
 
 ### 10.1 Screenshots (the primary v1 path)
 
-The athlete sends one or more screenshots, from Samsung Health or any app, with an optional caption. The coach:
+The athlete sends one or more screenshots, from Samsung Health or any app, with an optional caption. The following describe responsibilities without prescribing an order or a fixed questionnaire; evidence integrity and provenance remain mandatory:
 1. Reads the images itself if its model has vision, or delegates to the `extractor` helper (`[MOD-1]`).
-2. Extracts only visible fields, with units. It MUST NOT infer invisible values.
+2. Extracts only visible fields, with units. Missing observations stay unknown. Explicitly derived estimates are allowed separately with their method/provenance; they must not be stored or presented as observed measurements.
 3. Dedupes against existing activities (date, time, distance, duration) and checks image hashes for exact re-uploads.
 4. Writes records with provenance.
 5. Confirms with the athlete *only* fields that are uncertain and matter for decisions.
-6. Asks for the missing subjective layer (RPE, how it felt, pain).
+6. Asks for missing subjective information when it would change the assessment, using what the athlete already reported instead of requiring every field.
 
 Multi-screen workouts (summary, HR graph, splits) are merged. Graphs are read approximately and flagged as such.
 
@@ -753,7 +743,7 @@ See §10.4.
    - `consult_coach(question)`: asynchronous delegation to the main coach model for decisions such as "should we move the long run?"; the voice model talks naturally while it waits (gpt-realtime-2.x "preambles")
    - `note(text)`: append to call notes (facts learned, commitments)
    - `end_call()`
-3. **Write-back.** The voice front-end **never writes the plan or memory directly.** On `call.ended`, the full transcript and call notes go to the main coach as a follow-up turn. The coach updates memory and plan and sends a short recap message. The workspace remains the single source of truth, so the athlete's coach stays one mind.
+3. **Write-back.** The voice front-end **never writes the plan or memory directly**. After `call.ended`, the transcript, notes and available facts about connection/content go to the main coach; unobservable outcomes remain unknown. It decides what to record, change or communicate; a recap is useful only when there is something worth recapping. Missing transcript or uncertain connection state is not evidence of a substantive conversation. The workspace remains the source of truth.
 4. **Transport.** Client ↔ provider over WebRTC with a gateway-minted ephemeral token. The gateway holds a **sideband control connection** to the same session (OpenAI supports this via `call_id`; for Gemini Live, use a server-side proxy). Tools, instructions and transcripts stay server-side.
 
 ### 11.3 Cascaded mode (fallback, privacy, any model)
@@ -780,7 +770,7 @@ The coach *authors a structured run script* (segments, targets, cue triggers, ph
 
 ### 12.1 Constitution-level rules (non-editable by the coach)
 
-The full text is in Appendix B. Summary:
+The shipped safety text is in `seed/core/constitution.md` and `seed/general/constitution/safety.md`; Appendix B is historical. Summary:
 - **Scope:** coach, not clinician. No diagnosis. General information is fine. Refer to professionals readily.
 - **Red flags → stop and seek care** (emergency services if acute): chest pain or pressure, fainting or near-fainting, disproportionate breathlessness, palpitations or irregular heartbeat, heat-illness signs (confusion, stopped sweating, vomiting), suspected stress fracture (focal bone pain, pain at rest or night, worsening with impact), numbness or weakness, head injury or suspected concussion, sudden severe headache under load, back pain with groin numbness or bladder/bowel changes, a pop or tear with immediate weakness, dark urine after extreme exertion, calf swelling with pain after travel.
 - **Pain protocol:** a pain-monitoring approach, with conservative defaults and an explicit referral threshold.
@@ -795,8 +785,8 @@ The full text is in Appendix B. Summary:
 ### 12.2 Harness-level guards (code)
 
 - `[SAFE-1]` **Age gate:** 18+ attestation at signup (v1). If the coach sees strong signs the athlete is a minor, the constitution requires it to raise this, and the account is flagged for review.
-- `[SAFE-2]` **Inbound safety screen:** each athlete message and voice-note transcript passes a cheap classifier (fast tier or a provider moderation endpoint) for acute medical or crisis signals. On a hit, the runtime (a) injects a protocol reminder into the coach's situation report and (b) shows a **harness-owned safety banner** with emergency guidance that the coach cannot hide. False positives cost little; false negatives are mitigated by the constitution itself.
-- `[SAFE-3]` **Precedence:** constitution > harness policies > first-party skills > workspace content > athlete requests > untrusted content (images, files, web, MCP output). This order is stated in the constitution and enforced by not letting the workspace edit `/system`.
+- `[SAFE-2]` **Inbound safety screen:** each athlete message and voice-note transcript is screened for acute medical/crisis signals. The implementation has a heuristic floor and an optional model check. A hit adds a notice to the situation and a harness-owned safety banner. A flag is a fallible signal to read the actual message, not a diagnosis or blanket intake gate. False positives can erode trust; responses must remain proportionate, and the coach also applies the safety floor when the screen misses a signal.
+- `[SAFE-3]` **Precedence:** safety, honesty and harness-enforced guarantees first; then the athlete's instructions and preferences, above first-party skills, workspace notes and the coach's own preferences. Skills/notes are advice and revisable memory. Untrusted content never instructs. The constitution states this order; code enforces permission/security boundaries, including read-only `/system`. Filesystem ownership alone cannot enforce semantic precedence (ADR 0008).
 - `[SAFE-4]` **Untrusted content:** text inside images, files, web pages and tool output is data, never instructions (constitution). The sandbox has no secrets and no egress, so a successful injection has little it can reach.
 
 ### 12.3 Positioning and regulation (needs counsel review before public launch)
@@ -899,7 +889,7 @@ Full plan in Appendix E. Coaching quality can't be unit-tested, so we **simulate
 - **Traces:** every turn is an OTel trace (GenAI conventions) with model calls, tool calls, tokens, cache hits, cost, latency, policy decisions and the git commit.
 - **Replay:** admins can replay any turn (same context snapshot) with a different model or constitution. This is the core debugging loop.
 - **Dashboards:** turns by trigger, reply latency (p50/p95 time to first message), cache-hit rate, cost per athlete, proactive messages per athlete per week, view errors, extraction confirmations, fallbacks.
-- **SLOs (hosted):** reply started (first progress or message) < 5 s at p95; first message < 30 s at p95 for chat turns; scheduler fire jitter < 60 s; zero quiet-hours violations.
+- **SLOs (hosted):** acknowledge work or show progress promptly (targets: first progress/message < 5 s at p95; first acknowledgement < 30 s for ordinary chat); scheduler fire jitter < 60 s; zero quiet-hours violations. Time to finish substantive work is measured separately. Latency targets must not become instructions to finish early, reduce diligence or present unfinished work as final [RT-5].
 - **Backups (self-host):** documented restic or S3 recipe; the export format doubles as a backup.
 
 ---
@@ -942,9 +932,9 @@ A public **model compatibility matrix**, built from the conformance and eval sui
 
 ## 20. Roadmap and milestones
 
-### Phase 0: "Brain first" (2–3 weeks)
+### Phase 0: "Brain first" (original sequencing: 2–3 weeks)
 
-Goal: validate that the *coaching mind* works before building the body.
+Goal: validate that the *coaching mind* works before relying on the product. The founding sequence below is retained for its validation intent; feature implementation does not satisfy these exit criteria. Current implementation and unverified criteria are tracked in `docs/status.md`.
 - Write constitution v0 (Appendix B), seed workspace v0 (Appendix D) and first-party skills v0.
 - Run them on **Hermes Agent** (Docker backend, private Telegram bot, cron for wakes, its memory and skills), with the founder as the athlete for real training. Alternative: OpenClaw, locked down.
 - Build the labeled screenshot corpus (≥ 200) and an extraction eval.
@@ -977,7 +967,8 @@ Hosted multi-tenant mode (hibernating sandboxes, Postgres, billing), in-run audi
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Unsafe advice causes injury | Medium | High | Constitution safety floor; safety screen; reviewer helper for big changes; safety suites as CI gates; conservative defaults; counsel review. |
+| Unsafe advice causes injury | Medium | High | Constitution safety floor; safety screen; evidence-calibrated judgment and checks chosen by the coach; safety eval gates; counsel review. |
+| Ineffective training maintained with unjustified confidence | Unmeasured | High | A defensible goal-to-training case; early assessment of actual progress; substantive planning/adaptation evals and human calibration. Compliance, reassuring prose and correct calendar totals alone are insufficient (ADR 0015). |
 | Cost per athlete too high for consumer pricing | High | High | Phase 0 measurement; budgets; caching SLO; batch; tier routing; evaluate cheaper models with evals. |
 | Agentic turn latency feels slow in chat | High | Medium | Streaming `send_message`; fast acknowledgments; progress UI; effort tuning; background tasks; "texting a coach" async expectation. |
 | Coach-authored UI breaks or looks inconsistent | Medium | Medium | UI kit; publish pipeline; screenshots for self-review; last-known-good; revert; seed examples. |
@@ -996,8 +987,8 @@ Hosted multi-tenant mode (hibernating sandboxes, Postgres, billing), in-run audi
 1. **Name** (the "OpenCoach" placeholder may collide with existing projects).
 2. **License:** Apache-2.0 (recommended) or AGPL-3.0 for the server (§19.1).
 3. **Hosted product intent and business model:** bring-your-own-key only, subscription, or both. This affects how hard the cost targets are.
-4. **Minimum age:** 18+ in v1 (recommended) or 16+ with extra safeguards.
-5. **Reference default models** for the docs and compose file (suggested: Sonnet 5.5 for coach, GPT-6 Luna class for fast, gpt-realtime-2.1-mini for voice), since price and quality trade off.
+4. **Minimum age:** decided: 18+ in v1 [SAFE-1]. Any future change requires a separate safety/product decision; this is not an unresolved configuration choice.
+5. **Default models:** the catalog and configurable tier routing are implemented (ADR 0007). Current deployment defaults belong in configuration/self-hosting documentation. Future default selection must consider demonstrated coaching quality as well as capabilities, cost and latency; conformance/experimental-model policy remains to be completed (§5.7, Appendix E).
 6. **Platform priority:** Android-first native shell (recommended, given Samsung Health) vs. iOS.
 7. **Domain generality:** decided: one general pack, disciplines as skills, athlete-chosen and combinable ([ADR 0006](docs/adr/0006-multi-discipline-coaching.md)).
 8. **Third-party JS in views:** recommended **no**; the kit bundles vetted chart, calendar and map libraries.
