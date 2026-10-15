@@ -4,7 +4,7 @@ import { VoiceConfig } from './voice';
 import { Effort } from './common';
 import { ImageGenerationConfig } from './image-generation';
 
-export const HARNESS_VERSION = '0.3.13';
+export const HARNESS_VERSION = '0.3.14';
 export const UI_KIT_MAJOR = '1';
 const HeaderName = z.string().regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/, 'invalid HTTP header name');
 
@@ -99,9 +99,10 @@ export const LimitsConfig = z
   .object({
     reactiveMaxSteps: z.number().int().positive().default(60),
     otherMaxSteps: z.number().int().positive().default(80),
-    // Hard backstop; the model is asked to wrap up at half of it, and a stalled request is retried long before.
-    reactiveMaxWallMs: z.number().int().positive().default(600_000),
-    otherMaxWallMs: z.number().int().positive().default(1_200_000),
+    // Runaway-loop backstops, not normal work horizons. Never narrated to the coach or used to hurry it.
+    // A silent/stalled provider stream is detected separately by the engine.
+    reactiveMaxWallMs: z.number().int().positive().default(21_600_000),
+    otherMaxWallMs: z.number().int().positive().default(21_600_000),
     debounceIdleMs: z.number().int().nonnegative().default(2500),
     debounceMaxMs: z.number().int().nonnegative().default(8000),
     pinnedTokenCap: z.number().int().positive().default(12_000),
@@ -109,10 +110,9 @@ export const LimitsConfig = z
     // Compact when a step's prompt passes this many tokens, or 60% of the model's context window if that is smaller.
     // Higher keeps more of the day verbatim; every step re-reads the whole prompt, so it also costs more per step.
     compactionTriggerTokens: z.number().int().positive().default(160_000),
-    // Background helpers do the deep work (a plan, an analysis, research), so they get room: the reply turn stays short
-    // and hands this off. They are asked to wrap up at half the wall time and keep partial work if stopped.
+    // Same distant backstop for helpers; delegation is the coach's choice, not a time-management requirement.
     helperMaxSteps: z.number().int().positive().default(150),
-    helperMaxWallMs: z.number().int().positive().default(3_600_000),
+    helperMaxWallMs: z.number().int().positive().default(21_600_000),
     bashMaxOutputBytes: z.number().int().positive().default(1_048_576),
   })
   .prefault({});

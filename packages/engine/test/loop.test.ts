@@ -8,7 +8,7 @@ import {
   type ModelStreamEvent,
   type ToolResultsItem,
 } from '@opencoach/protocol';
-import { WRAP_UP_NOTE, MAX_TOKENS_NOTE, createAgentLoop, createScriptedProvider, type ScriptedStep } from '../src';
+import { MAX_TOKENS_NOTE, createAgentLoop, createScriptedProvider, type ScriptedStep } from '../src';
 import { INVALID_TOOL_INPUT_KEY } from '../src/util';
 import { baseInput, collect, fakeTools, kinds, resolved, user } from './helpers';
 
@@ -439,14 +439,16 @@ describe('agent loop: limits and abort [RT-5]', () => {
     expect(r.steps).toBe(3); // 3 x 400ms >= 1000ms
   });
 
-  it('asks the model to wrap up once, at half the wall time, before the hard limit', async () => {
+  it('[RT-5] lets work continue without time notices until the runaway backstop', async () => {
     let t = 0;
     const l = createAgentLoop({ monotonicNow: () => t });
     const p = scripted(Array.from({ length: 20 }, () => ({ toolCalls: [{ name: 'echo', input: {} }] })));
     const tools = fakeTools({ echo: () => { t += 300; return 'ok'; } });
     const r = await l.runTurn(baseInput({ route: [resolved(p)], tools, limits: { maxSteps: 50, maxWallMs: 1000 } }));
     const notes = r.newItems.filter((i) => i.kind === 'harness').map((i) => (i as { text: string }).text);
-    expect(notes).toEqual([WRAP_UP_NOTE]);
+    expect(notes).toEqual([]);
+    expect(p.requests.every(req => !JSON.stringify(req).includes('time limit'))).toBe(true);
+    expect(r.steps).toBe(4); // work continues past halfway until the actual 1000ms backstop
     expect(r.stopReason).toBe('max_wall');
   });
 

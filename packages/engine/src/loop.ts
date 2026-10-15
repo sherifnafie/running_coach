@@ -40,9 +40,6 @@ export interface AgentLoopOptions {
 const MAX_TEXT_CUTOFFS = 2;
 /** A model request that sends nothing for this long is treated as stalled and retried (then the fallback chain). */
 export const STREAM_IDLE_MS = 180_000;
-/** Past this share of the turn's wall time the model is asked to finish; the hard limit stays a backstop. */
-const WRAP_UP_AT = 0.5;
-export const WRAP_UP_NOTE = 'This turn has used half of its time limit. Finish now: deliver what is needed (if the athlete is waiting, send the reply), save your work, and hand anything longer to a background helper.';
 export const MAX_TOKENS_NOTE = 'Your previous response was cut off by the output token limit; continue concisely.';
 
 const MAX_BACKOFF_MS = 30_000;
@@ -151,7 +148,6 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
   let steps = 0;
   // A reply cut off mid-text (often reasoning that used up the output budget) gets a bounded chance to continue.
   let textCutoffs = 0;
-  let wrapNoted = false;
   let routeIndex = 0;
   let current: ResolvedModel | undefined = route[0];
 
@@ -383,10 +379,6 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
           for (const u of input.steering?.drain() ?? []) append(u);
         } catch {
           // a faulty steering source must not lose the turn
-        }
-        if (!wrapNoted && Number.isFinite(limits.maxWallMs) && elapsed() >= limits.maxWallMs * WRAP_UP_AT) {
-          wrapNoted = true;
-          pendingNotes.push(WRAP_UP_NOTE);
         }
         for (const text of pendingNotes.splice(0)) append({ kind: 'harness', text });
         try {

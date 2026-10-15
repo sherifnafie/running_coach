@@ -242,6 +242,8 @@ export async function runScenario(input: ScenarioInput, options: RunScenarioOpti
     if (scenario.end) await advanceRuntime(runtime, clock, parseStart(scenario.end, currentTz), athlete.id);
     trace.endedAt = clock.now().toISOString();
     trace.events = await store.listEvents({ athleteId: athlete.id, limit: 100_000 });
+    trace.helperContexts = await Promise.all((await store.listTurns({ athleteId: athlete.id, agent: 'helper', limit: 1000 }))
+      .map(async turn => ({ turnId: turn.id, status: turn.status, context: await store.getTurnContext(turn.id) })));
     trace.changes = await runtime.listChanges(athlete.id, { limit: 200 });
     const turns = trace.events.filter(e => e.type === 'coach.turn');
     trace.metrics.costUsd = turns.reduce((n, t) => n + t.payload.costUsd, 0);

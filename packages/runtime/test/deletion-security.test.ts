@@ -14,6 +14,22 @@ async function setup() {
 }
 
 describe('retryable hard deletion [SEC-6]', () => {
+  it('[SUB-3] deletes private helper transcripts only with their owning athlete', async () => {
+    const id = await setup();
+    const other = (await h!.runtime.createAthlete({ displayName: 'Alex', tz: 'UTC', locale: 'en', isAdmin: false })).id;
+    h!.setHandler(() => ({ text: 'Private helper findings.' }));
+    for (const athleteId of [id, other]) {
+      await h!.runtime.core.helpers.spawn({ athleteId, turnId: 'test-parent', depth: 0 }, { task: 'Private audit fixture' });
+    }
+    const store = h!.runtime.core.store;
+    const [gone] = await store.listTurns({ athleteId: id, agent: 'helper' });
+    const [kept] = await store.listTurns({ athleteId: other, agent: 'helper' });
+    expect(JSON.stringify(await store.getTurnContext(gone!.id))).toContain('Private helper findings.');
+    await h!.runtime.deleteAthlete(id);
+    expect(await store.getTurnContext(gone!.id)).toBeUndefined();
+    expect(JSON.stringify(await store.getTurnContext(kept!.id))).toContain('Private helper findings.');
+  });
+
   it('keeps the account and files when stopping the sandbox fails, then retries the retained handle', async () => {
     const id = await setup();
     const release = vi.spyOn(h!.runtime.core.deps.sandbox, 'release').mockRejectedValueOnce(new Error('daemon refused removal'));

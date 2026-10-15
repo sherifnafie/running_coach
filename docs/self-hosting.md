@@ -58,6 +58,45 @@ providers:
 
 Other OpenAI-compatible endpoints (Ollama, vLLM, OpenCode GO) still work under `providers.compatible` with explicit `models.tiers`; set `models.pricing` for them, otherwise their cost counts as zero against budgets.
 
+### Work limits
+
+The coach chooses how much work a task needs. Normal coach and helper turns have a six-hour
+wall-time backstop for runaway loops; the harness sends no time warnings or instructions to
+finish early. Stream stalls, cancellation, step limits and spending controls are separate.
+On upgrade, remove obsolete short overrides of `limits.reactiveMaxWallMs`,
+`limits.otherMaxWallMs` and `limits.helperMaxWallMs` if you want the new defaults. See [ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md).
+
+### Web search
+
+Search requires a configured backend: `SEARXNG_URL`, `BRAVE_API_KEY` or `TAVILY_API_KEY`.
+Without one, the coach can still fetch known public URLs, but `web_search` is not offered.
+The situation report states the backend and names tools gained or lost after configuration changes.
+Configuration and nonempty results are not guarantees of source quality or service health.
+
+For self-hosted SearXNG on the same machine as a host-run OpenCoach:
+
+```sh
+export SEARXNG_SECRET="$(openssl rand -hex 32)"
+docker compose -f ops/searxng/docker-compose.yml up -d
+```
+
+Keep that secret in a private environment file for future container recreation. Add
+`SEARXNG_URL=http://127.0.0.1:8092` to the server's environment file and restart OpenCoach.
+The supplied compose service binds only to localhost and enables JSON search results. If
+OpenCoach itself runs in Docker, localhost refers to that container: connect the services on
+a private Docker network and use the SearXNG service address instead of publishing it publicly.
+
+SearXNG supports `!science` to restrict queries to scholarly engines and `!pub` for PubMed.
+Results vary with engine availability and query wording; empty results do not establish that
+no evidence exists. Queries still leave the server for the selected search engines. Never
+include athlete identity or private health information. Recheck after an upgrade:
+
+```sh
+curl --get --fail http://127.0.0.1:8092/search \
+  --data-urlencode 'q=!science half marathon training volume' \
+  --data-urlencode 'format=json'
+```
+
 ### Who pays: managed and own keys
 
 Each person is either *managed* or brings their own key. Both show in Settings → AI and costs.

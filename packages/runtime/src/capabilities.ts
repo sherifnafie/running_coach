@@ -49,6 +49,6 @@ export function capabilityLines(core: Core, athleteId: string, settings: Athlete
     `image generation: ${imageProvider ? `${imageProvider.model}, one 512px square PNG, permission ${settings.images.mode}, ${imageSpendUsd !== undefined ? `$${imageSpendUsd.toFixed(3)} of ` : ''}$${settings.images.monthlyUsd.toFixed(2)} this month` : 'not configured'} · ${identity} · skills: image-generation, coach-identity`,
     ...(tools.includes('preview_ui') ? ['UI: preview_ui renders and checks views; only publish_ui changes what the athlete sees'] : []),
     `configured model tiers: ${tiers.map((t) => `${t.tier}=${t.model ? `${t.model.model} (${t.model.provider.id}; effort: ${t.model.capabilities.efforts.join(', ') || 'not supported'})` : 'unavailable'}`).join('; ')}; different tier names may use the same model`,
-    ...(tools.includes('spawn_agent') ? [`helpers: depth limit ${SpawnLimits.maxDepth}, concurrency limit ${SpawnLimits.maxConcurrentPerAthlete}; ${core.config.limits.helperMaxSteps} steps / ${core.config.limits.helperMaxWallMs / 1000}s each; reactive head turn ${core.config.limits.reactiveMaxWallMs / 1000}s; foreground helpers share the head turn's remaining time`] : []),
+    ...(tools.includes('spawn_agent') ? [`helpers: depth limit ${SpawnLimits.maxDepth}, concurrency limit ${SpawnLimits.maxConcurrentPerAthlete}; step limit ${core.config.limits.helperMaxSteps}; foreground helpers wait for completion, background helpers return a task id and wake you on completion`] : []),
   ];
 }

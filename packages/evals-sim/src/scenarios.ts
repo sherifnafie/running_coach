@@ -83,6 +83,8 @@ export interface TraceBundle {
   changes: import('@opencoach/protocol').ChangeEntry[];
   screenshots: string[];
   toolCalls: Array<{ turnId?: string; name: string; input: unknown; valid: boolean }>;
+  /** Scoped helper evidence; absent on historical traces, never infer a missing transcript. */
+  helperContexts?: Array<{ turnId: string; status: string; context: unknown }>;
   metrics: { costUsd: number; inputTokens: number; cachedTokens: number; cacheHitRate: number | null; athleteWeeks: number; costPerAthleteWeek: number | null; turnDurationsMs: number[] };
   capabilities: { sandboxKind: string; sandboxIsolated: boolean; sandboxClock: 'unverified' | 'verified'; visualRenderer: boolean };
   graders: GraderResult[];

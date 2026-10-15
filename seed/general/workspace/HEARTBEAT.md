@@ -4,5 +4,6 @@
 - Is there an open safety follow-up in `athlete/health.md`?
 - Do my scheduled wakes (`list_schedules`) cover the next few days sensibly?
 - Is `plan/current-week.md` accurate, across every discipline I coach?
+- Is an assessment of progress due, or has new evidence changed the case for the plan or goal? Review that evidence, not just whether the calendar needs more sessions.
 
 If nothing needs saying, say nothing.

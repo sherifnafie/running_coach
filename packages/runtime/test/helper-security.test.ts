@@ -122,6 +122,11 @@ it('[SUB-1] keeps a failed helper\'s in-scope partial draft and says what surviv
   expect(result).toMatchObject({ ok: false, code: 'LIMIT', message: expect.stringContaining('stalled') });
   expect(result).toMatchObject({ message: expect.stringContaining('/workspace/research/report.md') });
   expect(await readFile(join(h.runtime.core.paths(id).workspace, 'research/report.md'), 'utf8')).toBe('Half a report');
+  const [turn] = await h.runtime.core.store.listTurns({ athleteId: id, agent: 'helper' });
+  const context = JSON.stringify(await h.runtime.core.store.getTurnContext(turn!.id));
+  expect(context).toContain('Task from the coach:\\nResearch');
+  expect(context).toContain('Half a report');
+  expect(context).toContain('tool_results');
 });
 
 it.each([false, true])('[RT-3] [SUB-1] parent cancellation stops foreground work but preserves background work (background=%s)', async (background) => {

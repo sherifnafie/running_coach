@@ -87,7 +87,7 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   const monthCost = (await store.sumUsage(s.athleteId, localMonthStartIso(now, tz))).costUsd;
   const b = s.settings.budgets;
   lines.push(`budget: $${dayCost.toFixed(2)} of $${b.dailyUsd.toFixed(2)} today · $${monthCost.toFixed(2)} of $${b.monthlyUsd.toFixed(2)} this month${monthCost >= 0.8 * b.monthlyUsd || dayCost >= 0.8 * b.dailyUsd ? ' — over 80%: be economical' : ''}`);
-  lines.push(`turn limits: ${s.limits.maxSteps} steps, ${Math.round(s.limits.maxWallMs / 60_000)} min`);
+  lines.push(`turn step limit: ${s.limits.maxSteps}`);
 
   lines.push(await sinceLastTurn(core, s, now));
 
@@ -115,7 +115,19 @@ async function toolsChanged(core: Core, athleteId: string): Promise<string | und
   const unavailable = unavailableTools(core, athleteId);
   const tools = COACH_TOOLS.filter((t) => !unavailable.has(t));
   const key = `tools-seen:${athleteId}`;
-  const previous = await core.store.getKv(key);
+  let previous = await core.store.getKv(key);
+  // On the first upgrade that introduced this ledger, use the last observed situation rather than
+  // silently treating an existing coach as new. In particular, newly enabled search must not go unannounced.
+  if (previous === undefined) {
+    const last = (await core.store.listTurns({ athleteId, agent: 'coach', limit: 20 })).find(t => t.steps > 0);
+    const context = last ? await core.store.getTurnContext(last.id) as { items?: Array<{ kind?: string; text?: string }> } | undefined : undefined;
+    const report = context?.items?.filter(i => i.kind === 'harness' && i.text?.startsWith('<situation>')).at(-1)?.text;
+    const line = report?.match(/^tools: (.+)$/m)?.[1];
+    if (line) {
+      const missing = new Set((line.split(' · not available on this server: ')[1] ?? '').split(', ').filter(Boolean));
+      previous = COACH_TOOLS.filter(t => !missing.has(t)).sort().join(',');
+    }
+  }
   const current = [...tools].sort().join(',');
   if (previous === current) return undefined;
   await core.store.setKv(key, current);

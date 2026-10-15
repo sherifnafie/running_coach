@@ -102,6 +102,9 @@ describe('config', () => {
     expect(c.port).toBe(8080);
     expect(c.sandbox.provider).toBe('local');
     expect(c.limits.pinnedTokenCap).toBe(12000);
+    expect(c.limits.reactiveMaxWallMs).toBe(6 * 60 * 60 * 1000);
+    expect(c.limits.otherMaxWallMs).toBe(c.limits.reactiveMaxWallMs);
+    expect(c.limits.helperMaxWallMs).toBe(c.limits.reactiveMaxWallMs);
     expect(c.voice.realtime.model).toBe('gpt-realtime-2.1');
     expect(athletePaths('/data', 'ath_1').workspace).toBe('/data/athletes/ath_1/workspace');
   });

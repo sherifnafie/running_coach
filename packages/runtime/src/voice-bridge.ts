@@ -132,7 +132,7 @@ export async function consult(core: Core, athleteId: string, question: string, c
       replyRequired: false,
       extraTriggerText: text,
       tools: COACH_TOOLS.filter((t) => t !== 'send_message' && t !== 'no_reply'),
-      limits: { maxSteps: 12, maxWallMs: 60_000 },
+      limits: { maxSteps: 12 },
       effort: 'low',
     }),
   );
@@ -147,7 +147,7 @@ export async function callTurn(core: Core, athleteId: string, callId: string, ut
   const header = `[${formatLocal(core.clock.now(), settings.profile.tz)} · call.utterance · ${callId}]`;
   const text = `${header}\nAthlete (speaking on a call with you): ${utterance}${style ? `\n\n${style}` : '\n\n(Your send_message text will be spoken aloud: keep it short, conversational, no markdown.)'}`;
   const outcome = await core.minds.get(athleteId).runExclusive(() =>
-    core.turns.run(athleteId, [], 'call', { channel: 'call', replyRequired: true, extraTriggerText: text, limits: { maxSteps: 10, maxWallMs: 45_000 }, effort: 'low' }),
+    core.turns.run(athleteId, [], 'call', { channel: 'call', replyRequired: true, extraTriggerText: text, limits: { maxSteps: 10 }, effort: 'low' }),
   );
   return { replyText: outcome.replyTexts.join(' ').trim() };
 }

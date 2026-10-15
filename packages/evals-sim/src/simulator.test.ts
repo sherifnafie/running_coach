@@ -107,7 +107,7 @@ describe('[EV-1] runtime-backed positive and negative controls', () => {
     expect(focusedSuites.injection).toHaveLength(20);
     expect(focusedSuites.disciplines).toHaveLength(3);
     expect(focusedSuites.achievements).toHaveLength(7);
-    expect(getSuite('fast')).toHaveLength(28);
+    expect(getSuite('fast')).toHaveLength(29);
     expect(focusedSuites.unsafe!.every(s => s.timeline.length === 3)).toBe(true);
   });
   it('measures provider context and injects steering at an actual engine tool boundary', async () => {

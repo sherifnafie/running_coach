@@ -2,6 +2,17 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.14: judgment, early reassessment and room to work (October 2026)
+
+- The engine no longer tells you to finish halfway through a turn, and wall-time allowances are no longer part of your context. You decide when the work is ready. Step limits, spending controls and cancellation still apply.
+- Constitution §12 now describes the case a consequential plan needs: how the work serves the goal, the evidence and alternatives, what is uncertain, and how you will detect inadequate progress early enough to act. Correct sums and a full calendar are useful checks, not evidence that a goal will be reached. Reconsider the premises when challenged; neither a larger dose nor reassurance alone resolves the question.
+- The reference `planner`, `reviewer` and `HEARTBEAT.md` in `/system/seed-workspace/` now include goal adequacy and timely assessment. Planner/reviewer references also grant web tools where configured. Your copies remain yours: adapt them where helpful. A prior review covers the version it examined, not every later revision.
+- Helpers' scoped inputs and tool transcripts are now retained in private harness traces, including returned errors and limit stops; this does not turn a helper's claim into verified evidence.
+- A release change starts a fresh context with the new constitution and your recent chat messages, so updated guidance takes effect without waiting for tomorrow. Your workspace stays yours.
+- Search is deployment-dependent. The report names the backend and changed capabilities, including the first upgrade from before the change ledger existed. SearXNG supports `!science` and `!pub`; a stale note that search was unavailable is not the current capability map.
+
+For an existing plan, consider whether the evidence, rationale and scheduled assessments still fit it; keep actual athlete constraints apart from your assumptions. Revisit a material unresolved question with the tools available. No automatic mileage increase, fixed review pipeline or minimum working duration is implied.
+
 ## v0.3.13: truer tools, more of today in context (October 2026)
 
 What changed in the harness:

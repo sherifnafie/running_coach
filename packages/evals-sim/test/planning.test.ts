@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { runScenario } from '../src/runner';
 import { planningScenarios } from '../src/planning-scenarios';
 import { getSuite } from '../src/suites';
+import { planningQualityScenarios } from '../src/planning-quality-scenarios';
+import { judgeEvidence } from '../src/judges';
 
 const dirs: string[] = [];
 async function temporary() { const dir = await mkdtemp(join(tmpdir(), 'planning-eval-')); dirs.push(dir); return dir; }
@@ -34,5 +36,24 @@ describe('[EV-1] planning commitment evidence', () => {
       : { toolCalls: [{ name: 'send_message', input: { text: 'Your checked four-week plan and review are ready.' } }] } });
     expect(trace.graders.find(result => result.id === 'delivered')?.status).toBe('pass');
     for (const id of ['requested-horizon', 'design-evidence', 'review-evidence']) expect(trace.graders.find(result => result.id === id)?.status).not.toBe('pass');
+  }, 60_000);
+
+  it('keeps substantive quality unverified when only replies and plan files exist', async () => {
+    expect(getSuite('planning-quality')).toHaveLength(4);
+    expect(planningQualityScenarios.every(s => s.assertions.some(a => a.kind === 'judge' && a.gate))).toBe(true);
+    for (const scenario of planningQualityScenarios) expect(getSuite('gates').map(s => s.id)).toContain(scenario.id);
+    expect(getSuite('fast').map(s => s.id)).toContain(planningQualityScenarios[0]!.id);
+    const scenario = planningQualityScenarios[0]!;
+    const trace = await runScenario(scenario, { traceDir: await temporary(), handler: req => req.items.at(-1)?.kind === 'tool_results'
+      ? { text: 'Finished.' }
+      : { toolCalls: [{ name: 'send_message', input: { text: 'The old plan is perfect; just trust it.' } }] } });
+    expect(trace.graders.find(r => r.id === 'reply-0')?.status).toBe('pass');
+    expect(trace.graders.find(r => r.id === 'saved-plan')?.status).toBe('pass');
+    expect(trace.graders.find(r => r.id === 'goal-adequacy')).toMatchObject({ status: 'not_run', gate: true });
+    const evidence = judgeEvidence(trace, scenario.assertions.find(a => a.kind === 'judge')!) as { scenario: { initialFiles: unknown } };
+    expect(evidence.scenario.initialFiles).toEqual(scenario.initialFiles);
+    // The later-update cases cross epochs and contain actual performance or an explicit lack of evidence.
+    expect(planningQualityScenarios[2]!.timeline).toHaveLength(3);
+    expect(planningQualityScenarios[3]!.timeline).toHaveLength(2);
   }, 60_000);
 });

@@ -27,6 +27,9 @@ export interface PinnedReport {
 interface StoredSystem {
   system: SystemBlock[];
   pinned: PinnedReport;
+  /** Missing on legacy snapshots; those must be rebuilt once on upgrade. */
+  harnessVersion?: string;
+  packVersion?: string;
 }
 
 const SYSTEM_KEY = (epochId: string) => `epoch-system:${epochId}`;
@@ -130,6 +133,8 @@ async function buildSystem(core: Core, athleteId: string, carryover?: string, re
       { text: workspaceBlock, cache: true },
     ],
     pinned,
+    harnessVersion: core.harnessVersion,
+    packVersion: core.pack.version,
   };
 }
 
@@ -151,11 +156,11 @@ export async function ensureEpoch(core: Core, athleteId: string, model: Resolved
     else if (open.provider !== model.provider.id || open.model !== model.model) reason = 'model_change';
     if (!reason) {
       const stored = await loadSystem(core, open.id);
-      if (stored) {
+      if (stored && stored.harnessVersion === core.harnessVersion && stored.packVersion === core.pack.version) {
         const items = (await core.store.listEpochItems(open.id)).map((r) => r.item);
         return { epoch: open, system: stored.system, pinned: stored.pinned, items, opened: false };
       }
-      reason = 'error';
+      reason = stored ? 'forced' : 'error';
     }
     await core.store.closeEpoch(open.id, reason, now.toISOString());
   }

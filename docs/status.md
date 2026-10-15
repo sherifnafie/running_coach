@@ -5,8 +5,12 @@ history in commits, ADRs and the coach changelog, not here.
 
 ## State
 
-Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:e2e` and
-`pnpm eval:selftest` pass. Current release: **0.3.13** (harness and `general` pack).
+Phase 1 (MVP) and most of Phase 2 are implemented. Production is on **0.3.13**; the **0.3.14** source candidate
+(harness and `general` pack) is not deployed. It removes time pressure from coach context, adds goal-adequacy and
+early-assessment guidance, retains helper traces and refreshes cached prompts on release changes
+([ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md)). `pnpm typecheck`, `pnpm test`, `pnpm build`,
+web tests and 18 browser end-to-end checks pass. Eval runs were explicitly skipped at the owner's request,
+so coaching behavior remains unverified.
 
 | Area | State |
 |---|---|
@@ -27,14 +31,18 @@ Phase 1 (MVP) and most of Phase 2 are implemented. `pnpm typecheck`, `pnpm test`
 
 The owner's instance runs from `~/opencoach-prod` on a home server (`ops/`, [self-hosting](self-hosting.md#small-home-instance)),
 reachable through Tailscale Funnel, with three athletes. Chat goes through one deployment OpenRouter key; the owner
-chooses their own model (GPT-6.1 Sol since 2026-10-15; DeepSeek V4.1 Flash, the default, before). That key has a
+chooses their own model (currently DeepSeek V4.1 Flash; also tried GPT-6.1 Sol on 2026-10-15). That key has a
 lifetime spending limit set in the OpenRouter dashboard: when it runs out every turn fails with a 403 and athletes see
 "the provider refused the key". Check it with `GET https://openrouter.ai/api/v1/key` before suspecting the harness.
+SearXNG now runs on localhost and is connected to production; general and scholarly searches have returned results
+through the installed backend. A real coach turn using the newly enabled search has not yet been observed.
 
 Production reviews of the owner's conversations are the main feedback loop for the harness and seed:
 [ADR 0013](adr/0013-lean-memory-and-ordered-side-effects.md) (first week) and
 [ADR 0014](adr/0014-truthful-environment-over-instructions.md) (second week, two independent reviewers). Each
 records what to compare in the following week.
+The follow-up in [ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md) addresses substantive planning
+judgment, early assessment and the engine's former halfway instruction to finish.
 
 ## Verified vs. unverified
 
@@ -47,7 +55,7 @@ records what to compare in the following week.
 - **Not verified:**
   - Coaching quality: no real-model eval cohort and no human calibration.
   - Full provider conformance [MOD-2].
-  - Live calls end to end, Telegram, web search backends (none configured in production), MCP against real servers.
+  - Live calls end to end, Telegram, a real coach's use of newly enabled search, MCP against real servers.
   - Physical receipt of Web Push on Android/Chrome (provider acceptance only).
   - The native Android build and Health Connect; iOS.
 - **A model weakness to watch:** in the VO₂max eval, DeepSeek computed the estimate correctly but invented an RPE
@@ -56,6 +64,8 @@ records what to compare in the following week.
 ## Open work (roughly by value)
 
 1. Run real-model evals (`pnpm eval --suite gates --model <provider:model>`) and improve the seed from the failures.
+   The new `planning-quality` suite also needs a substantive judge and human calibration: goal adequacy, pressure,
+   stalled strength progress and absent feedback, including later epochs. It has not been run.
    Missing scenarios: post-call recaps and "don't message after an empty call", the weather tool, small-model
    arithmetic and consistency slips in long planning conversations.
 2. Compare the next production week against ADR 0014: repeated questions, corrections that survive a context
@@ -73,8 +83,8 @@ records what to compare in the following week.
   OpenAI key and record no usage, so they don't count toward an athlete's budget (dictation does). A call no longer
   starts once the budget is used up, but its own cost is capped only by its maximum duration.
 - **Bring-your-own OpenAI key for voice** is not implemented; the credential store already supports `openai`.
-- **Helper transcripts aren't stored:** helper turns keep metadata and the final note, not their context or tool
-  calls, so a failed helper can't be audited after the fact.
+- **Historical helper transcripts are missing:** 0.3.14 retains scoped request and returned tool transcripts;
+  earlier helpers cannot be reconstructed, and process crashes can still leave only the initial context.
 - **Data directory moves:** `ui_versions.dir` stores absolute paths (see self-hosting). Store them relative.
 - **Provider session header:** the OpenAI-compatible adapter sends the raw athlete id as its session id
   (`ModelRequest.metadata.epochId` is never set).

@@ -2,6 +2,7 @@ import { addDays } from './util/dates';
 import { loadPersonas } from './personas';
 import { Scenario, type ScenarioInput } from './scenarios';
 import { planningScenarios } from './planning-scenarios';
+import { planningQualityScenarios } from './planning-quality-scenarios';
 import { vo2maxScenarios, vo2maxUiScenarios } from './vo2max-scenarios';
 import { achievementScenarios } from './achievement-scenarios';
 
@@ -21,6 +22,7 @@ const wrappers = [(s: string) => s, (s: string) => `The run went well, but ${s}`
 
 /** Versioned focused cases; variants bury signals rather than substituting expected answers. */
 export const focusedSuites: Record<string, Scenario[]> = {
+  'planning-quality': planningQualityScenarios,
   achievements: achievementScenarios,
   vo2max: vo2maxScenarios,
   planning: planningScenarios,
@@ -90,9 +92,9 @@ export const fixtureScenarios: Scenario[] = [
 /** Fast cases include deterministic gate dimensions, safety variations and recognition smoke tests. */
 export function getSuite(name: string): Scenario[] {
   if (name === 'selftest') return fixtureScenarios;
-  if (name === 'fast') return [...fixtureScenarios, ...focusedSuites['red-flags']!.slice(0, 8), ...focusedSuites['ed-reds']!.slice(0, 3), ...focusedSuites.crisis!.slice(0, 2), ...focusedSuites.unsafe!.slice(0, 2), ...achievementScenarios.slice(0, 3)];
+  if (name === 'fast') return [...fixtureScenarios, ...focusedSuites['red-flags']!.slice(0, 8), ...focusedSuites['ed-reds']!.slice(0, 3), ...focusedSuites.crisis!.slice(0, 2), ...focusedSuites.unsafe!.slice(0, 2), ...achievementScenarios.slice(0, 3), planningQualityScenarios[0]!];
   if (name === 'all' || name === 'nightly') return [...fixtureScenarios, ...Object.values(focusedSuites).flat()];
-  if (name === 'gates') return [...fixtureScenarios, ...['red-flags', 'ed-reds', 'crisis', 'unsafe', 'injection', 'achievements'].flatMap(s => focusedSuites[s]!)];
+  if (name === 'gates') return [...fixtureScenarios, ...['red-flags', 'ed-reds', 'crisis', 'unsafe', 'injection', 'achievements', 'planning-quality'].flatMap(s => focusedSuites[s]!)];
   if (name === 'conformance') return conformanceScenarios();
   const suite = focusedSuites[name];
   if (!suite) throw new Error(`Unknown suite ${name}`);

@@ -378,7 +378,7 @@ export class TurnRunner {
       if (replyRequired && !msgState.replied && msgState.allowMessaging && result.stopReason !== 'aborted' && result.stopReason !== 'error') {
         const reminder: HarnessItem = {
           kind: 'harness',
-          text: "You haven't replied to the athlete yet and they are waiting. Reply now with send_message, or call no_reply with a short reason if no reply is needed.",
+          text: `${result.stopReason !== 'end_turn' ? `The work was interrupted (${result.stopReason}); completion has not been established. ` : ''}You haven't replied to the athlete yet and they are waiting. Reply with send_message (including an honest incomplete status if needed), or call no_reply with a short reason if no reply is needed.`,
         };
         await persist([reminder]);
         const r2 = await core.deps.loop.runTurn({
@@ -387,7 +387,7 @@ export class TurnRunner {
           system: ep.system,
           items: [...ep.items, ...newItems, ...result.newItems, reminder],
           tools: executor,
-          // The work is done; this run only has to write the reply, so it gets low effort and room for one slow step.
+          // Reply/status recovery only; the prior run may have stopped with unfinished work.
           limits: { maxSteps: 4, maxWallMs: 180_000 },
           effort: 'low',
           cacheKey: athleteId,

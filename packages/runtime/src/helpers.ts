@@ -11,6 +11,7 @@ import {
   ToolError,
   newId,
   type ContentPart,
+  type ConvItem,
   type ResolvedModel,
   type SpawnAgentResult,
   type Tier,
@@ -363,6 +364,15 @@ export class HelperManager {
         costUsd: 0,
         fallbacks: [],
       });
+      // Helpers have no head-coach epoch. Keep their scoped request and completed/stopped transcript
+      // on the turn instead, so a claimed review or failed investigation can actually be audited [SUB-3].
+      const effort = a.input.effort ?? a.profile?.effort ?? a.route[0]?.effort;
+      const saveContext = (newItems: ConvItem[] = []) => core.store.saveTurnContext(helperTurnId, {
+        system, items: helperTraceItems(items), newItems: helperTraceItems(newItems), tier: a.tier, cls: 'followup',
+        model: a.route[0]?.model, provider: a.route[0]?.provider.id, effort,
+        tools: executor.specs(), taskId, parentTurnId: parent.turnId, writeScopes: scopes,
+      }).catch(error => core.log.warn('helper context save failed', { athleteId: parent.athleteId, turnId: helperTurnId, error: (error as Error).message }));
+      await saveContext();
       const result = await core.deps.loop.runTurn({
         turnId: helperTurnId,
         route: a.route,
@@ -370,10 +380,11 @@ export class HelperManager {
         items,
         tools: executor,
         limits: { maxSteps: core.config.limits.helperMaxSteps, maxWallMs: core.config.limits.helperMaxWallMs, maxCostUsd: a.input.budget_usd },
-        effort: a.input.effort ?? a.profile?.effort ?? a.route[0]?.effort,
+        effort,
         cacheKey: `${parent.athleteId}:helper`,
         signal: a.abort.signal,
       });
+      await saveContext(result.newItems);
       const costUsd = result.costUsd;
       await core.store.updateTurn(helperTurnId, {
         status: result.stopReason === 'end_turn' ? 'ok' : result.stopReason === 'error' ? 'error' : result.stopReason === 'aborted' ? 'aborted' : 'limit',
@@ -462,6 +473,16 @@ export class HelperManager {
       throw e;
     }
   }
+}
+
+/** Raw images already live in the blob store; retain their references rather than duplicating bytes in traces. */
+function helperTraceItems(items: ConvItem[]): ConvItem[] {
+  const parts = (content: ContentPart[]): ContentPart[] => content.map(p => p.type === 'image'
+    ? { type: 'text', text: `[image ${p.ref ?? ''} (${p.mediaType}); bytes omitted from stored helper context]` }
+    : p);
+  return items.map(item => item.kind === 'user' ? { ...item, parts: parts(item.parts) }
+    : item.kind === 'tool_results' ? { ...item, results: item.results.map(r => ({ ...r, content: parts(r.content) })) }
+    : item);
 }
 
 function incompleteMessage(reason: string, outputs: string[]): string {

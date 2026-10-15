@@ -8,7 +8,7 @@
 import type { AssistantPart } from '@opencoach/protocol';
 
 // agent loop
-export { createAgentLoop, MAX_TOKENS_NOTE, WRAP_UP_NOTE, STREAM_IDLE_MS } from './loop';
+export { createAgentLoop, MAX_TOKENS_NOTE, STREAM_IDLE_MS } from './loop';
 export type { AgentLoopOptions } from './loop';
 
 // providers

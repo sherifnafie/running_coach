@@ -128,6 +128,26 @@ describe('runtime: onboarding & reactive turns', () => {
     expect(schedules.some((s) => s.purpose.includes('without replying'))).toBe(true);
   });
 
+  it('[RT-4, RT-5] reports interruption truthfully when recovering a reply after a backstop', async () => {
+    h = await makeHarness({ config: { limits: { debounceIdleMs: 0, reactiveMaxSteps: 1 } } });
+    const id = await newAthlete(h);
+    await greet(h, id);
+    h.setHandler(req => {
+      const interrupted = req.items.some(i => i.kind === 'harness' && i.text.includes('The work was interrupted (max_steps)'));
+      if (interrupted) {
+        const last = req.items.at(-1);
+        return last?.kind === 'tool_results' && last.results.some(r => r.name === 'send_message')
+          ? { text: 'Status delivered.' } : send('The design is unfinished; I have saved what I checked so far.');
+      }
+      return { toolCalls: [{ name: 'read', input: { path: 'athlete/profile.md' } }] };
+    });
+    await h.runtime.ingest(id, { type: 'user.message', payload: { text: 'Please build a substantial plan.' } });
+    await h.settle(id);
+    const messages = await h.events(id, ['coach.message']);
+    expect(JSON.stringify(messages)).toContain('design is unfinished');
+    expect(h.requests.some(req => req.items.some(i => i.kind === 'harness' && i.text.includes('completion has not been established')))).toBe(true);
+  });
+
   it('tells the athlete once and stops retrying after a bounded number of attempts [RT-4]', async () => {
     h = await makeHarness();
     const id = await newAthlete(h);

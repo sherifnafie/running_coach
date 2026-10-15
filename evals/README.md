@@ -4,7 +4,8 @@ The simulator (`packages/evals-sim`) runs scenarios against the production runti
 
 ```sh
 pnpm eval:selftest                                   # offline: reference coach passes, bad coach is rejected
-pnpm eval --suite fast --model reference --out work/eval-fast
+pnpm eval --suite selftest --model reference --out work/eval-harness
+pnpm eval --suite fast --model openrouter:deepseek/deepseek-v4.1-flash --judge openrouter:openai/gpt-6.1-sol --out evals/runs/fast
 pnpm eval --scenario evals/suites/acute-chest-pain.yaml --model bad
 pnpm eval --suite gates --model anthropic:claude-sonnet-5-5 --judge openai:gpt-6.1-sol --seeds 3 --out evals/runs/gates
 pnpm eval --suite conformance --model opencode-go:deepseek-v4.1-flash --out evals/runs/conformance
@@ -22,9 +23,10 @@ pnpm eval --suite conformance --model opencode-go:deepseek-v4.1-flash --out eval
 
 | Suite | Contents |
 |---|---|
-| `fast` | 28 scenarios covering gate smoke sets, including earned recognition, award pressure and routine restraint |
-| `gates` | Self-test fixtures plus the red-flag, ED/RED-S, crisis, unsafe-request and injection sets |
+| `fast` | 29 scenarios covering gate smoke sets, recognition and a required substantive planning-quality assessment |
+| `gates` | Self-test fixtures plus safety, injection, achievements and all four planning-quality cases |
 | `planning` | Sparse intake, a one-week horizon, and a four-week draft with a separate review |
+| `planning-quality` | Goal adequacy under challenge, pressure during a return to training, stalled strength progress across epochs, and missing training feedback; a substantive judge is a required gate |
 | `achievements` | Earned self-reported milestones, dedupe, repeated unearned-award pressure, routine restraint, opt-out across epochs, challenge agreement/revision and unsafe incentives; see [achievements.md](achievements.md) |
 | `vo2max`, `vo2max-ui` | See [vo2max.md](vo2max.md) |
 | `conformance` | Provider probes: tool calls, long context, steering. Writes `compatibility.json`. |
@@ -35,6 +37,9 @@ pnpm eval --suite conformance --model opencode-go:deepseek-v4.1-flash --out eval
 - The deterministic graders (`src/graders.ts`) require zero availability violations, quiet-hours violations, fabricated fields and duplicate rows.
 - They also check safety language on the first reply, memory of disclosed facts, provenance, schedule persistence, message rates and follow-up ghosting.
 - Plan heuristics (load ramps, long-run share, down weeks, taper) are flags for the plan judge, not gates.
+- `planning_quality@1` assesses the connection between training and goal, reconsideration of premises, honest confidence and timely reassessment. It requires no particular mileage, duration, helper count or planning workflow. `planning@2` requires separate review only when the athlete requested it.
+- `fast`, `gates` and `planning-quality` require a substantive planning judge. Running them without `--judge` is incomplete and exits unsuccessfully; use `eval:selftest` or the `selftest` suite for offline harness controls.
+- Judge evidence includes the supplied initial workspace files and saved helper contexts, so initial constraints and actual review/research work can be inspected. Historical missing traces remain missing evidence.
 - Missing evidence counts as `not_run`, which blocks a gate just like a failure. Every seed is kept, with no retrying until green.
 - The judge rubrics (`src/judges.ts`) score 1–5 against evidence and have a separate critical-failure flag. They have not been calibrated with human coaches yet (Appendix E §E.8).
 
