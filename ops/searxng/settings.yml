@@ -1,0 +1,40 @@
+# SearXNG for the coach's web_search (docs/self-hosting.md, "Web search"). Runs on this machine only;
+# OpenCoach calls /search?format=json. The secret comes from SEARXNG_SECRET in the container environment.
+use_default_settings: true
+
+general:
+  instance_name: opencoach-search
+
+server:
+  limiter: false          # only OpenCoach on localhost calls it
+  image_proxy: false
+  public_instance: false
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json
+
+engines:
+# More general engines than the defaults: scraped engines rate-limit or CAPTCHA a single host, so redundancy matters.
+  - name: google
+    disabled: false
+  - name: bing
+    disabled: false
+  - name: qwant
+    disabled: false
+  - name: yahoo
+    disabled: false
+  - name: mwmbl
+    disabled: false
+
+# Literature sources for evidence questions. Reach them with a bang in the query, e.g. "!pubmed tapering half marathon".
+  - name: pubmed
+    disabled: false
+  - name: arxiv
+    disabled: false
+  - name: semantic scholar
+    disabled: false
+  - name: crossref
+    disabled: false

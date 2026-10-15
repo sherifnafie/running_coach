@@ -1,0 +1,18 @@
+# Self-hosted search for OpenCoach: docker compose -f ops/searxng/docker-compose.yml up -d
+# Then set SEARXNG_URL=http://127.0.0.1:8092 in opencoach.env and restart OpenCoach.
+services:
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8092:8080"
+    environment:
+      SEARXNG_BASE_URL: http://127.0.0.1:8092/
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET (e.g. openssl rand -hex 32)}
+    volumes:
+      - ./settings.yml:/etc/searxng/settings.yml:ro
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETGID, SETUID]
+    logging:
+      driver: json-file
+      options: { max-size: 1m, max-file: "1" }

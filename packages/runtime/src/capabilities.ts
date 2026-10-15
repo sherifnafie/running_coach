@@ -19,6 +19,12 @@ export function unavailableTools(core: Core, athleteId: string): Set<ToolName> {
   return out;
 }
 
+function searchNote(kind: string): string {
+  // SearXNG's own syntax: a !category or !engine prefix restricts a query to those sources.
+  if (kind === 'searxng') return 'SearXNG on this server; a query starting with !science searches scholarly sources only (e.g. PubMed, Semantic Scholar), !pub PubMed alone';
+  return kind;
+}
+
 /** Configuration facts, not a claim that an external service has passed a live health check. */
 export function capabilityLines(core: Core, athleteId: string, settings: AthleteSettings, model: ResolvedModel, tools: ToolName[], imageSpendUsd?: number): string[] {
   const tiers = (['fast', 'coach', 'deep'] as Tier[]).map((tier) => {
@@ -37,6 +43,7 @@ export function capabilityLines(core: Core, athleteId: string, settings: Athlete
     'OpenCoach capability guide: /system/docs/opencoach.md',
     `tools: ${tools.join(', ') || 'none'}${missing.length ? ` · not available on this server: ${missing.join(', ')}` : ''}`,
     ...(tools.includes('weather') ? ['weather: town-level forecast, hourly detail, air quality (pass a town, never an address)'] : []),
+    ...(tools.includes('web_search') && core.deps.webSearch ? [`web_search: ${searchNote(core.deps.webSearch.kind)}`] : []),
     ...(tools.includes('web_fetch') ? ['web_fetch: public pages only'] : []),
     `images: current model ${model.capabilities.vision ? 'has vision' : 'TEXT ONLY'} · image-capable helper tier(s): ${visionTiers.join(', ') || 'NONE — do not claim image extraction or visual inspection'}`,
     `image generation: ${imageProvider ? `${imageProvider.model}, one 512px square PNG, permission ${settings.images.mode}, ${imageSpendUsd !== undefined ? `$${imageSpendUsd.toFixed(3)} of ` : ''}$${settings.images.monthlyUsd.toFixed(2)} this month` : 'not configured'} · ${identity} · skills: image-generation, coach-identity`,

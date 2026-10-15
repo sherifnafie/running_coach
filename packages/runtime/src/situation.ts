@@ -1,6 +1,6 @@
-import type { AnyEvent, AthleteSettings, ResolvedModel, SafetyScreenResult, ToolName, TriggerClass } from '@opencoach/protocol';
+import { COACH_TOOLS, type AnyEvent, type AthleteSettings, type ResolvedModel, type SafetyScreenResult, type ToolName, type TriggerClass } from '@opencoach/protocol';
 import { readUiManifests } from '@opencoach/workspace';
-import { capabilityLines } from './capabilities';
+import { capabilityLines, unavailableTools } from './capabilities';
 import type { PinnedReport } from './context';
 import type { Core } from './core';
 import { formatLocal, localDayStartIso, localMonthStartIso, quietHoursEnd } from './time';
@@ -80,6 +80,8 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   );
   const imageSpend = await store.sumUsage(s.athleteId, localMonthStartIso(now, tz), 'image');
   lines.push(...capabilityLines(core, s.athleteId, s.settings, s.model, s.tools, imageSpend.costUsd));
+  const toolChange = await toolsChanged(core, s.athleteId);
+  if (toolChange) lines.push(toolChange);
 
   const dayCost = (await store.sumUsage(s.athleteId, localDayStartIso(now, tz))).costUsd;
   const monthCost = (await store.sumUsage(s.athleteId, localMonthStartIso(now, tz))).costUsd;
@@ -102,6 +104,27 @@ export async function buildSituation(core: Core, s: SituationInput): Promise<str
   }
   for (const x of s.extra ?? []) lines.push(x);
   return `<situation>\n${lines.join('\n')}\n</situation>`;
+}
+
+/**
+ * Tools the coach gained or lost since its previous turn (an operator configured search, a service went away).
+ * Without it, a note the coach wrote about the old set would quietly outrank the new tool list.
+ */
+async function toolsChanged(core: Core, athleteId: string): Promise<string | undefined> {
+  // What the server offers, not this turn's grant: consolidation, for one, never gets the messaging tools.
+  const unavailable = unavailableTools(core, athleteId);
+  const tools = COACH_TOOLS.filter((t) => !unavailable.has(t));
+  const key = `tools-seen:${athleteId}`;
+  const previous = await core.store.getKv(key);
+  const current = [...tools].sort().join(',');
+  if (previous === current) return undefined;
+  await core.store.setKv(key, current);
+  if (previous === undefined) return undefined;
+  const before = new Set(previous.split(',').filter(Boolean));
+  const added = tools.filter((t) => !before.has(t));
+  const removed = [...before].filter((t) => !tools.includes(t as ToolName));
+  if (!added.length && !removed.length) return undefined;
+  return `tools changed since your last turn: ${[added.length ? `now available ${added.join(', ')}` : '', removed.length ? `no longer available ${removed.join(', ')}` : ''].filter(Boolean).join(' · ')}`;
 }
 
 /** Event types that don't wake the coach, so they would otherwise go unseen until the coach goes looking. */
