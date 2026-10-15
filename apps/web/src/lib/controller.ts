@@ -2,7 +2,7 @@ import type { AnyEvent, AppInfo, AthleteSettings, AuthResponse, MeResponse, Stre
 import { ApiRequestError, describeError, isRetryable, NetworkError, request, setUnauthorizedHandler } from './api';
 import { appStore, patchApp, type ThemePref, type Toast } from './appState';
 import { cacheClear, cacheGet, cacheSet } from './cache';
-import { applyServerCallMessage } from './calls';
+import { applyServerCallMessage, endCall, resetCall } from './calls';
 import { emitWorkspaceChange, isWorkspaceChange } from './changeBus';
 import { chatReducer, noticeText, type ChatAction, type LocalAnswer, type PendingAttachment } from './chatModel';
 import { clock } from './clock';
@@ -272,6 +272,8 @@ export async function refreshMe(): Promise<void> {
 }
 
 function teardownSession(): void {
+  void endCall({ remote: true });
+  resetCall();
   stream?.stop();
   stream = undefined;
   booted = false;
@@ -298,6 +300,7 @@ function teardownSession(): void {
 }
 
 export async function signOut(): Promise<void> {
+  await endCall();
   await disablePush();
   try {
     await auth.logout();

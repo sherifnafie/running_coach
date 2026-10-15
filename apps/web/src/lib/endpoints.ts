@@ -128,10 +128,10 @@ export const calls = {
   create: (mode?: 'realtime' | 'cascaded', purpose?: string) =>
     api.post<CallSessionInfo>('/v1/calls', { ...(mode ? { mode } : {}), ...(purpose ? { purpose } : {}) }),
   attach: (callId: string, providerCallId: string) => api.post<void>(`/v1/calls/${enc(callId)}/attach`, { providerCallId }),
-  utterance: (callId: string, audio: Blob, filename: string) => {
+  utterance: (callId: string, audio: Blob, filename: string, signal?: AbortSignal) => {
     const form = new FormData();
     form.append('audio', audio, filename);
-    return upload<CascadedUtteranceResponse>(`/v1/calls/${enc(callId)}/utterance`, form);
+    return upload<CascadedUtteranceResponse>(`/v1/calls/${enc(callId)}/utterance`, form, undefined, signal);
   },
   end: (callId: string) => api.post<void>(`/v1/calls/${enc(callId)}/end`),
 };

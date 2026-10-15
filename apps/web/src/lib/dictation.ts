@@ -103,21 +103,16 @@ export interface ActiveDictation {
 
 const COMMIT_SILENCE_MS = 900;
 const FINISH_WAIT_MS = 3000;
+const START_WAIT_MS = 15_000;
 
 /** Start a dictation session. Rejects with a readable error (microphone, server or network). */
-export async function startDictation(h: DictationHandlers): Promise<ActiveDictation> {
-  const mic = await getMicStream();
-  let info: DictationSessionInfo;
-  try {
-    info = await dictationApi.start();
-  } catch (e) {
-    mic.getTracks().forEach((t) => t.stop());
-    throw e;
-  }
-
+export async function startDictation(h: DictationHandlers, signal?: AbortSignal): Promise<ActiveDictation> {
+  const abort = new AbortController();
+  let mic: MediaStream | undefined;
+  let info: DictationSessionInfo | undefined;
+  let pc: RTCPeerConnection | undefined;
+  let dc: RTCDataChannel | undefined;
   const assembler = new TranscriptAssembler();
-  const pc = new RTCPeerConnection();
-  const dc = pc.createDataChannel('oai-events');
   let closed = false;
   let pendingCommits = 0; // commits sent but not yet acknowledged by the provider
   let settleWaiters: Array<() => void> = [];
@@ -132,18 +127,21 @@ export async function startDictation(h: DictationHandlers): Promise<ActiveDictat
   const close = () => {
     if (closed) return;
     closed = true;
+    signal?.removeEventListener('abort', cancel);
+    clearTimeout(startTimer);
+    abort.abort();
     if (meter) clearInterval(meter);
     if (maxTimer) clearTimeout(maxTimer);
-    try { dc.close(); } catch { /* ignore */ }
-    pc.close();
-    mic.getTracks().forEach((t) => t.stop());
+    try { dc?.close(); } catch { /* ignore */ }
+    pc?.close();
+    mic?.getTracks().forEach((t) => t.stop());
     void audioCtx?.close().catch(() => undefined);
-    void dictationApi.end(info.sessionId).catch(() => undefined); // stops billing; best effort
+    if (info) void dictationApi.end(info.sessionId).catch(() => undefined); // stops billing; best effort
     settleWaiters.forEach((w) => w());
     settleWaiters = [];
   };
   const commit = () => {
-    if (dc.readyState !== 'open') return;
+    if (dc?.readyState !== 'open') return;
     dc.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
     pendingCommits++;
   };
@@ -153,77 +151,109 @@ export async function startDictation(h: DictationHandlers): Promise<ActiveDictat
     h.onError(message);
   };
 
-  dc.onmessage = (ev) => {
-    if (closed) return;
-    let event: TranscriptionEvent;
-    try { event = JSON.parse(String(ev.data)) as TranscriptionEvent; } catch { return; }
-    if (event.type === 'error') {
-      // Committing a buffer with no speech is harmless (e.g. tapping done during silence).
-      if (event.error?.code === 'input_audio_buffer_commit_empty') { pendingCommits = Math.max(0, pendingCommits - 1); wakeIfQuiet(); return; }
-      fail(event.error?.message ? `Dictation stopped: ${event.error.message}` : 'Dictation stopped because of a service error.');
-      return;
-    }
-    if (event.type === 'input_audio_buffer.committed') pendingCommits = Math.max(0, pendingCommits - 1);
-    if (assembler.apply(event)) h.onText(assembler.text());
-    wakeIfQuiet();
+  const cancel = () => close();
+  const startTimer = setTimeout(() => fail('Connecting to dictation timed out. Please try again.'), START_WAIT_MS);
+  const cancelled = new Promise<never>((_, reject) => {
+    abort.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+  });
+  const wait = async <T>(pending: Promise<T>): Promise<T> => {
+    const value = await Promise.race([pending, cancelled]);
+    abort.signal.throwIfAborted();
+    return value;
   };
-  dc.onopen = () => h.onLive();
-  pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'failed') fail('The connection to the dictation service was lost.');
-  };
+  signal?.addEventListener('abort', cancel, { once: true });
 
   try {
-    for (const track of mic.getTracks()) pc.addTrack(track, mic);
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    const res = await fetch(info.connect.callsUrl, {
+    if (signal?.aborted) close();
+    await wait(Promise.resolve());
+    const stream = await wait(getMicStream().then((stream) => {
+      mic = stream;
+      if (closed) stream.getTracks().forEach((t) => t.stop());
+      return stream;
+    }));
+    // Keep the mint response so even a session created after cancellation can be ended.
+    const sessionInfo = await wait(dictationApi.start().then((created) => {
+      info = created;
+      if (closed) void dictationApi.end(created.sessionId).catch(() => undefined);
+      return created;
+    }));
+    pc = new RTCPeerConnection();
+    dc = pc.createDataChannel('oai-events');
+    dc.onmessage = (ev) => {
+      if (closed) return;
+      let event: TranscriptionEvent;
+      try { event = JSON.parse(String(ev.data)) as TranscriptionEvent; } catch { return; }
+      if (event.type === 'error') {
+        // Committing a buffer with no speech is harmless (e.g. tapping done during silence).
+        if (event.error?.code === 'input_audio_buffer_commit_empty') { pendingCommits = Math.max(0, pendingCommits - 1); wakeIfQuiet(); return; }
+        fail(event.error?.message ? `Dictation stopped: ${event.error.message}` : 'Dictation stopped because of a service error.');
+        return;
+      }
+      if (event.type === 'input_audio_buffer.committed') pendingCommits = Math.max(0, pendingCommits - 1);
+      if (assembler.apply(event)) h.onText(assembler.text());
+      wakeIfQuiet();
+    };
+    dc.onopen = () => {
+      if (closed) return;
+      clearTimeout(startTimer);
+      h.onLive();
+    };
+    pc.onconnectionstatechange = () => {
+      if (pc?.connectionState === 'failed') fail('The connection to the dictation service was lost.');
+    };
+    for (const track of stream.getTracks()) pc.addTrack(track, stream);
+    const offer = await wait(pc.createOffer());
+    await wait(pc.setLocalDescription(offer));
+    const res = await wait(fetch(sessionInfo.connect.callsUrl, {
       method: 'POST',
       body: offer.sdp,
-      headers: { Authorization: `Bearer ${info.connect.ephemeralKey}`, 'Content-Type': 'application/sdp' },
+      headers: { Authorization: `Bearer ${sessionInfo.connect.ephemeralKey}`, 'Content-Type': 'application/sdp' },
       credentials: 'omit',
-    });
+      signal: abort.signal,
+    }));
     if (!res.ok) throw new Error(`Could not reach the dictation service (${res.status}).`);
-    await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+    const answer = await wait(res.text());
+    await wait(pc.setRemoteDescription({ type: 'answer', sdp: answer }));
+
+    // Level meter for the waveform, and pause detection so each phrase gets its final, polished text.
+    try {
+      audioCtx = new AudioContext();
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      audioCtx.createMediaStreamSource(stream).connect(analyser);
+      const buf = new Uint8Array(analyser.fftSize);
+      const vad = new EnergyVad({ silenceMs: COMMIT_SILENCE_MS, minSpeechMs: 250 });
+      meter = setInterval(() => {
+        analyser.getByteTimeDomainData(buf);
+        const level = rms(buf);
+        h.onLevel(level);
+        const transition = vad.push(level, clock.nowMs());
+        if (transition === 'end') commit();
+      }, 80);
+    } catch {
+      /* no meter: commits still happen when the athlete taps done */
+    }
+    maxTimer = setTimeout(() => h.onLimit(), sessionInfo.maxDurationS * 1000);
+
+    return {
+      info: sessionInfo,
+      async finish() {
+        if (!closed) {
+          commit(); // the last words since the previous pause
+          if (!quiet()) {
+            await new Promise<void>((resolve) => {
+              settleWaiters.push(resolve);
+              setTimeout(resolve, FINISH_WAIT_MS);
+            });
+          }
+          close();
+        }
+        return assembler.text();
+      },
+      cancel: close,
+    };
   } catch (e) {
     close();
     throw e;
   }
-
-  // Level meter for the waveform, and pause detection so each phrase gets its final, polished text.
-  try {
-    audioCtx = new AudioContext();
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 512;
-    audioCtx.createMediaStreamSource(mic).connect(analyser);
-    const buf = new Uint8Array(analyser.fftSize);
-    const vad = new EnergyVad({ silenceMs: COMMIT_SILENCE_MS, minSpeechMs: 250 });
-    meter = setInterval(() => {
-      analyser.getByteTimeDomainData(buf);
-      const level = rms(buf);
-      h.onLevel(level);
-      const transition = vad.push(level, clock.nowMs());
-      if (transition === 'end') commit();
-    }, 80);
-  } catch {
-    /* no meter: commits still happen when the athlete taps done */
-  }
-  maxTimer = setTimeout(() => h.onLimit(), info.maxDurationS * 1000);
-
-  return {
-    info,
-    async finish() {
-      if (!closed) {
-        commit(); // the last words since the previous pause
-        if (!quiet()) {
-          await new Promise<void>((resolve) => {
-            settleWaiters.push(resolve);
-            setTimeout(resolve, FINISH_WAIT_MS);
-          });
-        }
-        close();
-      }
-      return assembler.text();
-    },
-    cancel: close,
-  };
 }

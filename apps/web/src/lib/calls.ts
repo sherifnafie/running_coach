@@ -48,6 +48,8 @@ function addLine(role: TranscriptLine['role'], text: string): void {
 }
 
 interface Live {
+  abort: AbortController;
+  callId?: string;
   mic?: MediaStream;
   pc?: RTCPeerConnection;
   audioEl?: HTMLAudioElement;
@@ -57,9 +59,13 @@ interface Live {
   ctx?: AudioContext;
   analyser?: AnalyserNode;
   endTimer?: ReturnType<typeof setTimeout>;
-  ended?: boolean;
+  lostTimer?: ReturnType<typeof setTimeout>;
 }
-let live: Live = {};
+let live: Live = { abort: new AbortController() };
+
+function isCurrent(attempt: Live): boolean {
+  return live === attempt && !attempt.abort.signal.aborted;
+}
 
 export function isCallActive(): boolean {
   const p = callStore.getState().phase;
@@ -68,19 +74,26 @@ export function isCallActive(): boolean {
 
 export async function startCall(mode?: 'realtime' | 'cascaded', purpose?: string): Promise<void> {
   if (isCallActive()) return;
-  live = {};
+  const attempt: Live = { abort: new AbortController() };
+  live = attempt;
   callStore.setState({ ...initial, phase: 'starting' });
   try {
     // Ask for the mic first so a denied permission never creates a server-side call.
-    live.mic = await getMicStream();
+    const mic = await getMicStream();
+    if (!isCurrent(attempt)) { mic.getTracks().forEach((t) => t.stop()); return; }
+    attempt.mic = mic;
   } catch (e) {
+    if (!isCurrent(attempt)) return;
     patch({ phase: 'error', error: describeMicError(e) });
     return;
   }
   let info: CallSessionInfo;
   try {
     info = await calls.create(mode, purpose);
+    if (!isCurrent(attempt)) { void calls.end(info.callId).catch(() => undefined); return; }
+    attempt.callId = info.callId;
   } catch (e) {
+    if (!isCurrent(attempt)) return;
     releaseMedia();
     patch({ phase: 'error', error: describeError(e) });
     return;
@@ -89,13 +102,15 @@ export async function startCall(mode?: 'realtime' | 'cascaded', purpose?: string
   try {
     if (info.mode === 'realtime') {
       if (!info.connect) throw new Error('The server did not return realtime connection details.');
-      await connectRealtime(info, info.connect);
+      await connectRealtime(attempt, info, info.connect);
     } else {
       startCascaded();
     }
+    if (!isCurrent(attempt)) return;
     patch({ phase: 'live', startedAtMs: clock.nowMs() });
     if (info.maxDurationS > 0) live.endTimer = setTimeout(() => void endCall(), info.maxDurationS * 1000);
   } catch (e) {
+    if (!isCurrent(attempt)) return;
     patch({ phase: 'error', error: describeCallError(e) });
     await endCall({ keepError: true });
   }
@@ -108,54 +123,61 @@ function describeCallError(e: unknown): string {
 
 // ---- realtime (WebRTC) ---------------------------------------------------------------------------------------
 
-async function connectRealtime(info: CallSessionInfo, connect: RealtimeClientConnect): Promise<void> {
+async function connectRealtime(attempt: Live, info: CallSessionInfo, connect: RealtimeClientConnect): Promise<void> {
   const pc = new RTCPeerConnection();
-  live.pc = pc;
+  attempt.pc = pc;
   const audioEl = document.createElement('audio');
   audioEl.autoplay = true;
   audioEl.setAttribute('playsinline', '');
-  live.audioEl = audioEl;
+  attempt.audioEl = audioEl;
   pc.ontrack = (e) => {
+    if (!isCurrent(attempt)) return;
     audioEl.srcObject = e.streams[0] ?? null;
     void audioEl.play().catch(() => undefined);
   };
-  for (const track of live.mic!.getTracks()) pc.addTrack(track, live.mic!);
+  for (const track of attempt.mic!.getTracks()) pc.addTrack(track, attempt.mic!);
   const dc = pc.createDataChannel('oai-events');
   dc.onmessage = (ev) => {
+    if (!isCurrent(attempt)) return;
     try {
       handleProviderEvent(JSON.parse(String(ev.data)) as ProviderEvent);
     } catch {
       /* ignore malformed */
     }
   };
-  let lostTimer: ReturnType<typeof setTimeout> | undefined;
   pc.onconnectionstatechange = () => {
-    if (live.pc !== pc) return;
+    if (!isCurrent(attempt)) return;
     if (pc.connectionState === 'failed') {
       patch({ phase: 'error', error: 'The connection to the call was lost.' });
       void endCall({ keepError: true });
     } else if (pc.connectionState === 'disconnected') {
-      lostTimer = setTimeout(() => {
-        if (live.pc === pc && pc.connectionState !== 'connected') {
+      attempt.lostTimer = setTimeout(() => {
+        if (isCurrent(attempt) && pc.connectionState !== 'connected') {
           patch({ phase: 'error', error: 'The connection to the call was lost.' });
           void endCall({ keepError: true });
         }
       }, 6000);
-    } else if (lostTimer) clearTimeout(lostTimer);
+    } else if (attempt.lostTimer) clearTimeout(attempt.lostTimer);
   };
 
   const offer = await pc.createOffer();
+  if (!isCurrent(attempt)) return;
   await pc.setLocalDescription(offer);
+  if (!isCurrent(attempt)) return;
   const res = await fetch(connect.callsUrl, {
     method: 'POST',
     body: offer.sdp,
     headers: { Authorization: `Bearer ${connect.ephemeralKey}`, 'Content-Type': 'application/sdp' },
     credentials: 'omit',
+    signal: attempt.abort.signal,
   });
+  if (!isCurrent(attempt)) return;
   if (!res.ok) throw new Error(`Could not reach the voice service (${res.status}).`);
   const answer = await res.text();
+  if (!isCurrent(attempt)) return;
   const providerCallId = providerCallIdFrom(res.headers.get('Location'));
   await pc.setRemoteDescription({ type: 'answer', sdp: answer });
+  if (!isCurrent(attempt)) return;
   if (providerCallId) await calls.attach(info.callId, providerCallId);
   else patch({ notice: 'Connected, but your coach could not attach to the call, so lookups may be unavailable.' });
 }
@@ -200,7 +222,7 @@ function handleProviderEvent(ev: ProviderEvent): void {
 /** `{t:'call'}` stream messages update presence; transcript comes from WebRTC or the utterance response. */
 export function applyServerCallMessage(m: { callId: string; state: 'speaking' | 'listening' | 'thinking' | 'ended'; text?: string }): void {
   const s = callStore.getState();
-  if (s.callId && m.callId !== s.callId) return;
+  if (!isCallActive() || m.callId !== s.callId) return;
   if (m.state === 'ended') {
     if (isCallActive()) void endCall({ remote: true });
     return;
@@ -226,16 +248,21 @@ function startCascaded(): void {
 export async function pttStart(): Promise<void> {
   const s = callStore.getState();
   if (s.phase !== 'live' || s.mode !== 'cascaded' || live.recorder || s.agent === 'thinking' || s.muted) return;
+  const attempt = live;
   stopReplyAudio();
   try {
-    live.recorder = await startRecording(live.mic);
+    const recorder = await startRecording(attempt.mic);
+    if (!isCurrent(attempt)) { recorder.cancel(); return; }
+    attempt.recorder = recorder;
     patch({ recording: true, agent: 'listening' });
   } catch (e) {
+    if (!isCurrent(attempt)) return;
     patch({ notice: describeMicError(e) });
   }
 }
 
 export async function pttEnd(): Promise<void> {
+  const attempt = live;
   const rec = live.recorder;
   if (!rec) return;
   live.recorder = undefined;
@@ -243,7 +270,9 @@ export async function pttEnd(): Promise<void> {
   let audio;
   try {
     audio = await rec.stop();
+    if (!isCurrent(attempt)) return;
   } catch (e) {
+    if (!isCurrent(attempt)) return;
     patch({ notice: describeError(e) });
     return;
   }
@@ -261,16 +290,19 @@ export function pttCancel(): void {
 }
 
 async function sendUtterance(blob: Blob, mime: string): Promise<void> {
-  const callId = callStore.getState().callId;
-  if (!callId) return;
+  const attempt = live;
+  const callId = attempt.callId;
+  if (!callId || !isCurrent(attempt)) return;
   patch({ agent: 'thinking', notice: undefined });
   try {
-    const res = await calls.utterance(callId, blob, `utterance.${extensionForMime(mime)}`);
+    const res = await calls.utterance(callId, blob, `utterance.${extensionForMime(mime)}`, attempt.abort.signal);
+    if (!isCurrent(attempt)) return;
     addLine('athlete', res.transcript);
     addLine('coach', res.replyText);
     if (res.audioUrl && callStore.getState().speakerOn) playReply(res.audioUrl);
     else patch({ agent: 'listening' });
   } catch (e) {
+    if (!isCurrent(attempt)) return;
     patch({ agent: 'listening', notice: describeError(e) });
   }
 }
@@ -343,6 +375,8 @@ export function toggleSpeaker(): void {
 }
 
 function releaseMedia(): void {
+  live.abort.abort();
+  if (live.lostTimer) clearTimeout(live.lostTimer);
   if (live.vadTimer) clearInterval(live.vadTimer);
   if (live.endTimer) clearTimeout(live.endTimer);
   live.recorder?.cancel();
@@ -358,14 +392,15 @@ function releaseMedia(): void {
   }
   live.mic?.getTracks().forEach((t) => t.stop());
   void live.ctx?.close().catch(() => undefined);
-  live = { ended: true };
 }
 
 export async function endCall(opts: { keepError?: boolean; remote?: boolean } = {}): Promise<void> {
   const s = callStore.getState();
-  if (live.ended && s.phase !== 'live') return;
+  if (live.abort.signal.aborted) return;
   const callId = s.callId;
   releaseMedia();
+  if (opts.keepError) patch({ recording: false, handsFree: false });
+  else patch({ phase: 'ended', recording: false, handsFree: false });
   if (callId && !opts.remote) {
     try {
       await calls.end(callId);
@@ -373,8 +408,6 @@ export async function endCall(opts: { keepError?: boolean; remote?: boolean } = 
       /* the server also ends calls on timeout */
     }
   }
-  if (opts.keepError) patch({ recording: false, handsFree: false });
-  else patch({ phase: 'ended', recording: false, handsFree: false });
 }
 
 export function resetCall(): void {
