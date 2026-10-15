@@ -5,8 +5,8 @@ history in commits, ADRs and the coach changelog, not here.
 
 ## State
 
-Phase 1 (MVP) and most of Phase 2 are implemented. Production is on **0.3.13**; the **0.3.14** source candidate
-(harness and `general` pack) is not deployed. It removes time pressure from coach context, adds goal-adequacy and
+Phase 1 (MVP) and most of Phase 2 are implemented. Production is on **0.3.14** (harness and `general` pack).
+It removes time pressure from coach context, adds goal-adequacy and
 early-assessment guidance, retains helper traces and refreshes cached prompts on release changes
 ([ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md)). `pnpm typecheck`, `pnpm test`, `pnpm build`,
 web tests and 18 browser end-to-end checks pass. Eval runs were explicitly skipped at the owner's request,
@@ -43,6 +43,8 @@ Production reviews of the owner's conversations are the main feedback loop for t
 records what to compare in the following week.
 The follow-up in [ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md) addresses substantive planning
 judgment, early assessment and the engine's former halfway instruction to finish.
+Its live upgrade turn loaded the new constitution, adapted the coach-owned helper/heartbeat guidance,
+added a plan-adequacy section and merged duplicate weekly reviews. This verifies adoption, not coaching quality.
 
 ## Verified vs. unverified
 
