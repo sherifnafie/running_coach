@@ -40,7 +40,8 @@ The catalog lists the models the settings picker offers, with their capabilities
 | Model | Why |
 |---|---|
 | `anthropic/claude-haiku-5.5` | Smart, quick and careful (~$0.01 per chat turn in this harness, 1-hour prompt caching), reads screenshots; says when it doesn't know instead of guessing. |
-| `deepseek/deepseek-v4.1-flash` (default for chat and deep work) | Very low cost, does more research on its own; guesses more than the others when it does not know. |
+| `deepseek/deepseek-v4.1-flash-1017` (default for chat and deep work) | The October 17 update of DeepSeek V4.1 Flash: very low cost, does more research on its own. |
+| `deepseek/deepseek-v4.1-flash` | The earlier snapshot (default until 2026-10-17); guesses more than the others when it does not know. |
 | `z-ai/glm-5.3-flash` | Similar cost, by far the lowest hallucination rate in its class; slower replies. |
 | `xiaomi/mimo-v2.6-pro` | Strongest reasoning on a budget; slow to start answering. |
 | `google/gemini-3.8-flash` | Fast all-rounder, best screenshot reading; about 5x the default cost. |
@@ -51,8 +52,8 @@ Override the list with `providers.openrouter.models` and the default with `provi
 ```yaml
 providers:
   openrouter:
-    defaultModel: deepseek/deepseek-v4.1-flash
-    deepModel: deepseek/deepseek-v4.1-flash
+    defaultModel: deepseek/deepseek-v4.1-flash-1017
+    deepModel: deepseek/deepseek-v4.1-flash-1017
     routing: { dataCollection: deny, requireParameters: true }
 ```
 

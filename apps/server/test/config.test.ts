@@ -38,9 +38,9 @@ describe('OpenCode GO compatible configuration [RT-7] [SEC-1]', () => {
     expect(loadConfigDetailed({ cwd: dir, env: { OPENROUTER_API_KEY: 'sk-or-synthetic', OPENCOACH_IMAGES_ENABLED: 'false' } }).config.imageGeneration).toBeUndefined();
     expect(openrouter.config.providers.openrouter?.routing).toMatchObject({ dataCollection: 'deny', requireParameters: true });
     expect(openrouter.config.models?.tiers).toEqual({
-      coach: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash' },
-      deep: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'high' },
-      fast: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash', effort: 'medium' },
+      coach: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash-1017' },
+      deep: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash-1017', effort: 'high' },
+      fast: { provider: 'openrouter', model: 'deepseek/deepseek-v4.1-flash-1017', effort: 'medium' },
     });
     const custom = await configFile('providers:\n  openrouter:\n    apiKeyEnv: MY_ROUTER_KEY\n    defaultModel: z-ai/glm-5.3-flash\n');
     const renamed = loadConfigDetailed({ cwd: custom.dir, path: custom.path, env: { MY_ROUTER_KEY: 'sk-or-synthetic-other' } });

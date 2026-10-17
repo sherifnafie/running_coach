@@ -5,11 +5,12 @@ import type { ModelCatalogEntryInput } from '@opencoach/protocol';
  *
  * Selection, checked 2026-10-07 against the Artificial Analysis leaderboard and the OpenRouter model API:
  * each entry calls tools and read a workout screenshot correctly through OpenRouter with `data_collection: deny`.
- * Default since 2026-10-08: DeepSeek V4.1 Flash for chat and deep work, chosen by the operator.
+ * Default since 2026-10-08: DeepSeek V4.1 Flash for chat and deep work, chosen by the operator; since 2026-10-17 its
+ * 1017 snapshot (same price, same capabilities, checked live with the conformance suite).
  * Prices are OpenRouter list prices (USD per MTok) and are only a fallback: OpenRouter reports the charged
  * amount on every response. Deployments override the list with `providers.openrouter.models`.
  */
-export const DEFAULT_OPENROUTER_MODEL = 'deepseek/deepseek-v4.1-flash';
+export const DEFAULT_OPENROUTER_MODEL = 'deepseek/deepseek-v4.1-flash-1017';
 
 /**
  * Default for the deep tier (background plans, reviews, research), checked 2026-10-08 in conversation benchmarks
@@ -17,13 +18,25 @@ export const DEFAULT_OPENROUTER_MODEL = 'deepseek/deepseek-v4.1-flash';
  * the low-cost models, with slower replies (16-27 s per step at medium/high effort).
  * At max effort it can exceed helper time limits, so the deep tier uses high.
  */
-export const DEFAULT_OPENROUTER_DEEP_MODEL = 'deepseek/deepseek-v4.1-flash';
+export const DEFAULT_OPENROUTER_DEEP_MODEL = 'deepseek/deepseek-v4.1-flash-1017';
 
 export const DEFAULT_OPENROUTER_CATALOG: ModelCatalogEntryInput[] = [
   {
+    id: 'deepseek/deepseek-v4.1-flash-1017',
+    label: 'DeepSeek V4.1 Flash (Oct 17)',
+    description: 'Default for chat and deep work: the October 17 update of DeepSeek V4.1 Flash. Low cost; does more research on its own. Can be slow to reply.',
+    vision: true,
+    contextTokens: 1_048_576,
+    maxOutputTokens: 32_768,
+    efforts: ['low', 'medium', 'high', 'max'],
+    pricing: { inputPerMTok: 0.15, outputPerMTok: 0.6, cacheReadPerMTok: 0.003 },
+    // Pin a host so prompt caching hits (a host switch is a cache miss); fp8 or better.
+    routing: { order: ['deepinfra/fp8', 'parasail/fp8', 'baseten'], allowFallbacks: true },
+  },
+  {
     id: 'deepseek/deepseek-v4.1-flash',
-    label: 'DeepSeek V4.1 Flash',
-    description: 'Default for chat and deep work. Low cost; does more research on its own. Can be slow to reply and guesses more often when it does not know.',
+    label: 'DeepSeek V4.1 Flash (Oct 8)',
+    description: 'The earlier DeepSeek V4.1 Flash, the default until October 17. Low cost; does more research on its own. Can be slow to reply and guesses more often when it does not know.',
     vision: true,
     contextTokens: 1_048_576,
     maxOutputTokens: 32_768,
