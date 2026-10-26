@@ -5,14 +5,15 @@ history in commits, ADRs and the coach changelog, not here.
 
 ## State
 
-Phase 1 (MVP) and most of Phase 2 are implemented. Production is on harness **0.3.15** and `general` pack **0.3.15**.
-Harness **0.3.16** is prepared: completed background helpers hand off at safe tool boundaries during the parent
+Phase 1 (MVP) and most of Phase 2 are implemented. Production is on harness **0.3.16** and `general` pack **0.3.15**.
+Completed background helpers hand off at safe tool boundaries during the parent
 turn ([ADR 0017](adr/0017-tool-boundary-helper-handoffs.md)), and truncated view-update notices expand in place,
 stay visible while open and allow long summaries to scroll. Workspace isolation, single-flight and task completion
 after copy-back remain enforced. The constitution retains sustained analytical depth beyond generic 80/20
 coaching and the goal-adequacy standard ([ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md)).
 The full root suite (837 tests plus 5 renderer tests), final runtime/engine regression checks (144), web unit
-tests (199), real Chrome gateway checks (18), and typecheck pass. Paid coaching evals remain deferred at the
+tests (199), real Chrome gateway checks (18), typecheck and build pass. Live authentication confirms harness
+0.3.16 and the new disclosure assets; the owner's selected coach/deep models are preserved. Paid coaching evals remain deferred at the
 owner's request; mechanism tests do not establish coaching effectiveness.
 
 | Area | State |
