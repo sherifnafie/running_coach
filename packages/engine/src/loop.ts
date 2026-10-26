@@ -382,7 +382,7 @@ async function runTurnImpl(input: RunTurnInput, env: Env): Promise<RunTurnResult
         }
         for (const text of pendingNotes.splice(0)) append({ kind: 'harness', text });
         try {
-          const extra = input.beforeStep?.({ step: steps + 1, elapsedMs: elapsed(), costUsd, items: [...items] });
+          const extra = await input.beforeStep?.({ step: steps + 1, elapsedMs: elapsed(), costUsd, items: [...items] });
           for (const it of extra ?? []) append(it);
         } catch {
           // ignore hook failures

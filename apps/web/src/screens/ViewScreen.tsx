@@ -18,8 +18,9 @@ export function ViewScreen({ view, params, active }: { view: PublishedView; para
   const coachName = useStore(appStore, s => s.me?.settings.profile.coachName ?? 'Coach');
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  const engaged = hovered || focused;
-  useEffect(() => { if (!updated) { setHovered(false); setFocused(false); } }, [updated]);
+  const [expanded, setExpanded] = useState(false);
+  const engaged = hovered || focused || expanded;
+  useEffect(() => { setExpanded(false); if (!updated) { setHovered(false); setFocused(false); } }, [id, updated]);
 
   // The marker stays until dismissed, or for a while after the athlete has actually looked at the view.
   useEffect(() => {
@@ -31,13 +32,19 @@ export function ViewScreen({ view, params, active }: { view: PublishedView; para
   return (
     <div className="view-screen">
       {updated && (
-        <div className="view-update-notice" role="status" aria-label={t('View updated')}
+        <div className={`view-update-notice${expanded ? ' expanded' : ''}`} role="status" aria-label={t('View updated')}
           onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)}
           onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
           <span className="view-update-icon" aria-hidden="true"><Icon name="check" size={17} /></span>
-          <div className="view-update-copy"><strong>{t('Updated by')} {coachName}</strong>
-            {updated.summary && <p>{updated.summary}</p>}
-          </div>
+          {updated.summary ? (
+            <details className="view-update-copy" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
+              <summary className="view-update-disclosure">
+                <span><strong>{t('Updated by')} {coachName}</strong><span className="view-update-summary">{updated.summary}</span></span>
+                <Icon name="chevron" size={16} />
+              </summary>
+              <p tabIndex={0} role="region" aria-label={t('Update details')}>{updated.summary}</p>
+            </details>
+          ) : <div className="view-update-copy"><strong>{t('Updated by')} {coachName}</strong></div>}
           <button type="button" className="view-update-history" aria-label={t('View history')} onClick={() => {
             clearUpdated(id); navigate({ name: 'settings', section: 'history' });
           }}><Icon name="clock" size={17} /><span>{t('History')}</span></button>

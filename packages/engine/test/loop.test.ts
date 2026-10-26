@@ -196,6 +196,23 @@ describe('agent loop: tool execution', () => {
 });
 
 describe('agent loop: steering and beforeStep [RT-3]', () => {
+  it('awaits asynchronous boundary work before requesting the next model step [SUB-1] [RT-1]', async () => {
+    const p = scripted([{ toolCalls: [{ name: 'echo', input: {} }] }, { text: 'finished' }]);
+    let enter!: () => void;
+    const entered = new Promise<void>(resolve => { enter = resolve; });
+    let release!: () => void;
+    const ready = new Promise<void>(resolve => { release = resolve; });
+    const turn = loop.runTurn(baseInput({
+      route: [resolved(p)], tools: fakeTools({ echo: () => 'ok' }),
+      beforeStep: async () => { enter(); await ready; return [{ kind: 'harness', text: 'Workspace handoff applied.' }]; },
+    }));
+    await entered;
+    expect(p.requests).toHaveLength(1);
+    release();
+    await turn;
+    expect(p.requests[1]?.items.at(-1)).toEqual({ kind: 'harness', text: 'Workspace handoff applied.' });
+  });
+
   it('injects steering items at the tool boundary, before the next model call', async () => {
     const p = scripted([{ toolCalls: [{ name: 'echo', input: {} }] }, { text: 'answered both' }]);
     let drained = 0;

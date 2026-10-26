@@ -16,6 +16,62 @@ function coachDone(req: Parameters<Parameters<Harness['setHandler']>[0]>[0]) {
 }
 
 describe('helper worktree isolation [SUB-3] [SEC-2]', () => {
+  it('hands off a finished background helper between tool batches before the parent turn ends [SUB-1] [RT-1]', async () => {
+    const id = await athlete();
+    const mind = h!.runtime.core.minds.get(id);
+    const exclusive = mind.runExclusive.bind(mind);
+    let mainStarted = false;
+    let queued = false;
+    let ready!: () => void;
+    const helperQueued = new Promise<void>(resolve => { ready = resolve; });
+    vi.spyOn(mind, 'runExclusive').mockImplementation(<T>(fn: () => Promise<T>): Promise<T> => {
+      if (mainStarted && !queued) { queued = true; ready(); }
+      return exclusive(fn);
+    });
+    let stage = 0;
+    let taskId = '';
+    let parentTurnId: string | undefined;
+    let observedDuringParent = false;
+    h!.setHandler(async req => {
+      const text = lastUserText(req);
+      if (text.includes('BOUNDARY_HELPER_FIXTURE')) {
+        return lastItemKind(req) === 'tool_results'
+          ? { text: 'Scoped draft ready.' }
+          : { toolCalls: [{ name: 'write', input: { path: 'plan/drafts/boundary.md', content: 'from helper' } }] };
+      }
+      if (text.includes('start-boundary-head')) parentTurnId = req.metadata?.turnId;
+      if (!parentTurnId || req.metadata?.turnId !== parentTurnId) return { text: 'Follow-up complete.' };
+      mainStarted = true;
+      switch (stage++) {
+        case 0: return { toolCalls: [{ name: 'spawn_agent', input: { task: 'BOUNDARY_HELPER_FIXTURE', tools: ['write'], write_scope: ['plan/drafts/**'], background: true } }] };
+        case 1:
+          await helperQueued;
+          taskId = (await h!.runtime.core.store.listTasks(id))[0]!.id;
+          expect((await h!.runtime.core.helpers.status(id, taskId))?.state).toBe('running');
+          // The helper became ready while this model call was in flight. Its merge must wait for this tool batch.
+          await expect(readFile(join(h!.runtime.core.paths(id).workspace, 'plan/drafts/boundary.md'))).rejects.toMatchObject({ code: 'ENOENT' });
+          return { toolCalls: [{ name: 'read', input: { path: 'athlete/profile.md' } }] };
+        case 2:
+          expect(lastUserText(req)).toContain('task.completed');
+          expect(lastUserText(req)).toContain('Scoped draft ready.');
+          expect((await h!.runtime.core.helpers.status(id, taskId))?.state).toBe('done');
+          expect(await readFile(join(h!.runtime.core.paths(id).workspace, 'plan/drafts/boundary.md'), 'utf8')).toBe('from helper');
+          expect((await h!.runtime.core.store.listTurns({ athleteId: id, agent: 'coach' }))[0]?.status).toBe('running');
+          observedDuringParent = true;
+          return { toolCalls: [{ name: 'write', input: { path: 'plan/drafts/boundary.md', content: 'newer parent edit' } }] };
+        case 3: return send('Used the completed helper result.');
+        default: return { text: 'done' };
+      }
+    });
+    await h!.runtime.ingest(id, { type: 'user.message', payload: { text: 'start-boundary-head' } });
+    await h!.settle(id);
+    expect(observedDuringParent).toBe(true);
+    // The queued idle-lock fallback must not apply the same handoff a second time after the parent exits.
+    expect(await readFile(join(h!.runtime.core.paths(id).workspace, 'plan/drafts/boundary.md'), 'utf8')).toBe('newer parent edit');
+    expect((await h!.events(id, ['task.completed'])).filter(e => e.type === 'task.completed' && e.payload.taskId === taskId)).toHaveLength(1);
+    expect(h!.runtime.core.helpers.runningCount(id)).toBe(0);
+  });
+
   it('does not merge or remove a worktree if its sandbox cannot be stopped [SEC-6]', async () => {
     const id = await athlete();
     vi.spyOn(h!.runtime.core.deps.sandbox, 'release').mockRejectedValue(new Error('helper sandbox still running'));

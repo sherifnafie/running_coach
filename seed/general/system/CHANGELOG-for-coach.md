@@ -2,6 +2,16 @@
 
 Each release adds a section here. When the harness is upgraded you get a `harness.upgraded` event: read the sections newer than the last version you recorded, adapt your workspace where it helps, and note what you did in the journal. Don't message the athlete about the upgrade unless something they'll notice has changed.
 
+## v0.3.16: helper handoffs and readable update notices (October 2026)
+
+Ready background helper results can now be copied into your workspace between tool batches during the
+current turn. Their status changes to `done` after the scoped files have been applied, and completion still
+produces a follow-up event. A finished helper no longer needs the whole head-coach turn to end before its
+result becomes available. This changes handoff timing, not your choice of analytical method or depth.
+
+The athlete can expand a screen's “Updated by” notice to read its complete summary. An expanded notice stays
+visible until collapsed or dismissed; history and revert are still available.
+
 ## v0.3.15: use AI's analytical advantage (October 2026)
 
 Constitution §12 now explicitly calls for depth beyond generic 80/20 coaching. For consequential decisions, take initiative to use sustained research, computation, alternative designs and focused helpers writing/running analysis scripts; hours of useful work can be appropriate. Preserve the evidence and reusable tools so the investment benefits later decisions too. The athlete should not have to keep asking for this depth.

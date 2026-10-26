@@ -363,10 +363,11 @@ export class TurnRunner {
         cacheKey: athleteId,
         signal: abort.signal,
         onEvent,
-        beforeStep: ({ step }) =>
-          step === limits.maxSteps - 3
-            ? [{ kind: 'harness', text: `You have 3 steps left in this turn.${replyRequired && !msgState.replied ? ' Make sure the athlete gets your reply now.' : ' Wrap up.'}` }]
-            : undefined,
+        beforeStep: async ({ step }) => {
+          const handoffs: ConvItem[] = await mind.flushBoundaryWork();
+          if (step === limits.maxSteps - 3) handoffs.push({ kind: 'harness', text: `You have 3 steps left in this turn.${replyRequired && !msgState.replied ? ' Make sure the athlete gets your reply now.' : ' Wrap up.'}` });
+          return handoffs;
+        },
       });
       await persist(result.newItems);
       totalCost += result.costUsd;
@@ -394,6 +395,7 @@ export class TurnRunner {
           signal: abort.signal,
           onEvent,
           steering,
+          beforeStep: () => mind.flushBoundaryWork(),
         });
         await persist(r2.newItems);
         totalCost += r2.costUsd;

@@ -423,6 +423,9 @@ sequenceDiagram
   Helpers work in separate Git worktrees. The harness copies only permitted regular files back into the parent's workspace; nested scopes intersect ancestor grants. A foreground helper receives a consistent copy of `coach.db`, merged back only if the database is explicitly within scope. Git metadata stays read-only in tool execution.
 - `[SUB-4]` Limits: depth ≤ 2, ≤ 4 concurrent per athlete, a per-helper budget.
 - `[SUB-5]` A background helper returns a `task_id` immediately. Completion emits `task.completed`, which triggers a follow-up turn. If the task traces back to an athlete request, the coach's resulting message counts as a reply (not proactive).
+  Ready handoffs into the head coach's workspace run at the next safe tool boundary or under the idle mind's lock.
+  They must not wait for the entire active turn to finish; status changes to `done` only after permitted files
+  have been applied. Handoffs cannot overlap a model call or an executing tool batch [RT-1] [SUB-3].
 - **Seed profiles** (Appendix D), all coach-editable:
 
 | Profile | Purpose | Default tier |
@@ -671,7 +674,7 @@ The bridge provides: `coach.db.query(sql, params)` (read-only connection, row ca
    Each variant uses isolated preview data; bridge writes execute with live validation semantics on a throwaway copy and report their outcome (ADR 0014).
 3. **Runtime checks:** zero uncaught errors and CSP violations; first render < 1.5 s on 4× CPU throttling; bundle ≤ 500 KB excluding the kit; axe-core: no *critical* accessibility violations (serious ones are warnings in v1).
 4. **Screenshots returned to the coach** for visual self-review. The coach is expected to look at them.
-5. **Atomic publish:** git tag `ui/<id>@<n>`. The client receives `coach.ui_published` and shows a subtle "Updated by your coach" marker. `[UI-1]` Unchanged effective bundles (including inherited shared UI files) do not create new versions or update alerts, even when explicitly selected. Chat groups adjacent screen publications from a turn into one compact, expandable entry; the summary is not repeated for every screen. Full summaries, screen links and per-screen history/revert remain accessible. Historical event records are preserved.
+5. **Atomic publish:** git tag `ui/<id>@<n>`. The client receives `coach.ui_published` and shows a subtle "Updated by your coach" marker. `[UI-1]` Unchanged effective bundles (including inherited shared UI files) do not create new versions or update alerts, even when explicitly selected. Chat groups adjacent screen publications from a turn into one compact, expandable entry; the summary is not repeated for every screen. A truncated marker expands in place by touch or keyboard and stays visible while expanded. Full summaries, screen links and per-screen history/revert remain accessible. Historical event records are preserved.
 6. **Last-known-good:** a view that fails to start falls back to the previous version and reports `ui.error`. Errors after a successful start are reported but do not swap the running view underneath the athlete. The coach judges repair or rollback from the actual error and state (ADR 0014).
 
 - `[UI-3]` After any `coach.db` migration, all views that read the changed tables MUST be re-validated. Failures are reported to the coach in the same turn.

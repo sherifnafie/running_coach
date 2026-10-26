@@ -24,6 +24,7 @@ import { openWorkspaceGit } from '@opencoach/workspace';
 import type { Core } from './core';
 import { capabilityLines, unavailableTools } from './capabilities';
 import { createExecutor } from './executor';
+import { buildTriggerItem } from './render';
 import { formatLocal } from './time';
 
 const exec = promisify(execFile);
@@ -168,17 +169,21 @@ export class HelperManager {
       void (async () => {
         try {
           const r = await job();
-          if (parent.workspaceDir) await r.copyBack();
-          else await core.minds.get(parent.athleteId).runExclusive(() => r.copyBack());
-          if (r.incomplete) throw new ToolError('LIMIT', incompleteMessage(r.incomplete, r.outputs));
-          await core.store.updateTask(taskId, { state: 'done', endedAt: core.clock.now().toISOString(), summary: r.summary, outputs: r.outputs, costUsd: r.costUsd });
-          const e = await core.store.appendEvent({
-            athleteId: parent.athleteId,
-            type: 'task.completed',
-            actor: 'helper',
-            payload: { taskId, profile: input.profile, summary: r.summary || '(no summary)', outputs: r.outputs, originEventId: parent.originEventId },
-          });
-          core.minds.get(parent.athleteId).enqueue(e, 'followup');
+          const complete = async () => {
+            await r.copyBack();
+            if (r.incomplete) throw new ToolError('LIMIT', incompleteMessage(r.incomplete, r.outputs));
+            await core.store.updateTask(taskId, { state: 'done', endedAt: core.clock.now().toISOString(), summary: r.summary, outputs: r.outputs, costUsd: r.costUsd });
+            const e = await core.store.appendEvent({
+              athleteId: parent.athleteId,
+              type: 'task.completed',
+              actor: 'helper',
+              payload: { taskId, profile: input.profile, summary: r.summary || '(no summary)', outputs: r.outputs, originEventId: parent.originEventId },
+            });
+            core.minds.get(parent.athleteId).enqueue(e, 'followup');
+            return buildTriggerItem([e], [], { tz: r.tz });
+          };
+          if (parent.workspaceDir) await complete();
+          else await core.minds.get(parent.athleteId).atToolBoundary(complete);
         } catch (err) {
           const cancelled = abort.signal.aborted;
           await core.store.updateTask(taskId, { state: cancelled ? 'cancelled' : 'failed', endedAt: core.clock.now().toISOString(), error: (err as Error).message });
@@ -261,7 +266,7 @@ export class HelperManager {
     inputs: string[];
     route: ResolvedModel[];
     abort: AbortController;
-  }): Promise<{ summary: string; outputs: string[]; discarded: string[]; costUsd: number; copyBack: () => Promise<void>; incomplete?: string }> {
+  }): Promise<{ summary: string; outputs: string[]; discarded: string[]; costUsd: number; copyBack: () => Promise<void>; incomplete?: string; tz: string }> {
     const core = this.core;
     const { parent, taskId } = a;
     const paths = core.paths(parent.athleteId);
@@ -467,7 +472,7 @@ export class HelperManager {
         }
       };
       const summary = result.finalText.trim();
-      return { summary, outputs, discarded, costUsd, copyBack, incomplete };
+      return { summary, outputs, discarded, costUsd, copyBack, incomplete, tz: settings.profile.tz };
     } catch (e) {
       await cleanup();
       throw e;

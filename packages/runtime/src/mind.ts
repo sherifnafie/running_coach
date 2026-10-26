@@ -1,4 +1,4 @@
-import type { AnyEvent, TriggerClass } from '@opencoach/protocol';
+import type { AnyEvent, TriggerClass, UserItem } from '@opencoach/protocol';
 import type { Core } from './core';
 
 /**
@@ -26,6 +26,7 @@ export class AthleteMind {
   private inTurn: { cls: TriggerClass } | null = null;
   private debounce: { first: number; last: number; timer: AbortController } | null = null;
   private lock: Promise<unknown> = Promise.resolve();
+  private boundaryWork = new Set<() => Promise<UserItem | undefined>>();
   private idleWaiters: Array<() => void> = [];
 
   constructor(
@@ -74,6 +75,32 @@ export class AthleteMind {
     const p = this.lock.then(fn, fn);
     this.lock = p.catch(() => undefined);
     return p;
+  }
+
+  /** Apply a ready workspace handoff at the next safe tool boundary, or under the idle mind's lock. */
+  atToolBoundary(fn: () => Promise<UserItem | void>): Promise<void> {
+    let resolve!: () => void;
+    let reject!: (error: unknown) => void;
+    const done = new Promise<void>((res, rej) => { resolve = res; reject = rej; });
+    const apply = async () => {
+      if (!this.boundaryWork.delete(apply)) return;
+      try { const note = await fn(); resolve(); return note || undefined; }
+      catch (error) { reject(error); }
+    };
+    this.boundaryWork.add(apply);
+    // If a turn owns the lock it drains this work itself between tool batches. This queued fallback is then a no-op.
+    void this.runExclusive(apply);
+    return done;
+  }
+
+  /** Caller holds this mind's lock; all tools from the preceding batch have finished. */
+  async flushBoundaryWork(): Promise<UserItem[]> {
+    const notes: UserItem[] = [];
+    for (const apply of [...this.boundaryWork]) {
+      const note = await apply();
+      if (note) notes.push(note);
+    }
+    return notes;
   }
 
   /** Resolves when the mind has nothing queued and no turn running (tests, sims). */

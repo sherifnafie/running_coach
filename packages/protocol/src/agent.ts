@@ -57,8 +57,9 @@ export interface RunTurnInput {
   /**
    * Called before each model call after the first; may return extra harness items to append
    * (e.g. "you are near the step limit" or reply reminders). Must be append-only.
+   * Async hooks finish before the next model call, allowing serialized workspace handoffs between tool batches.
    */
-  beforeStep?: (info: { step: number; elapsedMs: number; costUsd: number; items: ConvItem[] }) => ConvItem[] | undefined;
+  beforeStep?: (info: { step: number; elapsedMs: number; costUsd: number; items: ConvItem[] }) => ConvItem[] | undefined | Promise<ConvItem[] | undefined>;
   /** Sleep function for retry backoff (inject for tests). Defaults to setTimeout. */
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
   /** Max retries per model before falling back (default 2). */

@@ -5,13 +5,15 @@ history in commits, ADRs and the coach changelog, not here.
 
 ## State
 
-Phase 1 (MVP) and most of Phase 2 are implemented. Production is on **0.3.15** (harness and `general` pack).
-The constitution explicitly emphasizes AI's sustained analytical advantage beyond generic 80/20 coaching,
-including hours of useful research/computation and focused helpers writing analysis scripts. It retains the
-goal-adequacy/early-assessment standard, helper traces and release-aware context from 0.3.14
-([ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md)). Context/protocol checks (19 tests), typecheck,
-build and live loading of the new constitution pass. The broader unit/web/browser checks were last run on
-0.3.14. Eval runs remain deferred at the owner's request, so coaching effectiveness is unverified.
+Phase 1 (MVP) and most of Phase 2 are implemented. Production is on harness **0.3.15** and `general` pack **0.3.15**.
+Harness **0.3.16** is prepared: completed background helpers hand off at safe tool boundaries during the parent
+turn ([ADR 0017](adr/0017-tool-boundary-helper-handoffs.md)), and truncated view-update notices expand in place,
+stay visible while open and allow long summaries to scroll. Workspace isolation, single-flight and task completion
+after copy-back remain enforced. The constitution retains sustained analytical depth beyond generic 80/20
+coaching and the goal-adequacy standard ([ADR 0015](adr/0015-coaching-judgment-without-time-pressure.md)).
+The full root suite (837 tests plus 5 renderer tests), final runtime/engine regression checks (144), web unit
+tests (199), real Chrome gateway checks (18), and typecheck pass. Paid coaching evals remain deferred at the
+owner's request; mechanism tests do not establish coaching effectiveness.
 
 | Area | State |
 |---|---|
@@ -39,7 +41,7 @@ This is integration evidence, not full [MOD-2] conformance or demonstrated coach
 
 The owner's instance runs from `~/opencoach-prod` on a home server (`ops/`, [self-hosting](self-hosting.md#small-home-instance)),
 reachable through Tailscale Funnel, with three athletes. Chat goes through one deployment OpenRouter key; the owner
-chooses their own model (currently DeepSeek V4.1 Flash 1017; also tried GPT-6.1 Sol on 2026-10-15). That key has a
+chooses their own model (selected GPT-6.1 Terra on 2026-10-26; deployment defaults remain DeepSeek V4.1 Flash 1017). That key has a
 lifetime spending limit set in the OpenRouter dashboard: when it runs out every turn fails with a 403 and athletes see
 "the provider refused the key". Check it with `GET https://openrouter.ai/api/v1/key` before suspecting the harness.
 SearXNG runs on localhost and is connected to production; general and scholarly searches have returned results
