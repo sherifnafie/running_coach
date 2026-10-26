@@ -43,6 +43,12 @@ describe('priceFor [COST-4]', () => {
   it('matches dated model ids to their alias', () => {
     expect(priceFor('claude-haiku-4-5-20251001', U({ inputTokens: 1_000_000 }), { 'claude-haiku-4-5': { inputPerMTok: 1, outputPerMTok: 5 } })).toBeCloseTo(1, 10);
   });
+
+  it('accounts for Terra input, cache writes/reads and output without changing reported charges [COST-4]', () => {
+    const usage = U({ inputTokens: 100_000, cachedInputTokens: 1_000_000, cacheWriteTokens: 20_000, outputTokens: 10_000 });
+    expect(priceFor('openai/gpt-6.1-terra', usage)).toBeCloseTo(0.1 + 0.05 + 0.025 + 0.05, 10);
+    expect(priceFor('openai/gpt-6.1-terra', { ...usage, costUsd: 0.031 })).toBe(0.031);
+  });
 });
 
 // ------------------------------------------------------------------ router

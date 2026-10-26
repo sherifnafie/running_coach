@@ -47,6 +47,16 @@ describe('OpenCode GO compatible configuration [RT-7] [SEC-1]', () => {
     expect(renamed.config.models?.tiers.coach.model).toBe('z-ai/glm-5.3-flash');
   });
 
+  it('allows Terra for chat and deep work through the existing OpenRouter configuration [MOD-1]', async () => {
+    const { path, dir } = await configFile('providers:\n  openrouter:\n    defaultModel: openai/gpt-6.1-terra\n    deepModel: openai/gpt-6.1-terra\n');
+    const loaded = loadConfigDetailed({ path, cwd: dir, env: { OPENROUTER_API_KEY: 'sk-or-synthetic' } });
+    expect(loaded.config.models?.tiers).toMatchObject({
+      coach: { provider: 'openrouter', model: 'openai/gpt-6.1-terra' },
+      deep: { provider: 'openrouter', model: 'openai/gpt-6.1-terra', effort: 'high' },
+    });
+    expect(loaded.config.providers.openrouter?.routing).toMatchObject({ dataCollection: 'deny', requireParameters: true });
+  });
+
   it('rejects malformed headers and excludes credential/header values from configuration diagnostics', async () => {
     expect(CompatibleProviderConfig.safeParse({ id: 'x', baseUrl: 'https://example.com', sessionHeader: 'bad\nheader' }).success).toBe(false);
     expect(CompatibleProviderConfig.safeParse({ id: 'x', baseUrl: 'https://example.com', headers: { 'User-Agent': 'bad\r\nheader' } }).success).toBe(false);

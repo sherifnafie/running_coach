@@ -45,9 +45,18 @@ The catalog lists the models the settings picker offers, with their capabilities
 | `z-ai/glm-5.3-flash` | Similar cost, by far the lowest hallucination rate in its class; slower replies. |
 | `xiaomi/mimo-v2.6-pro` | Strongest reasoning on a budget; slow to start answering. |
 | `google/gemini-3.8-flash` | Fast all-rounder, best screenshot reading; about 5x the default cost. |
+| `openai/gpt-6.1-terra` | Optional OpenAI model for visual reasoning and writing; half Sol's standard token prices. Coaching comparisons remain pending. |
 | `openai/gpt-6.1-sol` | Premium knowledge and quick replies; about 10x the default cost. |
 
 Override the list with `providers.openrouter.models` and the default with `providers.openrouter.defaultModel`. Provider routing defaults to `dataCollection: deny` (no hosts that store or train on prompts) and `requireParameters: true`; DeepSeek pins fp8-or-better hosts so prompt caching keeps hitting, and Claude models switch on OpenRouter's request-level prompt caching. Set `routing` for stricter rules, e.g. `zdr: true`.
+
+GPT-6.1 Terra is available in both the coach and deep-work pickers; adding it does not change existing choices
+or defaults. Its standard OpenAI endpoint is pinned without provider fallback. OpenRouter handles the upstream
+tool API translation: the existing Chat Completions adapter was checked with synthetic tool continuations,
+image extraction, mid-loop steering, cache hits and reported charges. No native OpenAI adapter is required.
+The catalog exposes low through max reasoning and retains the harness's 32,768-token output cap. Standard
+fallback prices per million tokens are $1 input, $5 output, $0.05 cache reads and $1.25 cache writes;
+provider-reported charges take precedence. Full conformance and coaching-quality evaluations remain pending.
 
 ```yaml
 providers:

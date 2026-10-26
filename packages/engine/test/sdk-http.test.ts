@@ -153,4 +153,36 @@ describe('OpenRouter adapter on the real SDK (fake fetch) [MOD-4]', () => {
     expect(sent(1)).not.toHaveProperty('reasoning_details');
     expect(r.seen[1]?.body).not.toHaveProperty('reasoning');
   });
+
+  it('routes Terra vision/tool turns with all supported efforts and replays opaque reasoning [MOD-1] [MOD-4]', async () => {
+    const model = 'openai/gpt-6.1-terra';
+    const details = [{ type: 'reasoning.encrypted', data: 'opaque-provider-state', id: 'reasoning_1', format: 'openai-responses-v1', index: 0 }];
+    const r = recorder(() => sse([
+      chunk({ reasoning_details: details }),
+      chunk({ tool_calls: [{ index: 0, id: 'terra_call', type: 'function', function: { name: 'echo', arguments: '{"n":7}' } }] }),
+      chunk({}, 'tool_calls'),
+      { data: { id: 'c', object: 'chat.completion.chunk', created: 0, model, choices: [], usage: {
+        prompt_tokens: 2000, completion_tokens: 60, cost: 0.001675,
+        prompt_tokens_details: { cached_tokens: 1000, cache_write_tokens: 500 },
+      } } },
+    ], 'data: [DONE]\n\n'));
+    const client = new OpenAI({ apiKey: 'k', baseURL: 'https://openrouter.ai/api/v1', fetch: r.fetch, maxRetries: 0 });
+    const provider = createOpenRouterProvider({ apiKey: 'k', models, routing: { dataCollection: 'deny', requireParameters: true } }, { client });
+    const image = { kind: 'user' as const, parts: [{ type: 'text' as const, text: 'Read this workout.' }, { type: 'image' as const, mediaType: 'image/png' as const, data: 'c3ludGhldGljLWZpeHR1cmU=' }] };
+    const tools = [{ name: 'echo', description: 'fixture', inputSchema: { type: 'object', properties: { n: { type: 'number' } }, required: ['n'] } }];
+    const out = await drain(provider.stream(req({ model, items: [image], tools, effort: 'max' })));
+    const end = endOf(out);
+    expect(provider.capabilities(model)).toMatchObject({ vision: true, maxContextTokens: 1_050_000, maxOutputTokens: 32_768, efforts: ['low', 'medium', 'high', 'xhigh', 'max'] });
+    expect(r.seen[0]?.body).toMatchObject({
+      model, reasoning: { effort: 'max' },
+      provider: { data_collection: 'deny', require_parameters: true, order: ['openai'], allow_fallbacks: false },
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Read this workout.' }, { type: 'image_url', image_url: { url: 'data:image/png;base64,c3ludGhldGljLWZpeHR1cmU=' } }] }],
+    });
+    expect(end).toMatchObject({ stopReason: 'tool_use', usage: { inputTokens: 500, cachedInputTokens: 1000, cacheWriteTokens: 500, outputTokens: 60, costUsd: 0.001675 }, item: { model, raw: { reasoning_details: details } } });
+    await drain(provider.stream(req({ model, tools, effort: 'high', items: [image, end.item, { kind: 'tool_results', results: [{ callId: 'terra_call', name: 'echo', isError: false, content: [{ type: 'text', text: '7' }] }] }] })));
+    const replay = (r.seen[1]?.body.messages as Array<Record<string, unknown>>).find(m => m.role === 'assistant');
+    expect(replay?.reasoning_details).toEqual(details);
+    expect(r.seen[1]?.body).toMatchObject({ reasoning: { effort: 'high' } });
+    expect(r.seen[0]?.body).not.toHaveProperty('temperature');
+  });
 });

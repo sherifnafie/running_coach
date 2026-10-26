@@ -30,9 +30,16 @@ build and live loading of the new constitution pass. The broader unit/web/browse
 
 ## Production
 
+**2026-10-26 model addition [MOD-1] [MOD-4] [COST-4]:** GPT-6.1 Terra is an optional OpenRouter catalog model
+for coach and deep work. DeepSeek V4.1 Flash 1017 remains the default; existing athlete selections are unchanged.
+Four synthetic calls through the real adapter verified tool-result continuation, image fields/units, preservation
+of missing RPE, mid-loop steering, prompt-cache hits and provider-reported billing (total $0.00973).
+Offline SDK tests cover opaque reasoning replay and privacy routing; config/pricing checks and typecheck pass.
+This is integration evidence, not full [MOD-2] conformance or demonstrated coaching quality; those remain pending.
+
 The owner's instance runs from `~/opencoach-prod` on a home server (`ops/`, [self-hosting](self-hosting.md#small-home-instance)),
 reachable through Tailscale Funnel, with three athletes. Chat goes through one deployment OpenRouter key; the owner
-chooses their own model (currently DeepSeek V4.1 Flash; also tried GPT-6.1 Sol on 2026-10-15). That key has a
+chooses their own model (currently DeepSeek V4.1 Flash 1017; also tried GPT-6.1 Sol on 2026-10-15). That key has a
 lifetime spending limit set in the OpenRouter dashboard: when it runs out every turn fails with a 403 and athletes see
 "the provider refused the key". Check it with `GET https://openrouter.ai/api/v1/key` before suspecting the harness.
 SearXNG runs on localhost and is connected to production; general and scholarly searches have returned results

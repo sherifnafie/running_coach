@@ -3,8 +3,9 @@ import type { ModelCatalogEntryInput } from '@opencoach/protocol';
 /**
  * Built-in OpenRouter catalog: the models the server offers in the model picker (SPEC §5.7, ADR 0007).
  *
- * Selection, checked 2026-10-07 against the Artificial Analysis leaderboard and the OpenRouter model API:
- * each entry calls tools and read a workout screenshot correctly through OpenRouter with `data_collection: deny`.
+ * Initial selection checked 2026-10-07 against the Artificial Analysis leaderboard and OpenRouter model API.
+ * Terra added 2026-10-26: synthetic tool continuation, image extraction, steering, caching and billing checked
+ * through OpenRouter with `data_collection: deny`. Full coaching/conformance evaluation remains pending.
  * Default since 2026-10-08: DeepSeek V4.1 Flash for chat and deep work, chosen by the operator; since 2026-10-17 its
  * 1017 snapshot (same price, same capabilities, checked live with the conformance suite).
  * Prices are OpenRouter list prices (USD per MTok) and are only a fallback: OpenRouter reports the charged
@@ -86,6 +87,18 @@ export const DEFAULT_OPENROUTER_CATALOG: ModelCatalogEntryInput[] = [
     maxOutputTokens: 32_768,
     efforts: ['low', 'medium', 'high'],
     pricing: { inputPerMTok: 0.75, outputPerMTok: 3.75, cacheReadPerMTok: 0.075 },
+  },
+  {
+    id: 'openai/gpt-6.1-terra',
+    label: 'GPT-6.1 Terra',
+    description: 'OpenAI option for visual reasoning and natural writing. Half GPT-6.1 Sol’s token prices; coaching quality has not been compared.',
+    vision: true,
+    contextTokens: 1_050_000,
+    maxOutputTokens: 32_768,
+    efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+    pricing: { inputPerMTok: 1, outputPerMTok: 5, cacheReadPerMTok: 0.05, cacheWritePerMTok: 1.25 },
+    // Use the standard endpoint, keeping cache routing and fallback prices predictable.
+    routing: { order: ['openai'], allowFallbacks: false },
   },
   {
     id: 'openai/gpt-6.1-sol',
